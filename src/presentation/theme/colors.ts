@@ -1,0 +1,17 @@
+export const COLORS = {
+  bg: '#111111',
+  card: '#1A1A1A',
+  sheet: '#1E1E1E',
+  elevated: '#242424',
+  gold: '#D4A843',
+  goldDim: 'rgba(212,168,67,0.15)',
+  white: '#FFFFFF',
+  gray: '#888888',
+  gray2: '#666666',
+  gray3: '#444444',
+  border: '#2A2A2A',
+  chipBorder: '#333333',
+  black: '#000000',
+  overlay: 'rgba(0,0,0,0.75)',
+  transparent: 'transparent',
+} as const;
