@@ -10,52 +10,53 @@ interface SubjectMoodFilterProps {
   onToggleMood: (m: string) => void;
 }
 
+const Chip = memo(({
+  label, selected, onPress,
+}: { label: string; selected: boolean; onPress: () => void }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.75}
+    style={[styles.chip, selected && styles.chipActive]}
+  >
+    <Text style={[styles.chipText, selected && styles.chipTextActive]}>{label}</Text>
+  </TouchableOpacity>
+));
+Chip.displayName = 'Chip';
+
 const SubjectMoodFilter = memo(({
   selectedSubjects, selectedMoods, onToggleSubject, onToggleMood,
 }: SubjectMoodFilterProps) => {
   return (
     <View style={styles.container}>
+      {/* 주제 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>주제</Text>
         <Text style={styles.sectionSubtitle}>무엇을 그릴 것인가?</Text>
         <View style={styles.chipGrid}>
-          {SUBJECTS.map((item) => {
-            const isSelected = selectedSubjects.includes(item);
-            return (
-              <TouchableOpacity
-                key={item}
-                onPress={() => onToggleSubject(item)}
-                activeOpacity={0.75}
-                style={[styles.chip, isSelected && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                  {item}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          {SUBJECTS.map((item) => (
+            <Chip
+              key={item}
+              label={item}
+              selected={selectedSubjects.includes(item)}
+              onPress={() => onToggleSubject(item)}
+            />
+          ))}
         </View>
       </View>
 
+      {/* 감성 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>감성</Text>
         <Text style={styles.sectionSubtitle}>어떤 느낌을 줄 것인가?</Text>
         <View style={styles.chipGrid}>
-          {MOODS.map((item) => {
-            const isSelected = selectedMoods.includes(item);
-            return (
-              <TouchableOpacity
-                key={item}
-                onPress={() => onToggleMood(item)}
-                activeOpacity={0.75}
-                style={[styles.chip, isSelected && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                  {item}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          {MOODS.map((item) => (
+            <Chip
+              key={item}
+              label={item}
+              selected={selectedMoods.includes(item)}
+              onPress={() => onToggleMood(item)}
+            />
+          ))}
         </View>
       </View>
     </View>
@@ -67,14 +68,12 @@ export default SubjectMoodFilter;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    gap: 8,
+    gap: 12,
   },
   section: {
     backgroundColor: COLORS.elevated,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
-    gap: 12,
   },
   sectionTitle: {
     color: COLORS.white,
@@ -86,19 +85,21 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontSize: 13,
     lineHeight: 18,
-    marginTop: -8,
+    marginTop: 3,
+    marginBottom: 14,
   },
   chipGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 9,
   },
   chip: {
-    borderRadius: 20,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.chipBorder,
+    backgroundColor: COLORS.sheet,
     paddingHorizontal: 16,
-    paddingVertical: 9,
+    paddingVertical: 13,
   },
   chipActive: {
     borderColor: COLORS.gold,
@@ -107,10 +108,11 @@ const styles = StyleSheet.create({
   chipText: {
     color: COLORS.white,
     fontSize: 14,
+    fontWeight: '500',
     lineHeight: 20,
   },
   chipTextActive: {
     color: COLORS.gold,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

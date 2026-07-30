@@ -1,7 +1,9 @@
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import { BellIcon, SearchIcon } from '../icons';
+
+const LOGO = require('../../../assets/logo.png');
 
 interface LogoHeaderProps {
   onBellPress?: () => void;
@@ -11,10 +13,11 @@ interface LogoHeaderProps {
 const LogoHeader = memo(({ onBellPress, onSearchPress }: LogoHeaderProps) => {
   return (
     <View style={styles.container}>
-      <View style={styles.logoRow}>
-        <Text style={styles.logoT}>T</Text>
-        <Text style={styles.logoRest}>:ROOT</Text>
-      </View>
+      <Image
+        source={LOGO}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <View style={styles.actions}>
         <TouchableOpacity
           onPress={onBellPress}
@@ -44,26 +47,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.bg,
+    paddingVertical: 10,
+    backgroundColor: COLORS.black,
   },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  logoT: {
-    color: COLORS.gold,
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: 0,
-    lineHeight: 30,
-  },
-  logoRest: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: 0,
-    lineHeight: 30,
+  logo: {
+    height: 30,
+    width: 110,
   },
   actions: {
     flexDirection: 'row',

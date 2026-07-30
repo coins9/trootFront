@@ -1,11 +1,13 @@
 import React, { memo } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import {
+  View, Text, Image, TouchableOpacity, StyleSheet,
+} from 'react-native';
 import { COLORS } from '../../theme/colors';
-import { LocationPinIcon, StarIcon } from '../icons';
+import { LocationPinIcon, StarIcon, PersonSilhouette } from '../icons';
 import { Artist } from '../../../domain/entities/types';
 
-const CARD_WIDTH = 148;
-const CARD_HEIGHT = 220;
+const CARD_WIDTH = 130;
+const IMAGE_HEIGHT = 172;
 
 interface ArtistCardProps {
   artist: Artist;
@@ -14,6 +16,10 @@ interface ArtistCardProps {
 }
 
 const ArtistCard = memo(({ artist, isActive, onPress }: ArtistCardProps) => {
+  const ratingCount = artist.reviewCount >= 1000
+    ? `${(artist.reviewCount / 1000).toFixed(1)}K`
+    : String(artist.reviewCount);
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -27,30 +33,33 @@ const ArtistCard = memo(({ artist, isActive, onPress }: ArtistCardProps) => {
             style={styles.image}
             resizeMode="cover"
           />
-        ) : null}
-        <View style={styles.gradient} />
+        ) : (
+          <View style={styles.placeholder}>
+            <PersonSilhouette size={64} color="#2e2e2e" />
+          </View>
+        )}
       </View>
       <View style={styles.info}>
         <Text style={styles.nickname} numberOfLines={1}>
           {artist.nickname}
         </Text>
         <View style={styles.locationRow}>
-          <LocationPinIcon size={11} color={COLORS.gray} />
-          <Text style={styles.location}>
+          <LocationPinIcon size={10} color={COLORS.gray} />
+          <Text style={styles.location} numberOfLines={1}>
             {artist.city} · {artist.district}
           </Text>
         </View>
         <View style={styles.chipsRow}>
           {artist.genres.slice(0, 2).map((g) => (
             <View key={g} style={styles.chip}>
-              <Text style={styles.chipText}>{g}</Text>
+              <Text style={styles.chipText} numberOfLines={1}>{g}</Text>
             </View>
           ))}
         </View>
         <View style={styles.ratingRow}>
-          <StarIcon size={13} color={COLORS.gold} filled />
+          <StarIcon size={11} color={COLORS.gold} filled />
           <Text style={styles.ratingText}>
-            {artist.rating} ({artist.reviewCount >= 1000 ? `${(artist.reviewCount / 1000).toFixed(1)}K` : artist.reviewCount})
+            {artist.rating} ({ratingCount})
           </Text>
         </View>
       </View>
@@ -64,43 +73,41 @@ export default ArtistCard;
 const styles = StyleSheet.create({
   container: {
     width: CARD_WIDTH,
-    borderRadius: 12,
+    borderRadius: 10,
     overflow: 'hidden',
     backgroundColor: COLORS.card,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: 'transparent',
   },
   containerActive: {
     borderColor: COLORS.gold,
   },
   imageWrapper: {
-    width: CARD_WIDTH,
-    height: 160,
-    position: 'relative',
+    width: '100%',
+    height: IMAGE_HEIGHT,
+    backgroundColor: COLORS.elevated,
   },
   image: {
     width: '100%',
     height: '100%',
   },
-  gradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: 'transparent',
+  placeholder: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 20,
   },
   info: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 8,
-    gap: 4,
+    gap: 3,
   },
   nickname: {
     color: COLORS.white,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    letterSpacing: 0.5,
-    lineHeight: 18,
+    letterSpacing: 0.3,
+    lineHeight: 17,
   },
   locationRow: {
     flexDirection: 'row',
@@ -109,13 +116,12 @@ const styles = StyleSheet.create({
   },
   location: {
     color: COLORS.gray,
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 10,
+    lineHeight: 14,
     flexShrink: 1,
   },
   chipsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 4,
     marginTop: 2,
   },
@@ -125,21 +131,22 @@ const styles = StyleSheet.create({
     borderColor: COLORS.chipBorder,
     paddingHorizontal: 6,
     paddingVertical: 2,
+    flexShrink: 1,
   },
   chipText: {
     color: COLORS.gray,
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 9,
+    lineHeight: 13,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: 3,
+    marginTop: 3,
   },
   ratingText: {
     color: COLORS.white,
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 10,
+    lineHeight: 14,
   },
 });

@@ -1,6 +1,6 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
 import {
-  View, Text, TextInput, StyleSheet, Dimensions,
+  View, Text, TextInput, StyleSheet,
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import DualRangeSlider from './DualRangeSlider';
@@ -15,9 +15,16 @@ interface BudgetFilterProps {
   onChangeBudget: (min: number, max: number) => void;
 }
 
+const formatWon = (value: number) => `${value.toLocaleString()}원`;
+
 const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilterProps) => {
   const [localMin, setLocalMin] = useState(budgetMin);
   const [localMax, setLocalMax] = useState(budgetMax);
+
+  useEffect(() => {
+    setLocalMin(budgetMin);
+    setLocalMax(budgetMax);
+  }, [budgetMin, budgetMax]);
 
   const handleSliderChange = useCallback((min: number, max: number) => {
     setLocalMin(min);
@@ -39,24 +46,8 @@ const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilte
     onChangeBudget(localMin, clamped);
   };
 
-  const formatLabel = (value: number) => {
-    if (value >= 10000) {
-      return `${Math.floor(value / 10000)}만원`;
-    }
-    return `${value.toLocaleString()}원`;
-  };
-
   return (
     <View style={styles.container}>
-      <View style={styles.labelsRow}>
-        <View style={styles.labelBubble}>
-          <Text style={styles.labelText}>{formatLabel(localMin)}</Text>
-        </View>
-        <View style={styles.labelBubble}>
-          <Text style={styles.labelText}>{formatLabel(localMax)}</Text>
-        </View>
-      </View>
-
       <DualRangeSlider
         min={localMin}
         max={localMax}
@@ -64,6 +55,7 @@ const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilte
         totalMin={MIN_PRICE}
         totalMax={MAX_PRICE}
         onChange={handleSliderChange}
+        formatLabel={formatWon}
       />
 
       <View style={styles.rangeLabels}>
@@ -81,6 +73,7 @@ const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilte
               onChangeText={handleMinInput}
               keyboardType="numeric"
               selectTextOnFocus
+              placeholderTextColor={COLORS.gray2}
             />
             <Text style={styles.inputSuffix}>원</Text>
           </View>
@@ -95,6 +88,7 @@ const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilte
               onChangeText={handleMaxInput}
               keyboardType="numeric"
               selectTextOnFocus
+              placeholderTextColor={COLORS.gray2}
             />
             <Text style={styles.inputSuffix}>원</Text>
           </View>
@@ -109,28 +103,12 @@ export default BudgetFilter;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  labelsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  labelBubble: {
-    backgroundColor: COLORS.elevated,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  labelText: {
-    color: COLORS.white,
-    fontSize: 13,
-    lineHeight: 18,
+    paddingTop: 4,
   },
   rangeLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
+    marginTop: 14,
   },
   rangeLabel: {
     color: COLORS.gray,
@@ -141,7 +119,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 12,
-    marginTop: 24,
+    marginTop: 26,
   },
   inputGroup: {
     flex: 1,
@@ -158,8 +136,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.chipBorder,
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: COLORS.elevated,
   },
   input: {
     flex: 1,
@@ -179,6 +158,6 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontSize: 16,
     lineHeight: 22,
-    marginBottom: 12,
+    marginBottom: 14,
   },
 });

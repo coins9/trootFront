@@ -1,15 +1,16 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
-  View, Text, Image, TouchableOpacity, ScrollView, FlatList,
+  View, Text, Image, TouchableOpacity, ScrollView,
   StyleSheet, Dimensions, StatusBar,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
   BackArrowIcon, ShareIcon, DotsIcon, StarIcon, LocationPinIcon,
-  BookmarkIcon, ShieldCheckIcon, LockIcon, ChevronDownIcon,
+  BookmarkIcon, ShieldCheckIcon, LockIcon, ChevronDownIcon, ChevronRightIcon,
+  CommentIcon, PersonSilhouette, TattooPlaceholderIcon,
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { MOCK_TATTOOS, PORTFOLIO_IMAGES } from '../../../data/mock/mockData';
@@ -17,8 +18,9 @@ import { Tattoo } from '../../../domain/entities/types';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
 
 const { width: W } = Dimensions.get('window');
-const COVER_HEIGHT = 180;
-const PORTFOLIO_COL_SIZE = (W - 4) / 3;
+const COVER_HEIGHT = 340;
+const PORTFOLIO_GAP = 2;
+const PORTFOLIO_COL_SIZE = (W - PORTFOLIO_GAP * 2) / 3;
 const GRID_GENRES = ['전체', '블랙앤그레이', '리얼리스틱', '포트레이트', '미니타투'];
 
 type ProfileRoute = RouteProp<RootStackParamList, 'ArtistProfile'>;
@@ -46,8 +48,9 @@ const ArtistProfileScreen = () => {
     [navigation],
   );
 
-  const renderPortfolioItem = ({ item, index }: { item: string; index: number }) => (
+  const renderPortfolioItem = (item: string, index: number) => (
     <TouchableOpacity
+      key={index}
       style={styles.portfolioItem}
       activeOpacity={0.85}
       onPress={() => {
@@ -58,143 +61,161 @@ const ArtistProfileScreen = () => {
       {item ? (
         <Image source={{ uri: item }} style={styles.portfolioImage} resizeMode="cover" />
       ) : (
-        <View style={[styles.portfolioImage, { backgroundColor: COLORS.card }]} />
+        <View style={styles.portfolioPlaceholder}>
+          <TattooPlaceholderIcon size={40} color="#2e2e2e" />
+        </View>
       )}
-      <View style={styles.portfolioBookmark}>
-        <BookmarkIcon size={14} color={COLORS.white} />
+      <View style={styles.multiIcon}>
+        <View style={styles.multiIconInner} />
       </View>
     </TouchableOpacity>
   );
 
-  const renderReviewSection = () => (
-    <View style={styles.reviewSection}>
-      <View style={styles.reviewCard}>
-        <View style={styles.reviewHeader}>
-          <View style={styles.ratingStars}>
-            {[1, 2, 3, 4, 5].map((s) => (
-              <StarIcon key={s} size={16} color={COLORS.gold} filled={s <= 5} />
-            ))}
-            <Text style={styles.reviewScore}>5.0</Text>
+  const renderReviewCard = () => (
+    <View style={styles.reviewCard}>
+      <View style={styles.ratingStars}>
+        {[1, 2, 3, 4, 5].map((s) => (
+          <StarIcon key={s} size={15} color={COLORS.gold} filled={s <= 5} />
+        ))}
+        <Text style={styles.reviewScore}>5.0</Text>
+      </View>
+      <Text style={styles.reviewMeta}>jh_**** | 2024.05.21</Text>
+      <View style={styles.reviewBody}>
+        <View style={styles.reviewTextBlock}>
+          <Text style={styles.reviewText}>
+            너무 만족스러워요! 상담 때부터 꼼꼼하게{'\n'}
+            설명해주셔서 믿음이 갔고, 결과물도{'\n'}
+            상상 이상입니다. 다음 타투도 민수님께 받을게요 :)
+          </Text>
+        </View>
+        <View style={styles.reviewImages}>
+          <View style={styles.reviewImage}>
+            <TattooPlaceholderIcon size={32} color="#2e2e2e" />
           </View>
-          <Text style={styles.reviewMeta}>jh_**** | 2024.05.21</Text>
+          <View style={styles.reviewImage}>
+            <TattooPlaceholderIcon size={32} color="#2e2e2e" />
+          </View>
         </View>
-        <Text style={styles.reviewText}>
-          너무 만족스러워요! 상담 때부터 꼼꼼하게{'\n'}
-          설명해주셔서 믿음이 갔고, 결과물도{'\n'}
-          상상 이상입니다. 다음 타투도 민수님께 받을게요 :)
-        </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewImages}>
-          {[0, 1].map((i) => (
-            <Image
-              key={i}
-              source={{ uri: `https://picsum.photos/seed/rev${i}/150/150` }}
-              style={styles.reviewImage}
-              resizeMode="cover"
-            />
-          ))}
-        </ScrollView>
-        <View style={styles.reviewDots}>
-          {[0, 1, 2, 3, 4].map((d) => (
-            <View key={d} style={[styles.reviewDot, d === 0 && styles.reviewDotActive]} />
-          ))}
-        </View>
+      </View>
+      <View style={styles.reviewDots}>
+        {[0, 1, 2, 3, 4].map((d) => (
+          <View key={d} style={[styles.reviewDot, d === 0 && styles.reviewDotActive]} />
+        ))}
       </View>
     </View>
   );
 
-  const renderInfoSection = () => (
-    <View style={styles.infoSection}>
-      <View style={styles.infoRow}>
-        <LocationPinIcon size={16} color={COLORS.gray} />
-        <View>
-          <Text style={styles.infoLabel}>활동 지역</Text>
-          <Text style={styles.infoValue}>{artist.city} · {artist.district}</Text>
-        </View>
-      </View>
-      <View style={styles.infoRow}>
-        <View style={styles.infoIconPlaceholder} />
-        <View>
-          <Text style={styles.infoLabel}>상담 가능 시간</Text>
-          <Text style={styles.infoValue}>{artist.availableHours}</Text>
-        </View>
-      </View>
-      <View style={styles.infoRow}>
-        <View style={styles.infoIconPlaceholder} />
-        <View>
-          <Text style={styles.infoLabel}>휴무일</Text>
-          <Text style={styles.infoValue}>{artist.closedDay}</Text>
+  const renderReviewsTab = () => (
+    <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+      {renderReviewCard()}
+    </View>
+  );
+
+  const renderInfoTab = () => (
+    <View style={styles.infoTab}>
+      <View style={styles.infoTabRow}>
+        <View style={styles.infoTabItem}>
+          <LocationPinIcon size={18} color={COLORS.gold} />
+          <View>
+            <Text style={styles.infoTabLabel}>활동 지역</Text>
+            <Text style={styles.infoTabValue}>{artist.city} · {artist.district}구</Text>
+          </View>
         </View>
       </View>
     </View>
   );
 
   return (
-    <View style={[styles.container, { paddingTop: 0 }]}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[1]}>
-        <View>
-          <View style={styles.coverWrapper}>
-            {artist.coverImage ? (
-              <Image
-                source={{ uri: artist.coverImage }}
-                style={styles.coverImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={[styles.coverImage, { backgroundColor: COLORS.card }]} />
-            )}
-            <View style={[styles.coverOverlay, { paddingTop: insets.top + 8 }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[1]}
+        style={styles.scroll}
+      >
+        {/* ── 상단 커버 + 프로필 헤더 (스크린샷3 목업 그대로) ── */}
+        <View style={styles.coverWrapper}>
+          {artist.coverImage ? (
+            <Image
+              source={{ uri: artist.coverImage }}
+              style={styles.coverImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.coverImage, styles.coverPlaceholder]} />
+          )}
+          <View style={styles.coverGradient} pointerEvents="none" />
+
+          {/* Top action buttons */}
+          <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.topBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <BackArrowIcon size={22} color={COLORS.white} />
+            </TouchableOpacity>
+            <View style={styles.topRight}>
               <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                style={styles.headerBtn}
+                style={styles.topBtn}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <BackArrowIcon size={22} color={COLORS.white} />
+                <ShareIcon size={22} color={COLORS.white} />
               </TouchableOpacity>
-              <View style={styles.headerRight}>
-                <TouchableOpacity style={styles.headerBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <ShareIcon size={22} color={COLORS.white} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.headerBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <DotsIcon size={22} color={COLORS.white} />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={styles.topBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <DotsIcon size={22} color={COLORS.white} />
+              </TouchableOpacity>
             </View>
           </View>
 
-          <View style={styles.profileSection}>
-            <View style={styles.profileAvatarWrapper}>
+          {/* Profile header — avatar + info side-by-side */}
+          <View style={styles.profileHeader}>
+            <View style={styles.avatarCircle}>
               {artist.profileImage ? (
                 <Image
                   source={{ uri: artist.profileImage }}
-                  style={styles.profileAvatar}
+                  style={styles.avatarImage}
                   resizeMode="cover"
                 />
-              ) : null}
+              ) : (
+                <PersonSilhouette size={68} color="#3a3a3a" />
+              )}
             </View>
-            <Text style={styles.nickname}>{artist.nickname}</Text>
-            <View style={styles.locationRow}>
-              <LocationPinIcon size={13} color={COLORS.gray} />
-              <Text style={styles.locationText}>{artist.city}·{artist.district}</Text>
+            <View style={styles.profileInfo}>
+              <Text style={styles.nickname}>{artist.nickname}</Text>
+              <View style={styles.locationRow}>
+                <LocationPinIcon size={13} color={COLORS.gray} />
+                <Text style={styles.locationText}>{artist.city} · {artist.district}</Text>
+              </View>
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <StarIcon size={13} color={COLORS.gold} filled />
+                  <Text style={styles.statValue}>{artist.rating}</Text>
+                  <Text style={styles.statLabelSmall}>(리뷰 {artist.reviewCount})</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItemStack}>
+                  <Text style={styles.statValueBig}>{artist.followerCount}</Text>
+                  <Text style={styles.statLabelSmall}>팔로워</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItemStack}>
+                  <Text style={styles.statValueBig}>{artist.totalSessions}</Text>
+                  <Text style={styles.statLabelSmall}>누적 시술</Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <StarIcon size={15} color={COLORS.gold} filled />
-                <Text style={styles.statValue}>{artist.rating}</Text>
-                <Text style={styles.statLabel}>(리뷰 {artist.reviewCount})</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{artist.followerCount}</Text>
-                <Text style={styles.statLabel}>팔로워</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{artist.totalSessions}</Text>
-                <Text style={styles.statLabel}>누적 시술</Text>
-              </View>
-            </View>
+          </View>
+        </View>
+
+        {/* Sticky tab bar wrapper (index 1) */}
+        <View style={styles.stickySection}>
+          {/* Specialty + Actions + Badges */}
+          <View style={styles.underCoverBlock}>
             <View style={styles.specialtiesRow}>
               {artist.specialties.map((s) => (
                 <View key={s} style={styles.specialtyChip}>
@@ -202,13 +223,18 @@ const ArtistProfileScreen = () => {
                 </View>
               ))}
             </View>
+
             <View style={styles.actionsRow}>
               <TouchableOpacity
                 onPress={() => setFollowing((v) => !v)}
                 style={[styles.followBtn, following && styles.followBtnActive]}
                 activeOpacity={0.8}
               >
-                <BookmarkIcon size={16} color={following ? COLORS.gold : COLORS.white} />
+                <BookmarkIcon
+                  size={16}
+                  color={following ? COLORS.gold : COLORS.white}
+                  filled={following}
+                />
                 <Text style={[styles.followText, following && styles.followTextActive]}>
                   {following ? '팔로잉' : '팔로우'}
                 </Text>
@@ -218,115 +244,145 @@ const ArtistProfileScreen = () => {
                 activeOpacity={0.85}
                 onPress={() => setBookingVisible(true)}
               >
+                <CommentIcon size={16} color={COLORS.black} strokeWidth={2} />
                 <Text style={styles.consultText}>1:1 예약 / 상담하기</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.badgesRow}>
-              {artist.isVerified && (
-                <View style={styles.badge}>
-                  <ShieldCheckIcon size={16} color={COLORS.gold} />
-                  <View style={styles.badgeTextGroup}>
-                    <Text style={styles.badgeTitle}>타투루트 인증 작가</Text>
-                    <Text style={styles.badgeSub}>신원 및 자격 검증 완료</Text>
-                  </View>
-                </View>
-              )}
-              {artist.isHygieneCertified && (
-                <View style={styles.badge}>
-                  <ShieldCheckIcon size={16} color={COLORS.gold} />
-                  <View style={styles.badgeTextGroup}>
-                    <Text style={styles.badgeTitle}>위생 안심 업소</Text>
-                    <Text style={styles.badgeSub}>위생 관리 기준 통과</Text>
-                  </View>
-                </View>
-              )}
-              {artist.hasDepositProtection && (
-                <View style={styles.badge}>
-                  <LockIcon size={16} color={COLORS.gold} />
-                  <View style={styles.badgeTextGroup}>
-                    <Text style={styles.badgeTitle}>예약금 보호제</Text>
-                    <Text style={styles.badgeSub}>예약금 100% 보호</Text>
-                  </View>
-                </View>
-              )}
+
+            {/* 3-column badge card */}
+            <View style={styles.badgeCard}>
+              <View style={styles.badgeCol}>
+                <ShieldCheckIcon size={18} color={COLORS.gold} />
+                <Text style={styles.badgeTitle}>타투루트 인증 작가</Text>
+                <Text style={styles.badgeSub}>신원 및 자격 검증 완료</Text>
+              </View>
+              <View style={styles.badgeDivider} />
+              <View style={styles.badgeCol}>
+                <ShieldCheckIcon size={18} color={COLORS.gold} />
+                <Text style={styles.badgeTitle}>위생 안심 업소</Text>
+                <Text style={styles.badgeSub}>위생 관리 기준 통과</Text>
+              </View>
+              <View style={styles.badgeDivider} />
+              <View style={styles.badgeCol}>
+                <LockIcon size={18} color={COLORS.gold} />
+                <Text style={styles.badgeTitle}>예약금 보호제</Text>
+                <Text style={styles.badgeSub}>예약금 100% 보호</Text>
+              </View>
             </View>
+          </View>
+
+          {/* Tab bar */}
+          <View style={styles.tabBar}>
+            {(['작품', '리뷰', '안내'] as TabType[]).map((tab) => {
+              const label = tab === '리뷰' ? `리뷰 ${artist.reviewCount}` : tab;
+              const isActive = activeTab === tab;
+              return (
+                <TouchableOpacity
+                  key={tab}
+                  style={[styles.tabItem, isActive && styles.tabItemActive]}
+                  onPress={() => setActiveTab(tab)}
+                >
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        <View style={styles.tabBar}>
-          {(['작품', `리뷰 ${artist.reviewCount}`, '안내'] as const).map((tab) => {
-            const tabKey = tab.includes('리뷰') ? '리뷰' : tab as TabType;
-            const isActive = activeTab === tabKey;
-            return (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.tabItem, isActive && styles.tabItemActive]}
-                onPress={() => setActiveTab(tabKey as TabType)}
-              >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {tab}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
+        {/* ── Content by tab ── */}
         {activeTab === '작품' && (
           <View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.genreFilter}
-            >
-              {GRID_GENRES.map((g) => (
-                <TouchableOpacity
-                  key={g}
-                  onPress={() => setActiveGenre(g)}
-                  style={[styles.genreChip, activeGenre === g && styles.genreChipActive]}
-                >
-                  <Text style={[styles.genreChipText, activeGenre === g && styles.genreChipTextActive]}>
-                    {g}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-              <View style={styles.sortBtn}>
+            <View style={styles.genreFilterRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.genreFilterContent}
+                style={{ flex: 1 }}
+              >
+                {GRID_GENRES.map((g) => {
+                  const isActive = activeGenre === g;
+                  return (
+                    <TouchableOpacity
+                      key={g}
+                      onPress={() => setActiveGenre(g)}
+                      style={[styles.genreChip, isActive && styles.genreChipActive]}
+                    >
+                      <Text style={[styles.genreChipText, isActive && styles.genreChipTextActive]}>
+                        {g}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              <TouchableOpacity style={styles.sortBtn}>
                 <Text style={styles.sortText}>최신순</Text>
                 <ChevronDownIcon size={12} color={COLORS.gray} />
-              </View>
-            </ScrollView>
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.portfolioGrid}>
-              {portfolioItems.map((item, idx) => (
-                <React.Fragment key={idx}>
-                  {renderPortfolioItem({ item, index: idx })}
-                </React.Fragment>
-              ))}
+              {portfolioItems.map((item, idx) => renderPortfolioItem(item, idx))}
             </View>
 
             {!showAllPortfolio && PORTFOLIO_IMAGES.length > 9 && (
               <TouchableOpacity
                 style={styles.showMoreBtn}
                 onPress={() => setShowAllPortfolio(true)}
+                activeOpacity={0.85}
               >
                 <Text style={styles.showMoreText}>더 많은 작품 보기</Text>
-                <ChevronDownIcon size={14} color={COLORS.gray} />
+                <ChevronDownIcon size={16} color={COLORS.gray} />
               </TouchableOpacity>
             )}
 
+            {/* 최신 리뷰 */}
             <View style={styles.latestReviewHeader}>
               <Text style={styles.latestReviewTitle}>최신 리뷰</Text>
               <TouchableOpacity style={styles.moreReviews}>
                 <Text style={styles.moreReviewsText}>더보기</Text>
-                <ChevronDownIcon size={13} color={COLORS.gray} />
+                <ChevronRightIcon size={13} color={COLORS.gray} />
               </TouchableOpacity>
             </View>
-            {renderReviewSection()}
+            <View style={{ paddingHorizontal: 16 }}>
+              {renderReviewCard()}
+            </View>
+
+            {/* 하단 정보 3컬럼 */}
+            <View style={styles.bottomInfoRow}>
+              <View style={styles.bottomInfoItem}>
+                <LocationPinIcon size={16} color={COLORS.gold} />
+                <View style={styles.bottomInfoTextGroup}>
+                  <Text style={styles.bottomInfoLabel}>활동 지역</Text>
+                  <Text style={styles.bottomInfoValue}>{artist.city} · {artist.district}구</Text>
+                </View>
+              </View>
+              <View style={styles.bottomInfoItem}>
+                <View style={styles.clockDot}>
+                  <View style={styles.clockRing} />
+                </View>
+                <View style={styles.bottomInfoTextGroup}>
+                  <Text style={styles.bottomInfoLabel}>상담 가능 시간</Text>
+                  <Text style={styles.bottomInfoValue}>{artist.availableHours}</Text>
+                </View>
+              </View>
+              <View style={styles.bottomInfoItem}>
+                <View style={styles.calendarDot}>
+                  <View style={styles.calendarInner} />
+                </View>
+                <View style={styles.bottomInfoTextGroup}>
+                  <Text style={styles.bottomInfoLabel}>휴무일</Text>
+                  <Text style={styles.bottomInfoValue}>{artist.closedDay}</Text>
+                </View>
+              </View>
+            </View>
           </View>
         )}
-        {activeTab === '리뷰' && renderReviewSection()}
-        {activeTab === '안내' && renderInfoSection()}
+        {activeTab === '리뷰' && renderReviewsTab()}
+        {activeTab === '안내' && renderInfoTab()}
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: insets.bottom + 24 }} />
       </ScrollView>
 
       <BookingBottomSheet
@@ -346,86 +402,116 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
+  scroll: {
+    flex: 1,
+  },
+
+  /* ── Cover section ── */
   coverWrapper: {
+    width: '100%',
     height: COVER_HEIGHT,
     position: 'relative',
+    backgroundColor: '#0a0a0a',
   },
   coverImage: {
     width: '100%',
-    height: COVER_HEIGHT,
+    height: '100%',
   },
-  coverOverlay: {
+  coverPlaceholder: {
+    backgroundColor: '#0a0a0a',
+  },
+  coverGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  topBar: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingBottom: 8,
   },
-  headerBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+  topBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerRight: {
+  topRight: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 4,
   },
-  profileSection: {
-    paddingHorizontal: 20,
-    paddingTop: 0,
-    paddingBottom: 16,
-    backgroundColor: COLORS.bg,
+
+  /* ── Profile header (avatar + info side-by-side) ── */
+  profileHeader: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: -40,
+    paddingHorizontal: 16,
+    gap: 14,
   },
-  profileAvatarWrapper: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
+  avatarCircle: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     overflow: 'hidden',
-    backgroundColor: COLORS.card,
-    borderWidth: 3,
-    borderColor: COLORS.bg,
-    marginBottom: 12,
+    backgroundColor: COLORS.elevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
-  profileAvatar: {
+  avatarImage: {
     width: '100%',
     height: '100%',
   },
+  profileInfo: {
+    flex: 1,
+    gap: 4,
+  },
   nickname: {
     color: COLORS.white,
-    fontSize: 22,
-    fontWeight: '700',
-    lineHeight: 28,
-    marginBottom: 4,
+    fontSize: 26,
+    fontWeight: '800',
+    lineHeight: 32,
+    letterSpacing: 0.5,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: 12,
+    marginTop: 1,
   },
   locationText: {
     color: COLORS.gray,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 17,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    marginBottom: 12,
+    gap: 10,
+    marginTop: 6,
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
+  },
+  statItemStack: {
+    alignItems: 'flex-start',
+    gap: 1,
   },
   statValue: {
     color: COLORS.white,
@@ -433,29 +519,45 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 20,
   },
-  statLabel: {
+  statValueBig: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 19,
+  },
+  statLabelSmall: {
     color: COLORS.gray,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 15,
   },
   statDivider: {
     width: 1,
-    height: 14,
-    backgroundColor: COLORS.border,
+    height: 26,
+    backgroundColor: COLORS.gray3,
+    opacity: 0.6,
+  },
+
+  /* ── Sticky section (specialty + actions + badges + tabs) ── */
+  stickySection: {
+    backgroundColor: COLORS.bg,
+  },
+  underCoverBlock: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    gap: 14,
   },
   specialtiesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 16,
-    justifyContent: 'center',
   },
   specialtyChip: {
     borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.chipBorder,
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
   },
   specialtyText: {
     color: COLORS.white,
@@ -464,9 +566,7 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     flexDirection: 'row',
-    gap: 10,
-    width: '100%',
-    marginBottom: 16,
+    gap: 8,
   },
   followBtn: {
     flex: 1,
@@ -474,30 +574,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 13,
+    paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.chipBorder,
+    borderColor: COLORS.gold,
+    backgroundColor: 'transparent',
   },
   followBtnActive: {
-    borderColor: COLORS.gold,
+    backgroundColor: COLORS.goldDim,
   },
   followText: {
-    color: COLORS.white,
+    color: COLORS.gold,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     lineHeight: 20,
   },
   followTextActive: {
     color: COLORS.gold,
   },
   consultBtn: {
-    flex: 2,
+    flex: 2.4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 13,
+    gap: 8,
+    paddingVertical: 14,
     borderRadius: 12,
     backgroundColor: COLORS.gold,
   },
@@ -507,37 +608,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 20,
   },
-  badgesRow: {
+
+  /* ── Badge card (3 columns) ── */
+  badgeCard: {
     flexDirection: 'row',
-    gap: 8,
-    width: '100%',
-  },
-  badge: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
     backgroundColor: COLORS.card,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    gap: 4,
+    borderRadius: 12,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  badgeTextGroup: {
+  badgeCol: {
+    flex: 1,
     alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
+  },
+  badgeDivider: {
+    width: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 4,
   },
   badgeTitle: {
     color: COLORS.white,
-    fontSize: 10,
-    fontWeight: '600',
-    lineHeight: 14,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
     textAlign: 'center',
   },
   badgeSub: {
     color: COLORS.gray,
-    fontSize: 9,
-    lineHeight: 13,
+    fontSize: 10,
+    lineHeight: 14,
     textAlign: 'center',
   },
+
+  /* ── Tab bar ── */
   tabBar: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -546,10 +652,10 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 15,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.transparent,
+    borderBottomWidth: 2.5,
+    borderBottomColor: 'transparent',
   },
   tabItemActive: {
     borderBottomColor: COLORS.gold,
@@ -564,22 +670,29 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: '700',
   },
-  genreFilter: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+
+  /* ── Genre sub-filter ── */
+  genreFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  genreFilterContent: {
     gap: 8,
     alignItems: 'center',
+    paddingRight: 8,
   },
   genreChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.chipBorder,
   },
   genreChipActive: {
-    borderColor: COLORS.transparent,
-    backgroundColor: COLORS.transparent,
+    borderColor: COLORS.gold,
   },
   genreChipText: {
     color: COLORS.gray,
@@ -587,46 +700,59 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   genreChipTextActive: {
-    color: COLORS.white,
+    color: COLORS.gold,
     fontWeight: '700',
-    textDecorationLine: 'underline',
-    textDecorationColor: COLORS.gold,
   },
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
+    gap: 3,
+    paddingHorizontal: 4,
     paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.chipBorder,
-    marginLeft: 8,
   },
   sortText: {
     color: COLORS.gray,
     fontSize: 13,
     lineHeight: 18,
   },
+
+  /* ── Portfolio grid ── */
   portfolioGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 2,
-    paddingHorizontal: 2,
+    gap: PORTFOLIO_GAP,
   },
   portfolioItem: {
     width: PORTFOLIO_COL_SIZE,
     height: PORTFOLIO_COL_SIZE,
     position: 'relative',
+    backgroundColor: COLORS.elevated,
   },
   portfolioImage: {
     width: '100%',
     height: '100%',
   },
-  portfolioBookmark: {
+  portfolioPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  multiIcon: {
     position: 'absolute',
     top: 6,
     right: 6,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  multiIconInner: {
+    width: 14,
+    height: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.white,
+    borderRadius: 2,
+    backgroundColor: 'transparent',
   },
   showMoreBtn: {
     flexDirection: 'row',
@@ -635,29 +761,32 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 16,
     marginHorizontal: 16,
+    marginTop: 16,
     borderWidth: 1,
-    borderColor: COLORS.chipBorder,
+    borderColor: COLORS.border,
     borderRadius: 10,
-    marginTop: 12,
+    backgroundColor: COLORS.card,
   },
   showMoreText: {
-    color: COLORS.gray,
+    color: COLORS.white,
     fontSize: 14,
     lineHeight: 20,
   },
+
+  /* ── Latest review header ── */
   latestReviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginTop: 8,
+    paddingTop: 24,
+    paddingBottom: 12,
   },
   latestReviewTitle: {
     color: COLORS.white,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
-    lineHeight: 22,
+    lineHeight: 23,
   },
   moreReviews: {
     flexDirection: 'row',
@@ -669,17 +798,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  reviewSection: {
-    paddingHorizontal: 16,
-  },
+
+  /* ── Review card ── */
   reviewCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
-    gap: 12,
-  },
-  reviewHeader: {
-    gap: 4,
+    gap: 8,
   },
   ratingStars: {
     flexDirection: 'row',
@@ -689,68 +814,145 @@ const styles = StyleSheet.create({
   reviewScore: {
     color: COLORS.white,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     lineHeight: 19,
-    marginLeft: 4,
+    marginLeft: 6,
   },
   reviewMeta: {
     color: COLORS.gray,
     fontSize: 12,
     lineHeight: 17,
   },
+  reviewBody: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 6,
+  },
+  reviewTextBlock: {
+    flex: 1,
+    flexShrink: 1,
+  },
   reviewText: {
     color: COLORS.white,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 20,
   },
   reviewImages: {
     flexDirection: 'row',
+    gap: 6,
   },
   reviewImage: {
-    width: 100,
-    height: 100,
+    width: 68,
+    height: 68,
     borderRadius: 8,
-    marginRight: 8,
+    backgroundColor: COLORS.elevated,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   reviewDots: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 5,
+    marginTop: 12,
   },
   reviewDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.chipBorder,
+    backgroundColor: COLORS.gray3,
   },
   reviewDotActive: {
-    backgroundColor: COLORS.white,
-    width: 18,
+    backgroundColor: COLORS.gold,
+    width: 16,
   },
-  infoSection: {
+
+  /* ── Bottom info row (3 cols) ── */
+  bottomInfoRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    gap: 8,
+  },
+  bottomInfoItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  bottomInfoTextGroup: {
+    flexShrink: 1,
+    gap: 2,
+  },
+  bottomInfoLabel: {
+    color: COLORS.gray,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  bottomInfoValue: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 17,
+  },
+  clockDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: COLORS.gold,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 1,
+  },
+  clockRing: {
+    width: 6,
+    height: 6,
+    borderTopWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderColor: COLORS.gold,
+  },
+  calendarDot: {
+    width: 16,
+    height: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.gold,
+    borderRadius: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 1,
+  },
+  calendarInner: {
+    width: 8,
+    height: 6,
+    backgroundColor: COLORS.gold,
+    opacity: 0.4,
+  },
+
+  /* ── Info tab ── */
+  infoTab: {
     padding: 20,
     gap: 20,
   },
-  infoRow: {
+  infoTabRow: {
+    gap: 20,
+  },
+  infoTabItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  infoIconPlaceholder: {
-    width: 16,
-    height: 16,
-    backgroundColor: COLORS.gray3,
-    borderRadius: 3,
-  },
-  infoLabel: {
+  infoTabLabel: {
     color: COLORS.gray,
     fontSize: 12,
     lineHeight: 17,
   },
-  infoValue: {
+  infoTabValue: {
     color: COLORS.white,
     fontSize: 14,
-    lineHeight: 20,
     fontWeight: '500',
+    lineHeight: 20,
   },
 });

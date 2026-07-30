@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
 } from 'react-native';
@@ -13,44 +13,45 @@ interface LocationFilterProps {
 }
 
 const LocationFilter = memo(({ selectedCity, selectedDistrict, onSelect }: LocationFilterProps) => {
-  const [activeTab, setActiveTab] = useState<'city' | 'district'>('city');
   const districts = selectedCity ? (DISTRICTS[selectedCity] ?? []) : [];
 
-  const handleCityPress = (city: string) => {
+  const handleCityPress = useCallback((city: string) => {
     if (selectedCity === city) {
       onSelect(null, null);
     } else {
       onSelect(city, null);
     }
-  };
+  }, [selectedCity, onSelect]);
 
-  const handleDistrictPress = (district: string) => {
-    if (selectedDistrict === district) {
+  const handleDistrictPress = useCallback((dist: string) => {
+    if (selectedDistrict === dist) {
       onSelect(selectedCity, null);
     } else {
-      onSelect(selectedCity, district);
+      onSelect(selectedCity, dist);
     }
-  };
+  }, [selectedCity, selectedDistrict, onSelect]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'city' && styles.tabActive]}
-          onPress={() => setActiveTab('city')}
-        >
-          <Text style={[styles.tabText, activeTab === 'city' && styles.tabTextActive]}>시 / 도</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'district' && styles.tabActive]}
-          onPress={() => setActiveTab('district')}
-        >
-          <Text style={[styles.tabText, activeTab === 'district' && styles.tabTextActive]}>구 / 군</Text>
-        </TouchableOpacity>
+      {/* Column headers */}
+      <View style={styles.colHeaders}>
+        <View style={[styles.colHeader, styles.colHeaderActive]}>
+          <Text style={styles.colHeaderTextActive}>시 / 도</Text>
+        </View>
+        <View style={styles.colHeaderGap} />
+        <View style={styles.colHeader}>
+          <Text style={styles.colHeaderText}>구 / 군</Text>
+        </View>
       </View>
 
-      {activeTab === 'city' ? (
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.list}>
+      {/* Side-by-side scrollable lists */}
+      <View style={styles.lists}>
+        {/* Left: City list */}
+        <ScrollView
+          style={styles.col}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
           {CITIES.map((city) => {
             const isSelected = selectedCity === city;
             return (
@@ -58,17 +59,31 @@ const LocationFilter = memo(({ selectedCity, selectedDistrict, onSelect }: Locat
                 key={city}
                 style={[styles.listItem, isSelected && styles.listItemActive]}
                 onPress={() => handleCityPress(city)}
+                activeOpacity={0.75}
               >
-                <Text style={[styles.listItemText, isSelected && styles.listItemTextActive]}>
+                <Text
+                  style={[styles.listItemText, isSelected && styles.listItemTextActive]}
+                  numberOfLines={1}
+                >
                   {city}
                 </Text>
-                {isSelected && <CheckCircleIcon size={22} color={COLORS.gold} />}
+                {isSelected && (
+                  <CheckCircleIcon size={20} color={COLORS.gold} />
+                )}
               </TouchableOpacity>
             );
           })}
         </ScrollView>
-      ) : (
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.list}>
+
+        {/* Divider */}
+        <View style={styles.colDivider} />
+
+        {/* Right: District list */}
+        <ScrollView
+          style={styles.col}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
           {selectedCity ? (
             districts.map((dist) => {
               const isSelected = selectedDistrict === dist;
@@ -77,21 +92,27 @@ const LocationFilter = memo(({ selectedCity, selectedDistrict, onSelect }: Locat
                   key={dist}
                   style={[styles.listItem, isSelected && styles.listItemActive]}
                   onPress={() => handleDistrictPress(dist)}
+                  activeOpacity={0.75}
                 >
-                  <Text style={[styles.listItemText, isSelected && styles.listItemTextActive]}>
+                  <Text
+                    style={[styles.listItemText, isSelected && styles.listItemTextActive]}
+                    numberOfLines={1}
+                  >
                     {dist}
                   </Text>
-                  {isSelected && <CheckCircleIcon size={22} color={COLORS.gold} />}
+                  {isSelected && (
+                    <CheckCircleIcon size={20} color={COLORS.gold} />
+                  )}
                 </TouchableOpacity>
               );
             })
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>시/도를 먼저 선택해주세요</Text>
+              <Text style={styles.emptyText}>시/도를 먼저{'\n'}선택하세요</Text>
             </View>
           )}
         </ScrollView>
-      )}
+      </View>
     </View>
   );
 });
@@ -103,62 +124,84 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  tabs: {
+  colHeaders: {
     flexDirection: 'row',
-    marginBottom: 16,
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: COLORS.border,
+    marginBottom: 12,
   },
-  tab: {
+  colHeaderGap: {
+    width: 10,
+  },
+  colHeader: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 13,
     alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.chipBorder,
     backgroundColor: COLORS.elevated,
   },
-  tabActive: {
-    backgroundColor: COLORS.gold,
+  colHeaderActive: {
+    borderColor: COLORS.gold,
+    backgroundColor: COLORS.goldDim,
   },
-  tabText: {
+  colHeaderText: {
     color: COLORS.gray,
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 20,
   },
-  tabTextActive: {
-    color: COLORS.black,
+  colHeaderTextActive: {
+    color: COLORS.gold,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
   },
-  list: {
-    maxHeight: 300,
+  lists: {
+    flexDirection: 'row',
+    maxHeight: 320,
+  },
+  col: {
+    flex: 1,
+  },
+  colDivider: {
+    width: 1,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 2,
   },
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingVertical: 13,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: 8,
+    marginBottom: 4,
   },
   listItemActive: {
     borderColor: COLORS.gold,
+    backgroundColor: COLORS.goldDim,
   },
   listItemText: {
     color: COLORS.white,
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 20,
+    flexShrink: 1,
   },
   listItemTextActive: {
     color: COLORS.gold,
     fontWeight: '600',
   },
   emptyState: {
-    paddingVertical: 32,
+    paddingVertical: 24,
+    paddingHorizontal: 8,
     alignItems: 'center',
   },
   emptyText: {
-    color: COLORS.gray,
-    fontSize: 14,
-    lineHeight: 20,
+    color: COLORS.gray3,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
   },
 });

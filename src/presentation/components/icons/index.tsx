@@ -308,6 +308,62 @@ export const ClockIcon = ({ size = 18, color = COLORS.gold, strokeWidth = 1.7 }:
   </Svg>
 );
 
+export const TattooPlaceholderIcon = ({ size = 60, color = '#3a3a3a' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+    <Circle cx="30" cy="20" r="10" stroke={color} strokeWidth="2" />
+    <Path d="M12 52c0-10 8-18 18-18s18 8 18 18" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    <Path d="M22 40l-4 8M38 40l4 8" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+  </Svg>
+);
+
+export const PersonSilhouette = ({ size = 60, color = '#3a3a3a' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+    <Circle cx="30" cy="22" r="11" fill={color} />
+    <Path d="M10 56c0-11 9-20 20-20s20 9 20 20" fill={color} />
+  </Svg>
+);
+
+export const HeadNeckIcon = ({ size = 20, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="7" r="4" stroke={color} strokeWidth={strokeWidth} />
+    <Path d="M6 21c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </Svg>
+);
+
+export const ArmFlexIcon = ({ size = 20, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M6 4v6a4 4 0 0 0 4 4h3" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    <Path d="M13 14a5 5 0 0 1 5 5v1H9v-3" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    <Path d="M6 4h4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </Svg>
+);
+
+export const TorsoIcon = ({ size = 20, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M8 3l4 2 4-2 3 3-2 3v10a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V9L5 6z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+export const BackIcon = ({ size = 20, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M8 3l4 2 4-2 3 3-2 3v10a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V9L5 6z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    <Line x1="12" y1="7" x2="12" y2="20" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </Svg>
+);
+
+export const LegFootIcon = ({ size = 20, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M9 3h6l-1 9-1 5H11l-1-5z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    <Path d="M11 17l-1 3h5l-1-3" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+export const SpecialIcon = ({ size = 20, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
 export const RootsPickBadge = ({ size = 72 }: { size?: number }) => {
   const cx = size / 2;
   const cy = size / 2;

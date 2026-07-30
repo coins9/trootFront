@@ -19,7 +19,7 @@ const BookingFooter = memo(({ isValid, onSubmit, bottomInset }: BookingFooterPro
       style={[styles.btn, !isValid && styles.btnDisabled]}
     >
       <Text style={[styles.btnText, !isValid && styles.btnTextDisabled]}>
-        {isValid ? '오픈카톡으로 예약 문의하기' : '필수 항목을 확인해 주세요'}
+        {isValid ? '예약하기' : '필수 항목을 확인해 주세요'}
       </Text>
     </TouchableOpacity>
   </View>

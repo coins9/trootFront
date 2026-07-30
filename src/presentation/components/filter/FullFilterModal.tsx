@@ -1,11 +1,13 @@
 import React, { memo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet,
-  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
-import { XIcon, ChevronDownIcon, ChevronUpIcon } from '../icons';
+import {
+  XIcon, ChevronDownIcon, ChevronUpIcon,
+  RegionIcon, GenreIcon, BodyPartIconSvg, SubjectIcon, WonIcon,
+} from '../icons';
 import { useFilterStore } from '../../store/filterStore';
 import LocationFilter from './LocationFilter';
 import GenreFilter from './GenreFilter';
@@ -20,17 +22,24 @@ interface FullFilterModalProps {
 
 type SectionKey = 'region' | 'genre' | 'bodyPart' | 'subject' | 'budget';
 
-const SECTIONS: { key: SectionKey; title: string }[] = [
-  { key: 'region', title: '지역' },
-  { key: 'genre', title: '장르 (다중 선택 가능)' },
-  { key: 'bodyPart', title: '부위 (다중 선택 가능)' },
-  { key: 'subject', title: '주제 / 감성 (다중 선택 가능)' },
-  { key: 'budget', title: '예산' },
+const SECTIONS: {
+  key: SectionKey;
+  title: string;
+  hint?: string;
+  Icon: React.FC<{ size?: number; color?: string }>;
+}[] = [
+  { key: 'region', title: '지역', Icon: RegionIcon },
+  { key: 'genre', title: '장르', hint: '다중 선택 가능', Icon: GenreIcon },
+  { key: 'bodyPart', title: '부위', hint: '다중 선택 가능', Icon: BodyPartIconSvg },
+  { key: 'subject', title: '주제 / 감성', hint: '다중 선택 가능', Icon: SubjectIcon },
+  { key: 'budget', title: '예산', Icon: WonIcon },
 ];
 
 const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
   const insets = useSafeAreaInsets();
-  const [openSections, setOpenSections] = useState<SectionKey[]>(['region', 'genre']);
+  const [openSections, setOpenSections] = useState<SectionKey[]>([
+    'region', 'genre', 'bodyPart', 'subject', 'budget',
+  ]);
 
   const {
     region, genres, bodyParts, subjects, moods, budgetMin, budgetMax, totalCount,
@@ -55,7 +64,7 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
           />
         );
       case 'genre':
-        return <GenreFilter selected={genres} onToggle={toggleGenre} />;
+        return <GenreFilter selected={genres} onToggle={toggleGenre} variant="compact" />;
       case 'bodyPart':
         return <BodyPartFilter selected={bodyParts} onToggle={toggleBodyPart} />;
       case 'subject':
@@ -76,17 +85,6 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
           />
         );
     }
-  };
-
-  const getSectionIcon = (key: SectionKey) => {
-    const icons: Record<SectionKey, string> = {
-      region: '',
-      genre: '',
-      bodyPart: '',
-      subject: '',
-      budget: '',
-    };
-    return icons[key];
   };
 
   return (
@@ -116,33 +114,41 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
 
         <ScrollView
           style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {SECTIONS.map((section) => {
             const isOpen = openSections.includes(section.key);
+            const { Icon } = section;
             return (
-              <View key={section.key} style={styles.section}>
+              <View key={section.key} style={styles.card}>
                 <TouchableOpacity
-                  style={styles.sectionHeader}
+                  style={styles.cardHeader}
                   onPress={() => toggleSection(section.key)}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.sectionTitle}>{section.title}</Text>
+                  <View style={styles.cardHeaderLeft}>
+                    <Icon size={18} color={COLORS.gold} />
+                    <Text style={styles.cardTitle}>{section.title}</Text>
+                    {section.hint && (
+                      <Text style={styles.cardHint}>({section.hint})</Text>
+                    )}
+                  </View>
                   {isOpen
                     ? <ChevronUpIcon size={18} color={COLORS.gray} />
                     : <ChevronDownIcon size={18} color={COLORS.gray} />
                   }
                 </TouchableOpacity>
                 {isOpen && (
-                  <View style={styles.sectionContent}>
+                  <View style={styles.cardContent}>
                     {renderSectionContent(section.key)}
                   </View>
                 )}
               </View>
             );
           })}
-          <View style={{ height: 120 }} />
+          <View style={{ height: 110 }} />
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
@@ -175,8 +181,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   title: {
     color: COLORS.white,
@@ -192,26 +196,46 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
   },
-  section: {
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    gap: 12,
   },
-  sectionHeader: {
+  card: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  sectionTitle: {
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  cardTitle: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     lineHeight: 22,
   },
-  sectionContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+  cardHint: {
+    color: COLORS.gray,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  cardContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 18,
+    paddingTop: 2,
   },
   footer: {
     position: 'absolute',
@@ -225,8 +249,8 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
   },
   applyBtn: {
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 17,
+    borderRadius: 14,
     backgroundColor: COLORS.gold,
     alignItems: 'center',
   },

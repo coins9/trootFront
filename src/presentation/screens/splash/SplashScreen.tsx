@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, Animated, Dimensions, StatusBar,
+  View, Image, StyleSheet, Animated, StatusBar,
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 
-const { width: W, height: H } = Dimensions.get('window');
+const LOGO = require('../../../assets/logo.png');
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -12,26 +12,26 @@ interface SplashScreenProps {
 
 const SplashScreen = ({ onFinish }: SplashScreenProps) => {
   const opacity = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.85)).current;
+  const scale = useRef(new Animated.Value(0.88)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 700,
+        duration: 650,
         useNativeDriver: true,
       }),
       Animated.spring(scale, {
         toValue: 1,
-        tension: 50,
-        friction: 8,
+        tension: 55,
+        friction: 9,
         useNativeDriver: true,
       }),
     ]).start(() => {
       setTimeout(() => {
         Animated.timing(opacity, {
           toValue: 0,
-          duration: 400,
+          duration: 380,
           useNativeDriver: true,
         }).start(() => onFinish());
       }, 1400);
@@ -41,12 +41,12 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <Animated.View style={[styles.logoWrap, { opacity, transform: [{ scale }] }]}>
-        <View style={styles.logoRow}>
-          <Text style={styles.logoT}>T</Text>
-          <Text style={styles.logoColon}>:</Text>
-          <Text style={styles.logoRoot}>ROOT</Text>
-        </View>
+      <Animated.View style={{ opacity, transform: [{ scale }] }}>
+        <Image
+          source={LOGO}
+          style={styles.logo}
+          resizeMode="contain"
+        />
       </Animated.View>
     </View>
   );
@@ -61,32 +61,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoWrap: {
-    alignItems: 'center',
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  logoT: {
-    color: COLORS.white,
-    fontSize: 64,
-    fontWeight: '900',
-    letterSpacing: -2,
-    lineHeight: 76,
-  },
-  logoColon: {
-    color: COLORS.white,
-    fontSize: 64,
-    fontWeight: '900',
-    letterSpacing: -2,
-    lineHeight: 76,
-  },
-  logoRoot: {
-    color: COLORS.white,
-    fontSize: 64,
-    fontWeight: '900',
-    letterSpacing: -2,
-    lineHeight: 76,
+  logo: {
+    width: 260,
+    height: 80,
   },
 });

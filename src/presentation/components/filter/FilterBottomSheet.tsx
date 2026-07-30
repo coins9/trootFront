@@ -6,7 +6,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
-import { XIcon } from '../icons';
 import { FilterType } from '../../../domain/entities/types';
 import { useFilterStore } from '../../store/filterStore';
 import LocationFilter from './LocationFilter';
@@ -156,10 +155,9 @@ const FilterBottomSheet = memo(({ visible, filterType, onClose }: FilterBottomSh
           <View style={styles.handle} />
 
           <View style={styles.header}>
-            <Text style={styles.title}>{TITLES[filterType]}</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <XIcon size={20} color={COLORS.white} />
-            </TouchableOpacity>
+            <Text style={[styles.title, filterType === 'region' && styles.titleLeft]}>
+              {TITLES[filterType]}
+            </Text>
           </View>
 
           {SUBTITLES[filterType] && (
@@ -225,22 +223,29 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginBottom: 8,
+    paddingHorizontal: 8,
   },
   title: {
     color: COLORS.white,
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '700',
-    lineHeight: 24,
+    lineHeight: 26,
+    textAlign: 'center',
+  },
+  titleLeft: {
+    alignSelf: 'flex-start',
+    textAlign: 'left',
+    fontSize: 18,
   },
   subtitle: {
     color: COLORS.gray,
     fontSize: 13,
     lineHeight: 19,
     marginBottom: 20,
+    textAlign: 'center',
   },
   contentScroll: {
     marginTop: 8,

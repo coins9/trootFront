@@ -23,6 +23,16 @@ interface FilterStore extends FilterState {
 }
 
 const DEFAULT_STATE: FilterState = {
+  region: { city: '서울', district: '강남' },
+  genres: ['블랙앤그레이'],
+  bodyParts: ['팔'],
+  subjects: [],
+  moods: [],
+  budgetMin: 0,
+  budgetMax: 500000,
+};
+
+const EMPTY_STATE: FilterState = {
   region: { city: null, district: null },
   genres: [],
   bodyParts: [],
@@ -72,7 +82,7 @@ export const useFilterStore = create<FilterStore>((set, get) => ({
 
   setBudget: (min, max) => set({ budgetMin: min, budgetMax: max }),
 
-  resetAll: () => set({ ...DEFAULT_STATE }),
+  resetAll: () => set({ ...EMPTY_STATE }),
   resetRegion: () => set({ region: { city: null, district: null } }),
   resetGenres: () => set({ genres: [] }),
   resetBodyParts: () => set({ bodyParts: [] }),

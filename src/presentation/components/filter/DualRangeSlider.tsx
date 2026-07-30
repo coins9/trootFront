@@ -1,6 +1,6 @@
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import {
-  View, PanResponder, Animated, StyleSheet, Dimensions,
+  View, Text, PanResponder, Animated, StyleSheet, Dimensions,
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 
@@ -9,6 +9,7 @@ const TRACK_PADDING = 48;
 const TRACK_WIDTH = SCREEN_WIDTH - TRACK_PADDING * 2;
 const THUMB_SIZE = 22;
 const MIN_GAP = 20;
+const BUBBLE_WIDTH = 84;
 
 interface DualRangeSliderProps {
   min: number;
@@ -17,10 +18,11 @@ interface DualRangeSliderProps {
   totalMin: number;
   totalMax: number;
   onChange: (min: number, max: number) => void;
+  formatLabel?: (value: number) => string;
 }
 
 const DualRangeSlider = ({
-  min, max, step, totalMin, totalMax, onChange,
+  min, max, step, totalMin, totalMax, onChange, formatLabel,
 }: DualRangeSliderProps) => {
   const posToValue = useCallback(
     (pos: number) => {
@@ -43,18 +45,32 @@ const DualRangeSlider = ({
   const minAnim = useRef(new Animated.Value(valueToPos(min))).current;
   const maxAnim = useRef(new Animated.Value(valueToPos(max))).current;
 
+  const [minLabel, setMinLabel] = useState(min);
+  const [maxLabel, setMaxLabel] = useState(max);
+
+  useEffect(() => {
+    minPosRef.current = valueToPos(min);
+    maxPosRef.current = valueToPos(max);
+    minAnim.setValue(valueToPos(min));
+    maxAnim.setValue(valueToPos(max));
+    setMinLabel(min);
+    setMaxLabel(max);
+  }, [min, max, valueToPos, minAnim, maxAnim]);
+
   const minPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {},
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderMove: (_, gs) => {
         const newPos = Math.max(0, Math.min(minPosRef.current + gs.dx, maxPosRef.current - MIN_GAP));
         minAnim.setValue(newPos);
+        setMinLabel(posToValue(newPos));
       },
       onPanResponderRelease: (_, gs) => {
         const newPos = Math.max(0, Math.min(minPosRef.current + gs.dx, maxPosRef.current - MIN_GAP));
         minPosRef.current = newPos;
         const newMin = posToValue(newPos);
+        setMinLabel(newMin);
         onChange(newMin, posToValue(maxPosRef.current));
       },
     }),
@@ -63,15 +79,17 @@ const DualRangeSlider = ({
   const maxPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {},
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderMove: (_, gs) => {
         const newPos = Math.min(TRACK_WIDTH, Math.max(maxPosRef.current + gs.dx, minPosRef.current + MIN_GAP));
         maxAnim.setValue(newPos);
+        setMaxLabel(posToValue(newPos));
       },
       onPanResponderRelease: (_, gs) => {
         const newPos = Math.min(TRACK_WIDTH, Math.max(maxPosRef.current + gs.dx, minPosRef.current + MIN_GAP));
         maxPosRef.current = newPos;
         const newMax = posToValue(newPos);
+        setMaxLabel(newMax);
         onChange(posToValue(minPosRef.current), newMax);
       },
     }),
@@ -88,16 +106,23 @@ const DualRangeSlider = ({
     extrapolate: 'clamp',
   });
 
+  const fmt = formatLabel ?? ((v: number) => `${v}`);
+
   return (
     <View style={styles.container}>
       <Animated.View
-        style={[styles.bubble, { left: Animated.subtract(minBubbleLeft, 20) }]}
+        style={[styles.bubble, { left: Animated.subtract(minBubbleLeft, BUBBLE_WIDTH / 2) }]}
         pointerEvents="none"
-      />
+      >
+        <Text style={styles.bubbleText}>{fmt(minLabel)}</Text>
+      </Animated.View>
       <Animated.View
-        style={[styles.bubble, { left: Animated.subtract(maxBubbleLeft, 20) }]}
+        style={[styles.bubble, { left: Animated.subtract(maxBubbleLeft, BUBBLE_WIDTH / 2) }]}
         pointerEvents="none"
-      />
+      >
+        <Text style={styles.bubbleText}>{fmt(maxLabel)}</Text>
+      </Animated.View>
+
       <View style={styles.track}>
         <Animated.View
           style={[
@@ -126,8 +151,9 @@ export default DualRangeSlider;
 const styles = StyleSheet.create({
   container: {
     width: TRACK_WIDTH,
-    marginTop: 20,
-    paddingTop: 24,
+    alignSelf: 'center',
+    marginTop: 8,
+    paddingTop: 40,
   },
   track: {
     height: 4,
@@ -149,6 +175,8 @@ const styles = StyleSheet.create({
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
     backgroundColor: COLORS.gold,
+    borderWidth: 3,
+    borderColor: COLORS.bg,
     elevation: 4,
     shadowColor: COLORS.gold,
     shadowOffset: { width: 0, height: 2 },
@@ -157,12 +185,20 @@ const styles = StyleSheet.create({
   },
   bubble: {
     position: 'absolute',
-    top: -28,
-    width: 40,
-    height: 24,
+    top: 0,
+    width: BUBBLE_WIDTH,
+    paddingVertical: 6,
     backgroundColor: COLORS.elevated,
-    borderRadius: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  bubbleText: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
   },
 });

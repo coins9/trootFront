@@ -2,9 +2,8 @@ import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import {
   View, Text, Modal, Animated, StyleSheet, Dimensions,
   TouchableWithoutFeedback, ScrollView, KeyboardAvoidingView, Platform,
-  Linking, Alert,
+  TouchableOpacity, Alert,
 } from 'react-native';
-import { TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import { XIcon } from '../icons';
@@ -74,35 +73,30 @@ const BookingBottomSheet = memo(({
     });
   }, [onClose, translateY]);
 
-  const handleSubmit = useCallback(async () => {
-    const message = formatBookingMessage(artistName, designTitle, form);
-
-    const kakaoUrl = artistKakaoLink ?? 'https://open.kakao.com/';
-    const canOpen = await Linking.canOpenURL(kakaoUrl);
-
-    if (!canOpen) {
-      Alert.alert(
-        '카카오톡 연결 실패',
-        '작가의 오픈카톡 링크를 준비 중입니다.\n잠시 후 다시 시도해 주세요.',
-      );
-      return;
-    }
+  const handleSubmit = useCallback(() => {
+    const summary = formatBookingMessage(artistName, designTitle, form);
 
     Alert.alert(
-      '오픈카톡으로 연결',
-      `아래 내용을 카카오톡 채팅창에 붙여넣기 해주세요.\n\n${message}`,
+      '예약 요청 확인',
+      `${summary}\n\n위 내용으로 예약을 요청하시겠어요?`,
       [
         { text: '취소', style: 'cancel' },
         {
-          text: '카카오톡 열기',
+          text: '예약하기',
           onPress: () => {
-            Linking.openURL(kakaoUrl);
+            // TODO: 예약 API 연동 (POST /reservations)
             handleClose();
+            setTimeout(() => {
+              Alert.alert(
+                '예약이 접수되었습니다',
+                '작가가 예약을 확정하면 알림으로 안내드립니다.\n확정 후 오픈톡으로 연결됩니다.',
+              );
+            }, 350);
           },
         },
       ],
     );
-  }, [artistName, artistKakaoLink, designTitle, form, handleClose]);
+  }, [artistName, designTitle, form, handleClose]);
 
   const updateForm = useCallback(<K extends keyof BookingFormData>(
     key: K,

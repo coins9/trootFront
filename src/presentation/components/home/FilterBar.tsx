@@ -66,6 +66,7 @@ const FilterBar = memo(({ onFilterPress }: FilterBarProps) => {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        style={styles.scroll}
       >
         {buttons.map((btn) => (
           <TouchableOpacity
@@ -75,7 +76,7 @@ const FilterBar = memo(({ onFilterPress }: FilterBarProps) => {
             style={[styles.filterBtn, btn.active && styles.filterBtnActive]}
           >
             <btn.Icon
-              size={14}
+              size={13}
               color={btn.active ? COLORS.gold : COLORS.gray}
             />
             <Text style={[styles.filterLabel, btn.active && styles.filterLabelActive]}>
@@ -83,19 +84,19 @@ const FilterBar = memo(({ onFilterPress }: FilterBarProps) => {
               {btn.count !== undefined ? ` (${btn.count})` : ''}
             </Text>
             <ChevronDownIcon
-              size={12}
+              size={11}
               color={btn.active ? COLORS.gold : COLORS.gray}
             />
           </TouchableOpacity>
         ))}
-        <TouchableOpacity
-          onPress={() => onFilterPress('full')}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={styles.sliderBtn}
-        >
-          <FilterSlidersIcon size={18} color={COLORS.white} />
-        </TouchableOpacity>
       </ScrollView>
+      <TouchableOpacity
+        onPress={() => onFilterPress('full')}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        style={styles.sliderBtn}
+      >
+        <FilterSlidersIcon size={17} color={COLORS.white} />
+      </TouchableOpacity>
     </View>
   );
 });
@@ -105,22 +106,28 @@ export default FilterBar;
 
 const styles = StyleSheet.create({
   wrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.bg,
+    paddingRight: 12,
+  },
+  scroll: {
+    flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    gap: 8,
+    gap: 6,
     alignItems: 'center',
   },
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    borderRadius: 20,
+    gap: 4,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.chipBorder,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 7,
   },
   filterBtnActive: {
@@ -128,19 +135,20 @@ const styles = StyleSheet.create({
   },
   filterLabel: {
     color: COLORS.gray,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 17,
   },
   filterLabelActive: {
     color: COLORS.gold,
   },
   sliderBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1,
     borderColor: COLORS.chipBorder,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 4,
   },
 });

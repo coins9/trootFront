@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useRef } from 'react';
 import {
-  View, FlatList, StyleSheet, Text, StatusBar, TouchableOpacity,
-  Dimensions,
+  View, FlatList, StyleSheet, Text, StatusBar,
+  Dimensions, NativeScrollEvent, NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,15 +14,15 @@ import FilterBar from '../../components/home/FilterBar';
 import ActiveFilterRow from '../../components/home/ActiveFilterRow';
 import FilterBottomSheet from '../../components/filter/FilterBottomSheet';
 import FullFilterModal from '../../components/filter/FullFilterModal';
-import { useFilterStore } from '../../store/filterStore';
 import { MOCK_ARTISTS, MOCK_TATTOOS } from '../../../data/mock/mockData';
 import { FilterType, Tattoo, Artist } from '../../../domain/entities/types';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const ARTIST_CARD_WIDTH = 130;
+const ARTIST_GAP = 8;
 const COLUMN_GAP = 8;
 const SIDE_PAD = 16;
-const CARD_WIDTH = (SCREEN_WIDTH - SIDE_PAD * 2 - COLUMN_GAP) / 2;
 
 type HomeNavProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -30,7 +30,7 @@ const HomeScreen = () => {
   const navigation = useNavigation<HomeNavProp>();
   const [bottomSheetType, setBottomSheetType] = useState<FilterType | null>(null);
   const [fullFilterVisible, setFullFilterVisible] = useState(false);
-  const { getActiveFilterChips } = useFilterStore();
+  const [activeArtistIdx, setActiveArtistIdx] = useState(0);
 
   const openFilter = useCallback((type: FilterType) => {
     if (type === 'full') {
@@ -53,24 +53,35 @@ const HomeScreen = () => {
     [navigation],
   );
 
+  const handleArtistScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offset = e.nativeEvent.contentOffset.x;
+    const idx = Math.round(offset / (ARTIST_CARD_WIDTH + ARTIST_GAP));
+    if (idx !== activeArtistIdx) setActiveArtistIdx(idx);
+  }, [activeArtistIdx]);
+
   const renderArtistCard = useCallback(
     ({ item, index }: { item: Artist; index: number }) => (
-      <View style={{ marginLeft: index === 0 ? 16 : 8, marginRight: index === MOCK_ARTISTS.length - 1 ? 16 : 0 }}>
+      <View style={{ marginRight: index === MOCK_ARTISTS.length - 1 ? 0 : ARTIST_GAP }}>
         <ArtistCard
           artist={item}
-          isActive={index === 0}
+          isActive={index === activeArtistIdx}
           onPress={() => handleArtistPress(item)}
         />
       </View>
     ),
-    [handleArtistPress],
+    [handleArtistPress, activeArtistIdx],
   );
 
   const renderTattooCard = useCallback(
     ({ item, index }: { item: Tattoo; index: number }) => {
       const isLeft = index % 2 === 0;
       return (
-        <View style={[styles.tattooCardWrapper, isLeft ? { marginRight: COLUMN_GAP / 2 } : { marginLeft: COLUMN_GAP / 2 }]}>
+        <View
+          style={[
+            styles.tattooCardWrapper,
+            isLeft ? { marginRight: COLUMN_GAP / 2 } : { marginLeft: COLUMN_GAP / 2 },
+          ]}
+        >
           <TattooCard
             tattoo={item}
             onPress={() => handleTattooPress(item)}
@@ -92,19 +103,31 @@ const HomeScreen = () => {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.artistList}
+        onScroll={handleArtistScroll}
+        scrollEventThrottle={32}
       />
-      <View style={styles.artistCountRow}>
-        <Text style={styles.artistCountText}>전체 {MOCK_ARTISTS.length}명</Text>
-        <Text style={styles.artistCountInfinity}> ∞</Text>
+      <View style={styles.dotsRow}>
+        <View style={styles.dotsGroup}>
+          {MOCK_ARTISTS.map((_, i) => (
+            <View
+              key={i}
+              style={[styles.dot, i === activeArtistIdx && styles.dotActive]}
+            />
+          ))}
+        </View>
+        <View style={styles.countGroup}>
+          <Text style={styles.countText}>전체 {MOCK_ARTISTS.length}명</Text>
+          <Text style={styles.countInfinity}> ∞</Text>
+        </View>
       </View>
       <FilterBar onFilterPress={openFilter} />
       <ActiveFilterRow onAddPress={() => openFilter('full')} />
     </View>
-  ), [renderArtistCard, openFilter]);
+  ), [renderArtistCard, openFilter, handleArtistScroll, activeArtistIdx]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
       <LogoHeader />
       <FlatList
         data={MOCK_TATTOOS}
@@ -137,35 +160,57 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: COLORS.black,
   },
   artistList: {
+    paddingLeft: SIDE_PAD,
+    paddingRight: SIDE_PAD,
     paddingVertical: 12,
-    gap: 8,
   },
-  artistCountRow: {
+  dotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingRight: 16,
-    paddingBottom: 6,
+    justifyContent: 'space-between',
+    paddingHorizontal: SIDE_PAD,
+    paddingBottom: 8,
   },
-  artistCountText: {
+  dotsGroup: {
+    flexDirection: 'row',
+    gap: 5,
+    alignItems: 'center',
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.gray3,
+  },
+  dotActive: {
+    backgroundColor: COLORS.gold,
+    width: 18,
+  },
+  countGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  countText: {
     color: COLORS.gray,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 11,
+    lineHeight: 15,
   },
-  artistCountInfinity: {
+  countInfinity: {
     color: COLORS.gold,
-    fontSize: 14,
-    lineHeight: 17,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 15,
   },
   feedContent: {
     paddingHorizontal: SIDE_PAD,
     paddingBottom: 32,
+    backgroundColor: COLORS.bg,
   },
   columnWrapper: {
-    marginBottom: COLUMN_GAP,
+    marginBottom: 0,
   },
   tattooCardWrapper: {
     flex: 1,
