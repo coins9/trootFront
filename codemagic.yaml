@@ -37,11 +37,6 @@ definitions:
       script: |
         npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
-  triggering_none: &triggering_none
-    events: []
-    branch_patterns: []
-    tag_patterns: []
-
 # =============================================================================
 workflows:
 
@@ -57,7 +52,6 @@ workflows:
       java: 17
     cache:
       cache_paths: *cache_paths
-    triggering: *triggering_none
     scripts:
       - *install_node_deps
       - name: Build debug APK
@@ -93,7 +87,6 @@ workflows:
         PACKAGE_NAME: "com.troot.app"
     cache:
       cache_paths: *cache_paths
-    triggering: *triggering_none
     scripts:
       - *install_node_deps
       - name: Set up local.properties
@@ -137,7 +130,6 @@ workflows:
       cocoapods: default
     cache:
       cache_paths: *cache_paths
-    triggering: *triggering_none
     scripts:
       - *install_node_deps
       - name: Install CocoaPods
@@ -194,7 +186,6 @@ workflows:
       cocoapods: default
     cache:
       cache_paths: *cache_paths
-    triggering: *triggering_none
     scripts:
       - *install_node_deps
       - name: Install CocoaPods
