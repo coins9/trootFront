@@ -4,6 +4,7 @@ export interface BookingFormData {
   bodyPart: string | null;
   size: string | null;
   referenceImages: string[];
+  referenceText: string;
   agreedToTerms: boolean;
 }
 
@@ -13,11 +14,22 @@ export const INITIAL_BOOKING_FORM: BookingFormData = {
   bodyPart: null,
   size: null,
   referenceImages: [],
+  referenceText: '',
   agreedToTerms: false,
 };
 
+export const hasReference = (data: BookingFormData): boolean =>
+  data.referenceImages.length > 0 || data.referenceText.trim().length > 0;
+
 export const isBookingFormValid = (data: BookingFormData): boolean =>
-  !!(data.selectedDate && data.selectedTime && data.bodyPart && data.size && data.agreedToTerms);
+  !!(
+    data.selectedDate
+    && data.selectedTime
+    && data.bodyPart
+    && data.size
+    && hasReference(data)
+    && data.agreedToTerms
+  );
 
 export const formatBookingMessage = (
   artistName: string,
@@ -32,8 +44,15 @@ export const formatBookingMessage = (
     `희망 시간: ${data.selectedTime ?? ''}`,
     `시술 부위: ${data.bodyPart ?? ''}`,
     `크기: ${data.size ?? ''}`,
-    ...(data.referenceImages.length > 0 ? [`레퍼런스: ${data.referenceImages.length}장 첨부`] : []),
   ];
+  if (data.referenceImages.length > 0) {
+    lines.push(`레퍼런스 사진: ${data.referenceImages.length}장 첨부`);
+  }
+  if (data.referenceText.trim()) {
+    lines.push('');
+    lines.push('레퍼런스 설명:');
+    lines.push(data.referenceText.trim());
+  }
   return lines.join('\n');
 };
 

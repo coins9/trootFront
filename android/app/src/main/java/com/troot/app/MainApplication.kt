@@ -1,4 +1,4 @@
-package com.trootapp
+package com.troot.app
 
 import android.app.Application
 import com.facebook.react.PackageList

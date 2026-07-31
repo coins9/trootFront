@@ -1,4 +1,4 @@
-package com.trootapp
+package com.troot.app
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

@@ -179,7 +179,9 @@ const BookingBottomSheet = memo(({
 
             <ReferenceStep
               images={form.referenceImages}
+              text={form.referenceText}
               onImagesChange={(imgs) => updateForm('referenceImages', imgs)}
+              onTextChange={(t) => updateForm('referenceText', t)}
             />
 
             <Separator />

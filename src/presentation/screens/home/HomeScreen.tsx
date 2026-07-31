@@ -205,11 +205,11 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   feedContent: {
-    paddingHorizontal: SIDE_PAD,
     paddingBottom: 32,
     backgroundColor: COLORS.bg,
   },
   columnWrapper: {
+    paddingHorizontal: SIDE_PAD,
     marginBottom: 0,
   },
   tattooCardWrapper: {

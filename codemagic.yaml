@@ -1,0 +1,237 @@
+# =============================================================================
+# T:ROOT (trootfront) - Codemagic CI/CD
+# =============================================================================
+# React Native 0.86.2 · Node 20 · Xcode 16 · Ruby 3.2
+#
+# 워크플로우:
+#   1) android-debug      → 개발용 debug APK (Sideload/직접 설치)
+#   2) android-release    → Play Store internal 트랙 자동 배포 (AAB)
+#   3) ios-unsigned       → Sideloadly용 unsigned IPA
+#   4) ios-testflight     → App Store Connect (TestFlight) 자동 업로드
+#
+# 사전 준비 (Codemagic 웹 UI → Teams → Environment variables):
+#   ▶ ios_signing (group)   : App Store Connect API Key 연결 후
+#                              APP_STORE_CONNECT_KEY_IDENTIFIER,
+#                              APP_STORE_CONNECT_ISSUER_ID,
+#                              APP_STORE_CONNECT_PRIVATE_KEY 자동 세팅
+#   ▶ app_credentials       : APP_STORE_APP_ID (예: 1234567890),
+#                              BUNDLE_ID     (예: com.troot.app)
+#   ▶ keystore_credentials  : CM_KEYSTORE (base64), CM_KEYSTORE_PASSWORD,
+#                              CM_KEY_ALIAS, CM_KEY_PASSWORD
+#
+# ⚠ iOS 첫 배포 전 필수 작업:
+#   Xcode에서 PRODUCT_BUNDLE_IDENTIFIER를
+#   "org.reactjs.native.example.TRootApp" → "com.troot.app" 등 실제 값으로 변경
+# =============================================================================
+
+definitions:
+  cache_paths: &cache_paths
+    - ~/.npm
+    - $HOME/.gradle/caches
+    - $CM_BUILD_DIR/node_modules
+    - $CM_BUILD_DIR/ios/Pods
+
+  scripts:
+    - &install_node_deps
+      name: Install Node dependencies
+      script: |
+        npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+  triggering_none: &triggering_none
+    events: []
+    branch_patterns: []
+    tag_patterns: []
+
+# =============================================================================
+workflows:
+
+  # ---------------------------------------------------------------------------
+  # 1) Android — Debug APK (Sideload 배포용)
+  # ---------------------------------------------------------------------------
+  android-debug:
+    name: Android · Debug APK
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      node: 20.11.1
+      java: 17
+    cache:
+      cache_paths: *cache_paths
+    triggering: *triggering_none
+    scripts:
+      - *install_node_deps
+      - name: Build debug APK
+        script: |
+          cd android
+          ./gradlew clean
+          ./gradlew assembleDebug --no-daemon
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - tmddus9259@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # ---------------------------------------------------------------------------
+  # 2) Android — Release AAB (Google Play internal 배포)
+  # ---------------------------------------------------------------------------
+  android-release:
+    name: Android · Release (Play Store)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - keystore_credentials       # CM_KEYSTORE, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
+      android_signing:
+        - trootapp_keystore
+      node: 20.11.1
+      java: 17
+      vars:
+        PACKAGE_NAME: "com.troot.app"
+    cache:
+      cache_paths: *cache_paths
+    triggering: *triggering_none
+    scripts:
+      - *install_node_deps
+      - name: Set up local.properties
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Bump build number
+        script: |
+          cd android
+          BUILD_NUMBER=$(($(google-play get-latest-build-number --package-name "$PACKAGE_NAME" --tracks internal 2>/dev/null || echo 0) + 1))
+          sed -i.bak "s/versionCode [0-9]*/versionCode $BUILD_NUMBER/" app/build.gradle
+          echo "New versionCode: $BUILD_NUMBER"
+      - name: Build AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease --no-daemon
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients:
+          - tmddus9259@gmail.com
+        notify:
+          success: true
+          failure: true
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+
+  # ---------------------------------------------------------------------------
+  # 3) iOS — Unsigned IPA (Sideloadly 설치용, 무료 계정 폴백)
+  # ---------------------------------------------------------------------------
+  ios-unsigned:
+    name: iOS · Unsigned IPA (Sideloadly)
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    environment:
+      node: 20.11.1
+      xcode: 16.0
+      cocoapods: default
+    cache:
+      cache_paths: *cache_paths
+    triggering: *triggering_none
+    scripts:
+      - *install_node_deps
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install --repo-update
+      - name: Build unsigned archive
+        script: |
+          cd ios
+          xcodebuild -workspace TRootApp.xcworkspace \
+            -scheme TRootApp \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath $CM_BUILD_DIR/build/TRootApp.xcarchive \
+            archive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Package unsigned IPA
+        script: |
+          cd $CM_BUILD_DIR/build/TRootApp.xcarchive/Products/Applications
+          mkdir -p Payload
+          mv TRootApp.app Payload/
+          zip -qr $CM_BUILD_DIR/build/TRootApp-unsigned.ipa Payload
+          echo "✅ IPA ready: build/TRootApp-unsigned.ipa"
+    artifacts:
+      - build/*.ipa
+      - build/*.xcarchive
+    publishing:
+      email:
+        recipients:
+          - tmddus9259@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # ---------------------------------------------------------------------------
+  # 4) iOS — Signed IPA → TestFlight 자동 업로드
+  # ---------------------------------------------------------------------------
+  ios-testflight:
+    name: iOS · TestFlight
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: TRoot ASC API      # Codemagic > Integrations > App Store Connect
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.troot.app     # ⚠ Xcode에서 실제로 설정한 값과 일치해야 함
+      groups:
+        - app_credentials                   # APP_STORE_APP_ID
+      node: 20.11.1
+      xcode: 16.0
+      cocoapods: default
+    cache:
+      cache_paths: *cache_paths
+    triggering: *triggering_none
+    scripts:
+      - *install_node_deps
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install --repo-update
+      - name: Set up provisioning profiles
+        script: |
+          xcode-project use-profiles
+      - name: Bump build number from TestFlight
+        script: |
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
+          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
+          cd ios
+          agvtool new-version -all $NEW_BUILD_NUMBER
+          echo "New build number: $NEW_BUILD_NUMBER"
+      - name: Build signed IPA
+        script: |
+          xcode-project build-ipa \
+            --workspace "ios/TRootApp.xcworkspace" \
+            --scheme "TRootApp" \
+            --config "Release"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      email:
+        recipients:
+          - tmddus9259@gmail.com
+        notify:
+          success: true
+          failure: true
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # submit_to_app_store: false        # 심사 자동 제출은 수동 승인 권장
+        # beta_groups:
+        #   - Internal Testers               # TestFlight 그룹명 (선택)

@@ -32,9 +32,15 @@ const TAB_ITEMS = [
 
 const CustomTabBar = ({ state, descriptors, navigation }: any) => {
   const insets = useSafeAreaInsets();
+  const symmetricPad = Math.max(insets.bottom, 12);
 
   return (
-    <View style={[styles.tabBar, { paddingBottom: insets.bottom || 8 }]}>
+    <View
+      style={[
+        styles.tabBar,
+        { paddingTop: symmetricPad, paddingBottom: symmetricPad },
+      ]}
+    >
       {state.routes.map((route: any, index: number) => {
         const isFocused = state.index === index;
         const tabItem = TAB_ITEMS[index];
@@ -89,7 +95,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingTop: 8,
   },
   tabItem: {
     flex: 1,
