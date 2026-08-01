@@ -11,6 +11,7 @@ import {
   BackArrowIcon, ShareIcon, HeartIcon, ChevronRightIcon,
   StarIcon,
 } from '../../components/icons';
+import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
 
@@ -46,29 +47,20 @@ const TattooDetailScreen = () => {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <View style={styles.imageContainer}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={(e) => {
-            const idx = Math.round(e.nativeEvent.contentOffset.x / W);
-            setActiveImage(idx);
-          }}
-          scrollEventThrottle={16}
-        >
-          {tattoo.images.map((img, i) => (
+        <PagerCarousel
+          data={tattoo.images}
+          width={W}
+          height={IMAGE_HEIGHT}
+          renderItem={(img) =>
             img ? (
-              <Image
-                key={i}
-                source={{ uri: img }}
-                style={styles.heroImage}
-                resizeMode="cover"
-              />
+              <Image source={{ uri: img }} style={styles.heroImage} resizeMode="cover" />
             ) : (
-              <View key={i} style={[styles.heroImage, { backgroundColor: COLORS.card }]} />
+              <View style={[styles.heroImage, { backgroundColor: COLORS.card }]} />
             )
-          ))}
-        </ScrollView>
+          }
+          onIndexChange={setActiveImage}
+          keyExtractor={(_, i) => `hero-${i}`}
+        />
 
         <View style={[styles.imageOverlay, { paddingTop: insets.top + 12 }]}>
           <TouchableOpacity
@@ -96,13 +88,8 @@ const TattooDetailScreen = () => {
         </View>
 
         {tattoo.images.length > 1 && (
-          <View style={styles.dotsRow}>
-            {tattoo.images.map((_, i) => (
-              <View
-                key={i}
-                style={[styles.dot, i === activeImage && styles.dotActive]}
-              />
-            ))}
+          <View style={styles.dotsAbs}>
+            <PagerDots count={tattoo.images.length} activeIndex={activeImage} />
           </View>
         )}
       </View>
@@ -217,24 +204,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
-  dotsRow: {
+  dotsAbs: {
     position: 'absolute',
     bottom: 14,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.45)',
-  },
-  dotActive: {
-    backgroundColor: COLORS.white,
-    width: 18,
   },
   scroll: {
     flex: 1,

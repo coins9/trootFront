@@ -166,8 +166,8 @@ export const HomeTabIcon = ({ size = 24, color = COLORS.gray, active = false }: 
   </Svg>
 );
 
-export const StarTabIcon = ({ size = 24, color = COLORS.gray }: IconProps) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+export const StarTabIcon = ({ size = 24, color = COLORS.gray, active = false }: IconProps & { active?: boolean }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill={active ? color : 'none'}>
     <Polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
@@ -231,9 +231,20 @@ export const WonIcon = ({ size = 16, color = COLORS.gray, strokeWidth = 1.8 }: I
   </Svg>
 );
 
-export const MatchingIcon = ({ size = 24, color = COLORS.gray, strokeWidth = 1.8 }: IconProps) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path d="M12 21C12 21 4 16 4 10a4 4 0 0 1 8 0 4 4 0 0 1 8 0c0 6-8 11-8 11z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+export const MatchingIcon = ({
+  size = 24,
+  color = COLORS.gray,
+  strokeWidth = 1.8,
+  active = false,
+}: IconProps & { active?: boolean }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill={active ? color : 'none'}>
+    <Path
+      d="M12 21C12 21 4 16 4 10a4 4 0 0 1 8 0 4 4 0 0 1 8 0c0 6-8 11-8 11z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </Svg>
 );
 
@@ -513,33 +524,59 @@ export const SpecialIcon = ({ size = 20, color = COLORS.gold, strokeWidth = 1.7 
   </Svg>
 );
 
-export const RootsPickBadge = ({ size = 72 }: { size?: number }) => {
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = size / 2 - 2;
-  const r2 = r - 5;
-  return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <Circle cx={cx} cy={cy} r={r} stroke={COLORS.gold} strokeWidth="1.5" fill="rgba(17,17,17,0.88)" />
-      <Circle cx={cx} cy={cy} r={r2} stroke={COLORS.gold} strokeWidth="0.7" fill="none" />
-      {/* Left laurel branch */}
-      <Path d={`M${cx - r2 + 2},${cy} Q${cx - r2 + 6},${cy - 7} ${cx - r2 + 9},${cy - 4}`} stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
-      <Path d={`M${cx - r2 + 2},${cy} Q${cx - r2 + 5},${cy + 7} ${cx - r2 + 9},${cy + 4}`} stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
-      <Path d={`M${cx - r2 + 8},${cy - 2} Q${cx - r2 + 12},${cy - 8} ${cx - r2 + 14},${cy - 4}`} stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
-      <Path d={`M${cx - r2 + 8},${cy + 2} Q${cx - r2 + 12},${cy + 8} ${cx - r2 + 14},${cy + 4}`} stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
-      {/* Right laurel branch (mirror) */}
-      <Path d={`M${cx + r2 - 2},${cy} Q${cx + r2 - 6},${cy - 7} ${cx + r2 - 9},${cy - 4}`} stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
-      <Path d={`M${cx + r2 - 2},${cy} Q${cx + r2 - 5},${cy + 7} ${cx + r2 - 9},${cy + 4}`} stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
-      <Path d={`M${cx + r2 - 8},${cy - 2} Q${cx + r2 - 12},${cy - 8} ${cx + r2 - 14},${cy - 4}`} stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
-      <Path d={`M${cx + r2 - 8},${cy + 2} Q${cx + r2 - 12},${cy + 8} ${cx + r2 - 14},${cy + 4}`} stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
-      {/* Text */}
-      <SvgText x={cx} y={cy - 7} textAnchor="middle" fill={COLORS.gold} fontSize="8" fontWeight="bold" letterSpacing="1">ROOT'S</SvgText>
-      {/* Star */}
-      <Polygon
-        points={`${cx},${cy - 1} ${cx + 2.2},${cy + 4.5} ${cx + 7},${cy + 4.5} ${cx + 3.5},${cy + 7.5} ${cx + 4.8},${cy + 13} ${cx},${cy + 10} ${cx - 4.8},${cy + 13} ${cx - 3.5},${cy + 7.5} ${cx - 7},${cy + 4.5} ${cx - 2.2},${cy + 4.5}`}
-        fill={COLORS.gold}
-      />
-      <SvgText x={cx} y={cy + 20} textAnchor="middle" fill={COLORS.gold} fontSize="7.5" fontWeight="bold" letterSpacing="1">PICK</SvgText>
-    </Svg>
-  );
-};
+export const RootsPickBadge = ({ size = 72 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 100 100">
+    {/* Outer circle */}
+    <Circle cx="50" cy="50" r="48" stroke={COLORS.gold} strokeWidth="1.8" fill="none" />
+    {/* Inner circle */}
+    <Circle cx="50" cy="50" r="42" stroke={COLORS.gold} strokeWidth="0.9" fill="none" />
+
+    {/* Left laurel */}
+    <Path d="M14 50 Q22 42 30 46" stroke={COLORS.gold} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <Path d="M14 50 Q22 58 30 54" stroke={COLORS.gold} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <Path d="M22 44 Q28 36 34 40" stroke={COLORS.gold} strokeWidth="1.2" fill="none" strokeLinecap="round" />
+    <Path d="M22 56 Q28 64 34 60" stroke={COLORS.gold} strokeWidth="1.2" fill="none" strokeLinecap="round" />
+    <Path d="M28 42 Q34 34 40 38" stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
+    <Path d="M28 58 Q34 66 40 62" stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
+
+    {/* Right laurel (mirror) */}
+    <Path d="M86 50 Q78 42 70 46" stroke={COLORS.gold} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <Path d="M86 50 Q78 58 70 54" stroke={COLORS.gold} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <Path d="M78 44 Q72 36 66 40" stroke={COLORS.gold} strokeWidth="1.2" fill="none" strokeLinecap="round" />
+    <Path d="M78 56 Q72 64 66 60" stroke={COLORS.gold} strokeWidth="1.2" fill="none" strokeLinecap="round" />
+    <Path d="M72 42 Q66 34 60 38" stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
+    <Path d="M72 58 Q66 66 60 62" stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
+
+    {/* ROOT'S text */}
+    <SvgText
+      x="50"
+      y="42"
+      textAnchor="middle"
+      fill={COLORS.gold}
+      fontSize="10"
+      fontWeight="bold"
+      letterSpacing="1.5"
+    >
+      ROOT'S
+    </SvgText>
+
+    {/* Star */}
+    <Polygon
+      points="50,48 52.9,55.5 61,55.5 54.5,60.5 57,68 50,63.5 43,68 45.5,60.5 39,55.5 47.1,55.5"
+      fill={COLORS.gold}
+    />
+
+    {/* PICK text */}
+    <SvgText
+      x="50"
+      y="80"
+      textAnchor="middle"
+      fill={COLORS.gold}
+      fontSize="10"
+      fontWeight="bold"
+      letterSpacing="1.5"
+    >
+      PICK
+    </SvgText>
+  </Svg>
+);

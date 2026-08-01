@@ -133,7 +133,12 @@ const ShareBookingBottomSheet = memo(({
 
           <View style={styles.contextRow}>
             <Text style={styles.contextLabel}>공간</Text>
-            <Text style={styles.contextValue} numberOfLines={1}>
+            <Text
+              style={styles.contextValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+            >
               {shopTitle.replace(/\n/g, ' ')}
             </Text>
           </View>

@@ -10,9 +10,12 @@ import {
 import { TattooShareShop } from '../../../domain/entities/shopTypes';
 
 const { width: W } = Dimensions.get('window');
-const CARD_H_PAD = 16;
-const MAIN_IMG_H = 168;
-const THUMB_SIZE = (W - CARD_H_PAD * 2 - 16 - 16) / 3;
+const CARD_PAD = 16;
+const CARD_INNER_W = W - CARD_PAD * 2 - CARD_PAD * 2;
+const LEFT_COL_W = CARD_INNER_W * 0.42;
+const MAIN_IMG_SIZE = LEFT_COL_W;
+const THUMB_GAP = 4;
+const THUMB_SIZE = (LEFT_COL_W - THUMB_GAP * 2) / 3;
 
 interface Props {
   shop: TattooShareShop;
@@ -23,95 +26,107 @@ interface Props {
 const formatWon = (n: number) => `일 ${n.toLocaleString()}원`;
 
 const ShopShareCard = memo(({ shop, onPress, onBookmark }: Props) => {
-  const thumbs = shop.images.slice(0, 3);
-  const extra = Math.max(0, shop.images.length - 3);
+  const thumbs = [shop.images[1], shop.images[2], shop.images[3]];
+  const extra = Math.max(0, shop.images.length - 4);
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.card}>
-      <View style={styles.imagesRow}>
-        <View style={styles.mainImage}>
-          {shop.images[0] ? (
-            <Image source={{ uri: shop.images[0] }} style={styles.imgFill} resizeMode="cover" />
-          ) : (
-            <View style={styles.placeholder}>
-              <TattooPlaceholderIcon size={44} color="#2e2e2e" />
-            </View>
-          )}
-        </View>
-
-        <View style={styles.rightBlock}>
-          {shop.isNew && (
-            <View style={styles.newBadgeAbs}>
-              <Text style={styles.newBadgeText}>신규</Text>
-            </View>
-          )}
-          <TouchableOpacity
-            onPress={onBookmark}
-            style={styles.bookmarkAbs}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <BookmarkIcon size={20} color={COLORS.white} filled={shop.isBookmarked} />
-          </TouchableOpacity>
-
-          <View style={styles.rightBody}>
-            <Text style={styles.title} numberOfLines={2}>{shop.title}</Text>
-            <Text style={styles.price}>{formatWon(shop.pricePerDay)}</Text>
-            <View style={styles.addressRow}>
-              <LocationPinIcon size={12} color={COLORS.gray} />
-              <Text style={styles.addressText} numberOfLines={1}>{shop.address}</Text>
-            </View>
-
-            <View style={styles.specGrid}>
-              <View style={styles.specCell}>
-                <Text style={styles.specLabel}>평수</Text>
-                <Text style={styles.specValue}>{shop.areaPyeong}평</Text>
-              </View>
-              <View style={styles.specCell}>
-                <Text style={styles.specLabel}>베드 수</Text>
-                <Text style={styles.specValue}>{shop.bedCount}대</Text>
-              </View>
-              <View style={styles.specCell}>
-                <Text style={styles.specLabel}>조명</Text>
-                <Text style={styles.specValue}>{shop.lighting}</Text>
-              </View>
-              <View style={styles.specCell}>
-                <Text style={styles.specLabel}>프라이빗 룸</Text>
-                <Text style={styles.specValue} numberOfLines={1}>
-                  {shop.privateRoomInfo ?? (shop.hasPrivateRoom ? '있음' : '없음')}
-                </Text>
-              </View>
-              <View style={styles.specCell}>
-                <Text style={styles.specLabel}>최대 수용 인원</Text>
-                <Text style={styles.specValue}>{shop.maxOccupancy}명</Text>
-              </View>
-              <View style={styles.specCell}>
-                <Text style={styles.specLabel}>현재 / 필요 인원</Text>
-                <Text style={styles.specValue}>
-                  {shop.currentOccupancy} / {shop.requiredOccupancy}명
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.thumbRow}>
-        {thumbs.map((uri, i) => (
-          <View key={i} style={styles.thumb}>
-            {uri ? (
-              <Image source={{ uri }} style={styles.imgFill} resizeMode="cover" />
+      <View style={styles.mainRow}>
+        {/* ── Left column: square main + square thumb row ── */}
+        <View style={styles.leftCol}>
+          <View style={styles.mainImage}>
+            {shop.images[0] ? (
+              <Image source={{ uri: shop.images[0] }} style={styles.imgFill} resizeMode="cover" />
             ) : (
               <View style={styles.placeholder}>
-                <TattooPlaceholderIcon size={26} color="#2e2e2e" />
-              </View>
-            )}
-            {i === 2 && extra > 0 && (
-              <View style={styles.thumbOverlay}>
-                <Text style={styles.thumbOverlayText}>+{extra}</Text>
+                <TattooPlaceholderIcon size={44} color="#2e2e2e" />
               </View>
             )}
           </View>
-        ))}
+          <View style={styles.thumbRow}>
+            {thumbs.map((uri, i) => (
+              <View key={i} style={styles.thumb}>
+                {uri ? (
+                  <Image source={{ uri }} style={styles.imgFill} resizeMode="cover" />
+                ) : (
+                  <View style={styles.placeholder}>
+                    <TattooPlaceholderIcon size={20} color="#2e2e2e" />
+                  </View>
+                )}
+                {i === 2 && extra > 0 && (
+                  <View style={styles.thumbOverlay}>
+                    <Text style={styles.thumbOverlayText}>+{extra}</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* ── Right column: info + spec grid ── */}
+        <View style={styles.rightCol}>
+          <View style={styles.topRow}>
+            {shop.isNew ? (
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>신규</Text>
+              </View>
+            ) : <View />}
+            <TouchableOpacity
+              onPress={onBookmark}
+              style={styles.bookmarkBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <BookmarkIcon size={20} color={COLORS.white} filled={shop.isBookmarked} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.title}>{shop.title}</Text>
+          <Text style={styles.price}>{formatWon(shop.pricePerDay)}</Text>
+          <View style={styles.addressRow}>
+            <LocationPinIcon size={11} color={COLORS.gray} />
+            <Text style={styles.addressText}>{shop.address}</Text>
+          </View>
+
+          {/* Spec grid 3x2 — 한 줄 안에 다 들어가도록 자동 폰트 축소 */}
+          <View style={styles.specGrid}>
+            <View style={styles.specCell}>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>평수</Text>
+              <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
+                {shop.areaPyeong}평
+              </Text>
+            </View>
+            <View style={styles.specCell}>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>베드 수</Text>
+              <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
+                {shop.bedCount}대
+              </Text>
+            </View>
+            <View style={styles.specCell}>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>조명</Text>
+              <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
+                {shop.lighting}
+              </Text>
+            </View>
+            <View style={styles.specCell}>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>프라이빗 룸</Text>
+              <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.75}>
+                {shop.privateRoomInfo ?? (shop.hasPrivateRoom ? '있음' : '없음')}
+              </Text>
+            </View>
+            <View style={styles.specCell}>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>최대 수용 인원</Text>
+              <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
+                {shop.maxOccupancy}명
+              </Text>
+            </View>
+            <View style={styles.specCell}>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.75}>현재 / 필요 인원</Text>
+              <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
+                {shop.currentOccupancy} / {shop.requiredOccupancy}명
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       <View style={styles.divider} />
@@ -122,7 +137,7 @@ const ShopShareCard = memo(({ shop, onPress, onBookmark }: Props) => {
             {shop.host.profileImage ? (
               <Image source={{ uri: shop.host.profileImage }} style={styles.imgFill} resizeMode="cover" />
             ) : (
-              <PersonSilhouette size={28} color="#3a3a3a" />
+              <PersonSilhouette size={30} color="#3a3a3a" />
             )}
           </View>
           <View style={styles.hostTextGroup}>
@@ -154,45 +169,76 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 14,
-    padding: 16,
+    padding: CARD_PAD,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  imagesRow: {
+  mainRow: {
     flexDirection: 'row',
     gap: 12,
   },
+
+  /* Left column */
+  leftCol: {
+    width: LEFT_COL_W,
+    gap: THUMB_GAP,
+  },
   mainImage: {
-    width: (W - CARD_H_PAD * 2 - 32) * 0.42,
-    height: MAIN_IMG_H,
-    borderRadius: 10,
+    width: MAIN_IMG_SIZE,
+    height: MAIN_IMG_SIZE,
+    borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: COLORS.elevated,
   },
-  imgFill: {
-    width: '100%',
-    height: '100%',
+  thumbRow: {
+    flexDirection: 'row',
+    gap: THUMB_GAP,
   },
+  thumb: {
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: COLORS.elevated,
+    position: 'relative',
+  },
+  thumbOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbOverlayText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+  },
+  imgFill: { width: '100%', height: '100%' },
   placeholder: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.elevated,
   },
-  rightBlock: {
+
+  /* Right column */
+  rightCol: {
     flex: 1,
-    position: 'relative',
   },
-  newBadgeAbs: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+    minHeight: 22,
+  },
+  newBadge: {
     backgroundColor: COLORS.gold,
-    borderRadius: 6,
+    borderRadius: 5,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    zIndex: 2,
   },
   newBadgeText: {
     color: COLORS.black,
@@ -200,27 +246,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 15,
   },
-  bookmarkAbs: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    zIndex: 2,
+  bookmarkBtn: {
     padding: 2,
-  },
-  rightBody: {
-    paddingTop: 28,
   },
   title: {
     color: COLORS.white,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   price: {
     color: COLORS.gold,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    lineHeight: 22,
+    lineHeight: 20,
     marginTop: 6,
   },
   addressRow: {
@@ -235,17 +274,21 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     flexShrink: 1,
   },
+
+  /* Spec grid — 자동 폰트 축소로 wrap 방지 */
   specGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 12,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingTop: 10,
+    marginHorizontal: -2,
   },
   specCell: {
     width: '33.33%',
-    paddingVertical: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 3,
   },
   specLabel: {
     color: COLORS.gray,
@@ -257,33 +300,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     lineHeight: 17,
-    marginTop: 1,
+    marginTop: 2,
   },
-  thumbRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 10,
-  },
-  thumb: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: COLORS.elevated,
-    position: 'relative',
-  },
-  thumbOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  thumbOverlayText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
+
   divider: {
     height: 1,
     backgroundColor: COLORS.border,
@@ -298,13 +317,13 @@ const styles = StyleSheet.create({
   hostBlock: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     flexShrink: 1,
   },
   hostAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: COLORS.elevated,
     justifyContent: 'center',
@@ -321,17 +340,17 @@ const styles = StyleSheet.create({
   },
   hostRole: {
     color: COLORS.gray,
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 11,
+    lineHeight: 15,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 14,
   },
   stat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
   },
   statText: {
     color: COLORS.gray,

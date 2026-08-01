@@ -10,33 +10,31 @@ interface LogoHeaderProps {
   onSearchPress?: () => void;
 }
 
-const LogoHeader = memo(({ onBellPress, onSearchPress }: LogoHeaderProps) => {
-  return (
-    <View style={styles.container}>
-      <Image
-        source={LOGO}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-      <View style={styles.actions}>
-        <TouchableOpacity
-          onPress={onBellPress}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.iconBtn}
-        >
-          <BellIcon size={24} color={COLORS.white} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={onSearchPress}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.iconBtn}
-        >
-          <SearchIcon size={24} color={COLORS.white} />
-        </TouchableOpacity>
-      </View>
+const LogoHeader = memo(({ onBellPress, onSearchPress }: LogoHeaderProps) => (
+  <View style={styles.container}>
+    <Image
+      source={LOGO}
+      style={styles.logo}
+      resizeMode="contain"
+    />
+    <View style={styles.actions}>
+      <TouchableOpacity
+        onPress={onSearchPress}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        style={styles.iconBtn}
+      >
+        <SearchIcon size={22} color={COLORS.white} strokeWidth={1.9} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={onBellPress}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        style={styles.iconBtn}
+      >
+        <BellIcon size={22} color={COLORS.white} strokeWidth={1.9} />
+      </TouchableOpacity>
     </View>
-  );
-});
+  </View>
+));
 
 LogoHeader.displayName = 'LogoHeader';
 export default LogoHeader;
@@ -48,16 +46,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: COLORS.black,
+    backgroundColor: '#000000',
   },
   logo: {
-    height: 30,
-    width: 110,
+    height: 32,
+    width: 60,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
   iconBtn: {
     padding: 2,

@@ -1,4 +1,4 @@
-export type ShopMatchingCategory = '타투 쉐어' | '타투 모델 구함 (비기너)' | '사진/영상 편집자';
+export type ShopMatchingCategory = '타투 쉐어' | '타투 모델 구인 (비기너)' | '사진/영상 편집자';
 
 export interface ShopHost {
   id: string;
@@ -56,7 +56,7 @@ export const isShareBookingFormValid = (form: ShareBookingForm): boolean =>
   !!(form.purpose && form.scheduleText.trim() && form.bedRequest);
 
 /* ─────────────────────────────────────────────────────
- * 타투 모델 구함 (비기너)
+ * 타투 모델 구인 (비기너)
  * ───────────────────────────────────────────────────── */
 
 export interface BeginnerModelRecruit {

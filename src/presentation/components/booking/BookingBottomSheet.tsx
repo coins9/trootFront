@@ -133,7 +133,14 @@ const BookingBottomSheet = memo(({
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               {designTitle ? (
-                <Text style={styles.headerSub} numberOfLines={1}>{designTitle}</Text>
+                <Text
+                  style={styles.headerSub}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
+                  {designTitle}
+                </Text>
               ) : null}
               <Text style={styles.headerTitle}>예약 / 상담 요청서</Text>
             </View>

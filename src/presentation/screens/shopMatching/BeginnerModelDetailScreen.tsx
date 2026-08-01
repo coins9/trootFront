@@ -108,12 +108,16 @@ const BeginnerModelDetailScreen = () => {
             </View>
           </View>
 
-          {/* Warning banner (top overlay) */}
-          <View style={[styles.warningBanner, { top: insets.top + 56 }]}>
-            <WarningTriangleIcon size={16} color={COLORS.gold} />
-            <Text style={styles.warningText}>
-              비기너 타투이스트의 작업이므로, 모든 선택과 문제 발생 시 책임은{'\n'}
-              손님과 타투이스트 당사자에게 있으며 플랫폼은 책임지지 않습니다.
+          {/* Warning chip (top overlay - 컴팩트하게) */}
+          <View style={[styles.warningChip, { top: insets.top + 54 }]}>
+            <WarningTriangleIcon size={12} color={COLORS.gold} />
+            <Text
+              style={styles.warningChipText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              비기너 작업 · 플랫폼 책임 없음
             </Text>
           </View>
 
@@ -317,26 +321,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  warningBanner: {
+  warningChip: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    alignSelf: 'center',
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: 'rgba(0,0,0,0.72)',
     borderWidth: 1,
     borderColor: COLORS.gold,
-    borderRadius: 10,
+    borderRadius: 999,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 6,
     zIndex: 2,
   },
-  warningText: {
+  warningChipText: {
     color: COLORS.white,
     fontSize: 11,
-    lineHeight: 17,
-    flexShrink: 1,
+    fontWeight: '600',
+    lineHeight: 15,
   },
   pageIndicator: {
     position: 'absolute',

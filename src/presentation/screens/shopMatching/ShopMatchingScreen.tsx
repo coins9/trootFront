@@ -26,7 +26,7 @@ import {
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 const CATEGORIES: ShopMatchingCategory[] = [
-  '타투 쉐어', '타투 모델 구함 (비기너)', '사진/영상 편집자',
+  '타투 쉐어', '타투 모델 구인 (비기너)', '사진/영상 편집자',
 ];
 
 const SHARE_FILTERS: { label: string; Icon: React.ComponentType<any> }[] = [
@@ -48,12 +48,19 @@ const VIDEO_FILTERS: { label: string; Icon: React.ComponentType<any> }[] = [
   { label: '작업 유형', Icon: FilterSlidersIcon },
 ];
 
+const BEGINNER_FILTERS: { label: string; Icon: React.ComponentType<any> }[] = [
+  { label: '지역', Icon: RegionIcon },
+  { label: '스타일', Icon: FilterSlidersIcon },
+  { label: '가격', Icon: StarIcon },
+  { label: '날짜', Icon: CalendarIcon },
+];
+
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const CATEGORY_SUBTITLES: Record<ShopMatchingCategory, string> = {
   '타투 쉐어': '타투 공간을 공유하고, 함께 성장하세요.',
-  '타투 모델 구함 (비기너)': '비기너 타투이스트의 모델을 지원해보세요.',
-  '사진/영상 편집자': '',
+  '타투 모델 구인 (비기너)': '비기너 타투이스트의 모델을 지원해보세요.',
+  '사진/영상 편집자': '타투샵 콘텐츠를 함께 만들 전문가를 찾아보세요.',
 };
 
 const ShopMatchingScreen = () => {
@@ -97,7 +104,7 @@ const ShopMatchingScreen = () => {
     />
   ), [handleExpertPress]);
 
-  const isBeginnerCategory = category === '타투 모델 구함 (비기너)';
+  const isBeginnerCategory = category === '타투 모델 구인 (비기너)';
   const isEditorCategory = category === '사진/영상 편집자';
 
   const filteredExperts = useMemo(
@@ -107,7 +114,9 @@ const ShopMatchingScreen = () => {
 
   const activeFilters = isEditorCategory
     ? (expertTab === 'photo' ? PHOTO_FILTERS : VIDEO_FILTERS)
-    : SHARE_FILTERS;
+    : isBeginnerCategory
+      ? BEGINNER_FILTERS
+      : SHARE_FILTERS;
 
   const sortLabel = isEditorCategory ? '↑↓ 추천순' : '↑↓ 최신순';
 
@@ -131,7 +140,8 @@ const ShopMatchingScreen = () => {
             >
               <Text
                 style={[styles.categoryText, isActive && styles.categoryTextActive]}
-                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
               >
                 {c}
               </Text>
@@ -297,14 +307,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingVertical: 14,
+    paddingHorizontal: 2,
     position: 'relative',
   },
   categoryText: {
     color: COLORS.gray,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
-    lineHeight: 18,
+    lineHeight: 17,
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   categoryTextActive: {
     color: COLORS.gold,

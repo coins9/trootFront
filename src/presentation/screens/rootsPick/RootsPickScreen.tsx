@@ -8,53 +8,48 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
-import { RootsPickBadge, ArrowRightIcon } from '../../components/icons';
+import { RootsPickBadge, ArrowRightIcon, TattooPlaceholderIcon } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { ROOTS_PICK_ARTISTS, MOCK_ARTISTS } from '../../../data/mock/mockData';
 import { RootsPickArtist } from '../../../data/mock/mockData';
 import { Artist } from '../../../domain/entities/types';
 
 const { width: W, height: H } = Dimensions.get('window');
-const FEATURED_HEIGHT = H * 0.6;
+const HERO_HEIGHT = H * 0.55;
 const GRID_CARD_W = (W - 2) / 2;
-const GRID_CARD_H = GRID_CARD_W * 1.35;
+const GRID_CARD_H = GRID_CARD_W * 1.5;
 
 type RootsPickNavProp = NativeStackNavigationProp<RootStackParamList>;
 
-const resolveArtist = (artistRef: string): Artist => {
-  return MOCK_ARTISTS.find((a) => a.id === artistRef) ?? MOCK_ARTISTS[0];
-};
+const resolveArtist = (artistRef: string): Artist =>
+  MOCK_ARTISTS.find((a) => a.id === artistRef) ?? MOCK_ARTISTS[0];
 
 const GridCard = memo(({ item, onPress }: { item: RootsPickArtist; onPress: () => void }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.gridCard}>
-    <View style={styles.gridImageWrapper}>
-      {item.coverImage ? (
-        <Image
-          source={{ uri: item.coverImage }}
-          style={styles.gridImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={[styles.gridImage, { backgroundColor: COLORS.card }]} />
-      )}
-      <View style={styles.gridOverlay} pointerEvents="box-none" />
-      <View style={styles.gridInfo}>
-        <Text style={styles.gridName}>{item.nickname}</Text>
-        <Text style={styles.gridMeta}>{item.city} · {item.genre}</Text>
+    {item.coverImage ? (
+      <Image source={{ uri: item.coverImage }} style={styles.gridImage} resizeMode="cover" />
+    ) : (
+      <View style={styles.gridPlaceholder}>
+        <TattooPlaceholderIcon size={72} color="#2a2a2a" />
       </View>
+    )}
+    <View style={styles.gridDarkOverlay} pointerEvents="none" />
+    <View style={styles.gridTopInfo} pointerEvents="none">
+      <Text style={styles.gridName}>{item.nickname}</Text>
+      <Text style={styles.gridMeta}>
+        {item.city} <Text style={styles.gridDot}>·</Text> {item.genre}
+      </Text>
     </View>
-    <View style={styles.gridFooter}>
+    <View style={styles.gridBottomAction} pointerEvents="none">
       <Text style={styles.viewProfile}>VIEW PROFILE</Text>
       <ArrowRightIcon size={14} color={COLORS.white} />
     </View>
   </TouchableOpacity>
 ));
-
 GridCard.displayName = 'GridCard';
 
 const RootsPickScreen = () => {
   const navigation = useNavigation<RootsPickNavProp>();
-
   const featured = ROOTS_PICK_ARTISTS[0];
   const gridArtists = ROOTS_PICK_ARTISTS.slice(1);
 
@@ -73,88 +68,74 @@ const RootsPickScreen = () => {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
       <LogoHeader />
 
-      <ScrollView
-        style={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        bounces
-      >
-        {/* ── Header Section ───────────────────────────── */}
-        <View style={styles.headerSection}>
-          <Text style={styles.labelSmall}>ROOT'S PICK</Text>
-          <View style={styles.titleRow}>
-            <View style={styles.titles}>
-              <Text style={styles.titleLarge}>CURATED.</Text>
-              <Text style={styles.titleLarge}>TIMELESS.</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.arrowCircle}
-              activeOpacity={0.8}
-              onPress={() => handleArtistPress(featured)}
-            >
-              <ArrowRightIcon size={20} color={COLORS.white} />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.subtitle}>T:ROOT이 선정한 최고의 타투 아티스트</Text>
-        </View>
-
-        {/* ── Featured Artist Card ──────────────────────── */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => handleArtistPress(featured)}
-          style={styles.featuredCard}
-        >
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} bounces>
+        {/* ── Hero: image + overlay text ── */}
+        <View style={styles.hero}>
           {featured.coverImage ? (
-            <Image
-              source={{ uri: featured.coverImage }}
-              style={styles.featuredImage}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: featured.coverImage }} style={styles.heroImage} resizeMode="cover" />
           ) : (
-            <View style={[styles.featuredImage, { backgroundColor: COLORS.card }]} />
+            <View style={styles.heroPlaceholder}>
+              <TattooPlaceholderIcon size={120} color="#2a2a2a" />
+            </View>
           )}
 
-          {/* Dark gradient overlay at bottom */}
-          <View style={styles.featuredGradient} pointerEvents="box-none" />
+          {/* dark gradient overlay */}
+          <View style={styles.heroGradient} pointerEvents="none" />
 
-          {/* Bottom info + badge */}
-          <View style={styles.featuredBottom} pointerEvents="box-none">
-            <View style={styles.featuredInfoBlock}>
-              <Text style={styles.featuredName}>{featured.nickname}</Text>
-              <Text style={styles.featuredMeta}>
-                {featured.city} · {featured.genre}
-              </Text>
-              <View style={styles.divider} />
-              <View style={styles.viewProfileRow}>
-                <Text style={styles.viewProfile}>VIEW PROFILE</Text>
-                <ArrowRightIcon size={14} color={COLORS.white} />
-              </View>
+          {/* Top-left content: label + title + subtitle + view artists */}
+          <View style={styles.heroTopLeft} pointerEvents="box-none">
+            <View style={styles.labelBlock}>
+              <Text style={styles.labelSmall}>ROOT'S PICK</Text>
+              <View style={styles.labelUnderline} />
             </View>
-            <View style={styles.badgeWrapper}>
-              <RootsPickBadge size={72} />
-            </View>
+            <Text style={styles.titleLarge}>CURATED.</Text>
+            <Text style={styles.titleLarge}>TIMELESS.</Text>
+            <Text style={styles.subtitle}>
+              루트가 선정한{'\n'}최고의 타투 아티스트
+            </Text>
+
+            <View style={styles.viewArtistsDivider} />
+            <TouchableOpacity
+              onPress={() => handleArtistPress(featured)}
+              activeOpacity={0.75}
+              style={styles.viewArtistsRow}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.viewArtistsText}>VIEW ARTISTS</Text>
+              <ArrowRightIcon size={20} color={COLORS.white} strokeWidth={1.8} />
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
 
-        {/* ── 2-Column Grid ────────────────────────────── */}
+          {/* Bottom-left: featured artist name */}
+          <View style={styles.heroBottomLeft} pointerEvents="box-none">
+            <Text style={styles.featuredName}>{featured.nickname}</Text>
+            <Text style={styles.featuredMeta}>
+              {featured.city}   <Text style={styles.featuredDot}>·</Text>   {featured.genre}
+            </Text>
+          </View>
+
+          {/* Bottom-right: laurel badge */}
+          <View style={styles.heroBottomRight} pointerEvents="box-none">
+            <RootsPickBadge size={82} />
+          </View>
+        </View>
+
+        {/* ── 2-column grid ── */}
         <View style={styles.grid}>
           {pairs.map((pair, rowIdx) => (
             <View key={rowIdx} style={styles.gridRow}>
               {pair.map((item) => (
-                <GridCard
-                  key={item.id}
-                  item={item}
-                  onPress={() => handleArtistPress(item)}
-                />
+                <GridCard key={item.id} item={item} onPress={() => handleArtistPress(item)} />
               ))}
               {pair.length === 1 && <View style={styles.gridCard} />}
             </View>
           ))}
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 24 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -165,18 +146,42 @@ export default RootsPickScreen;
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: COLORS.black,
   },
   scroll: {
     flex: 1,
   },
 
-  /* Header */
-  headerSection: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-    backgroundColor: COLORS.bg,
+  /* Hero */
+  hero: {
+    width: W,
+    height: HERO_HEIGHT,
+    position: 'relative',
+    backgroundColor: '#0a0a0a',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingRight: W * 0.15,
+    backgroundColor: '#0a0a0a',
+  },
+  heroGradient: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  heroTopLeft: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    width: W * 0.5,
+  },
+  labelBlock: {
+    marginBottom: 10,
   },
   labelSmall: {
     color: COLORS.gold,
@@ -184,172 +189,146 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2.5,
     lineHeight: 16,
-    marginBottom: 10,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  titles: {
-    gap: 0,
-    flexShrink: 1,
+  labelUnderline: {
+    width: 34,
+    height: 1,
+    backgroundColor: COLORS.gold,
+    marginTop: 5,
   },
   titleLarge: {
     color: COLORS.white,
-    fontSize: 40,
-    fontWeight: '900',
-    letterSpacing: -1,
-    lineHeight: 46,
-  },
-  arrowCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1.5,
-    borderColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-    flexShrink: 0,
+    fontSize: 34,
+    fontWeight: '400',
+    letterSpacing: -0.5,
+    lineHeight: 40,
+    fontFamily: undefined,
   },
   subtitle: {
     color: COLORS.gray,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 14,
   },
-
-  /* Featured Card */
-  featuredCard: {
-    width: W,
-    height: FEATURED_HEIGHT,
-    position: 'relative',
+  viewArtistsDivider: {
+    width: 70,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    marginTop: 16,
   },
-  featuredImage: {
-    width: '100%',
-    height: '100%',
-  },
-  featuredGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '55%',
-    backgroundColor: 'rgba(0,0,0,0)',
-    // layered gradient simulation
-  },
-  featuredBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  viewArtistsRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    paddingTop: 80,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
   },
-  featuredInfoBlock: {
-    flexShrink: 1,
-    gap: 4,
+  viewArtistsText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.8,
+    lineHeight: 17,
+  },
+  heroBottomLeft: {
+    position: 'absolute',
+    left: 20,
+    bottom: 22,
   },
   featuredName: {
     color: COLORS.white,
-    fontSize: 36,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-    lineHeight: 42,
+    fontSize: 34,
+    fontWeight: '400',
+    letterSpacing: 1,
+    lineHeight: 40,
   },
   featuredMeta: {
     color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 1,
+    lineHeight: 18,
+    marginTop: 4,
+    opacity: 0.9,
+  },
+  featuredDot: {
+    color: COLORS.gold,
+    fontSize: 16,
+  },
+  heroBottomRight: {
+    position: 'absolute',
+    right: 16,
+    bottom: 20,
+  },
+
+  /* Grid */
+  grid: {
+    marginTop: 0,
+  },
+  gridRow: {
+    flexDirection: 'row',
+    gap: 2,
+    marginBottom: 2,
+  },
+  gridCard: {
+    width: GRID_CARD_W,
+    height: GRID_CARD_H,
+    backgroundColor: '#0a0a0a',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  gridImage: {
+    width: '100%',
+    height: '100%',
+  },
+  gridPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0a0a0a',
+  },
+  gridDarkOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  gridTopInfo: {
+    position: 'absolute',
+    top: 18,
+    left: 18,
+    right: 18,
+  },
+  gridName: {
+    color: COLORS.white,
+    fontSize: 28,
+    fontWeight: '400',
+    letterSpacing: 0.5,
+    lineHeight: 34,
+  },
+  gridMeta: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.8,
+    lineHeight: 15,
+    marginTop: 4,
+    opacity: 0.9,
+  },
+  gridDot: {
+    color: COLORS.gold,
     fontSize: 14,
-    lineHeight: 20,
-    opacity: 0.85,
   },
-  divider: {
-    width: 100,
-    height: 1,
-    backgroundColor: COLORS.gold,
-    marginVertical: 10,
-  },
-  viewProfileRow: {
+  gridBottomAction: {
+    position: 'absolute',
+    left: 18,
+    bottom: 18,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   viewProfile: {
     color: COLORS.white,
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    lineHeight: 18,
-  },
-  badgeWrapper: {
-    marginBottom: 4,
-  },
-
-  /* Grid */
-  grid: {
-    gap: 2,
-    marginTop: 2,
-  },
-  gridRow: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  gridCard: {
-    width: GRID_CARD_W,
-    backgroundColor: COLORS.card,
-  },
-  gridImageWrapper: {
-    width: GRID_CARD_W,
-    height: GRID_CARD_H,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  gridImage: {
-    width: '100%',
-    height: '100%',
-  },
-  gridOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  gridInfo: {
-    position: 'absolute',
-    bottom: 14,
-    left: 14,
-    right: 8,
-  },
-  gridName: {
-    color: COLORS.white,
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-    lineHeight: 27,
-  },
-  gridMeta: {
-    color: COLORS.white,
-    fontSize: 12,
-    lineHeight: 17,
-    opacity: 0.8,
-    marginTop: 2,
-  },
-  gridFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.bg,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    lineHeight: 15,
   },
 });

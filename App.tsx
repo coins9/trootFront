@@ -7,6 +7,7 @@ import { enableScreens } from 'react-native-screens';
 import { COLORS } from './src/presentation/theme/colors';
 import SplashScreen from './src/presentation/screens/splash/SplashScreen';
 import RootNavigator from './src/infrastructure/navigation/RootNavigator';
+import { ToastProvider } from './src/presentation/components/common/Toast';
 
 enableScreens();
 
@@ -47,7 +48,9 @@ const App = () => {
             },
           }}
         >
-          <RootNavigator />
+          <ToastProvider>
+            <RootNavigator />
+          </ToastProvider>
         </NavigationContainer>
       </SafeAreaProvider>
     </GestureHandlerRootView>

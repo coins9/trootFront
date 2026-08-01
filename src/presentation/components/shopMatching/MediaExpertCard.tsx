@@ -53,7 +53,12 @@ const MediaExpertCard = memo(({ expert, onPress, onBookmark }: Props) => {
           </TouchableOpacity>
 
           {/* Name */}
-          <Text style={styles.nickname} numberOfLines={1}>
+          <Text
+            style={styles.nickname}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
             {expert.nickname}
           </Text>
 
@@ -63,14 +68,29 @@ const MediaExpertCard = memo(({ expert, onPress, onBookmark }: Props) => {
           {/* Tag lines (up to 2 rows) */}
           <View style={styles.tagList}>
             {expert.tags.slice(0, 2).map((t) => (
-              <Text key={t} style={styles.tagLine} numberOfLines={1}>{t}</Text>
+              <Text
+                key={t}
+                style={styles.tagLine}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                {t}
+              </Text>
             ))}
           </View>
 
           {/* Location */}
           <View style={styles.locationRow}>
             <LocationPinIcon size={11} color={COLORS.gray} />
-            <Text style={styles.locationText} numberOfLines={1}>{expert.location}</Text>
+            <Text
+              style={styles.locationText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+            >
+              {expert.location}
+            </Text>
           </View>
 
           {/* Price block */}

@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../presentation/theme/colors';
@@ -30,27 +30,28 @@ const TAB_ITEMS = [
   { name: 'ProfileTab' as const, label: '프로필', Icon: PersonIcon },
 ];
 
-const CustomTabBar = ({ state, descriptors, navigation }: any) => {
+const CustomTabBar = ({ state, navigation }: any) => {
   const insets = useSafeAreaInsets();
-  const symmetricPad = Math.max(insets.bottom, 12);
+  const bottomPad = Math.max(insets.bottom, 8);
 
   return (
-    <View
-      style={[
-        styles.tabBar,
-        { paddingTop: symmetricPad, paddingBottom: symmetricPad },
-      ]}
-    >
+    <View style={[styles.tabBar, { paddingBottom: bottomPad }]}>
       {state.routes.map((route: any, index: number) => {
         const isFocused = state.index === index;
         const tabItem = TAB_ITEMS[index];
 
         const onPress = () => {
-          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name);
           }
         };
+
+        const color = isFocused ? COLORS.gold : COLORS.gray;
 
         return (
           <TouchableOpacity
@@ -59,12 +60,8 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
             activeOpacity={0.75}
             style={styles.tabItem}
           >
-            <tabItem.Icon
-              size={22}
-              color={isFocused ? COLORS.gold : COLORS.gray}
-              active={isFocused}
-            />
-            <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+            <tabItem.Icon size={22} color={color} active={isFocused} />
+            <Text style={[styles.tabLabel, { color }]} numberOfLines={1}>
               {tabItem.label}
             </Text>
           </TouchableOpacity>
@@ -92,22 +89,20 @@ export default BottomTabNavigator;
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.black,
+    paddingTop: 6,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'center',
+    paddingVertical: 6,
+    gap: 3,
   },
   tabLabel: {
-    color: COLORS.gray,
     fontSize: 10,
+    fontWeight: '500',
     lineHeight: 14,
     textAlign: 'center',
-  },
-  tabLabelActive: {
-    color: COLORS.gold,
   },
 });
