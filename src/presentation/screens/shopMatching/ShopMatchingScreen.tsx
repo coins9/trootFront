@@ -11,6 +11,7 @@ import LogoHeader from '../../components/common/LogoHeader';
 import ShopShareCard from '../../components/shopMatching/ShopShareCard';
 import BeginnerModelCard from '../../components/shopMatching/BeginnerModelCard';
 import MediaExpertCard from '../../components/shopMatching/MediaExpertCard';
+import ShareFilterBottomSheet from '../../components/shopMatching/ShareFilterBottomSheet';
 import {
   RegionIcon, LightIcon, BedIcon, PeopleIcon, ChevronDownIcon, PenIcon,
   WarningTriangleIcon, CameraSolidIcon, VideoFilmIcon, InfoIcon,
@@ -22,8 +23,15 @@ import {
 import {
   TattooShareShop, ShopMatchingCategory, BeginnerModelRecruit, MediaExpert,
   MediaSpecialty,
+  ShareFilterState, INITIAL_SHARE_FILTER,
+  SHARE_REGION_OPTIONS, SHARE_LIGHTING_OPTIONS, SHARE_BED_OPTIONS,
+  SHARE_OCCUPANCY_OPTIONS, SHARE_SORT_OPTIONS,
+  ShareRegion, ShareLighting, ShareBedCount, ShareOccupancy, ShareSort,
+  matchRegion, matchLighting, matchBedCount, matchOccupancy, applyShareSort,
 } from '../../../domain/entities/shopTypes';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+
+type ShareFilterKind = 'region' | 'lighting' | 'bed' | 'occupancy' | 'sort';
 
 const CATEGORIES: ShopMatchingCategory[] = [
   '타투 쉐어', '타투 모델 구인 (비기너)', '사진/영상 편집자',
@@ -67,6 +75,10 @@ const ShopMatchingScreen = () => {
   const navigation = useNavigation<Nav>();
   const [category, setCategory] = useState<ShopMatchingCategory>('타투 쉐어');
   const [expertTab, setExpertTab] = useState<MediaSpecialty>('photo');
+
+  /* ── Share filter state ── */
+  const [shareFilter, setShareFilter] = useState<ShareFilterState>(INITIAL_SHARE_FILTER);
+  const [activeFilterSheet, setActiveFilterSheet] = useState<ShareFilterKind | null>(null);
 
   const handleShopPress = useCallback((shop: TattooShareShop) => {
     navigation.navigate('TattooShareDetail', { shop });
@@ -112,13 +124,57 @@ const ShopMatchingScreen = () => {
     [expertTab],
   );
 
-  const activeFilters = isEditorCategory
+  /* ── 타투 쉐어 필터·정렬 적용 ── */
+  const filteredShops = useMemo(() => {
+    const list = MOCK_TATTOO_SHARE_SHOPS.filter((s) =>
+      matchRegion(s.address, shareFilter.region)
+      && matchLighting(s.lighting, shareFilter.lighting)
+      && matchBedCount(s.bedCount, shareFilter.bedCount)
+      && matchOccupancy(s.maxOccupancy, shareFilter.occupancy),
+    );
+    return applyShareSort(list, shareFilter.sort);
+  }, [shareFilter]);
+
+  const shareFilterButtons = useMemo(() => [
+    {
+      label: shareFilter.region === '전체' ? '지역' : shareFilter.region.replace('서울 · ', ''),
+      Icon: RegionIcon,
+      kind: 'region' as const,
+      active: shareFilter.region !== '전체',
+    },
+    {
+      label: shareFilter.lighting === '전체' ? '조명' : shareFilter.lighting.replace(/ \(.*\)/, ''),
+      Icon: LightIcon,
+      kind: 'lighting' as const,
+      active: shareFilter.lighting !== '전체',
+    },
+    {
+      label: shareFilter.bedCount === '전체' ? '베드 수' : shareFilter.bedCount,
+      Icon: BedIcon,
+      kind: 'bed' as const,
+      active: shareFilter.bedCount !== '전체',
+    },
+    {
+      label: shareFilter.occupancy === '전체' ? '인원' : shareFilter.occupancy.split(' ')[0],
+      Icon: PeopleIcon,
+      kind: 'occupancy' as const,
+      active: shareFilter.occupancy !== '전체',
+    },
+  ], [shareFilter]);
+
+  const isShareCategory = !isBeginnerCategory && !isEditorCategory;
+
+  const nonShareFilters = isEditorCategory
     ? (expertTab === 'photo' ? PHOTO_FILTERS : VIDEO_FILTERS)
     : isBeginnerCategory
       ? BEGINNER_FILTERS
       : SHARE_FILTERS;
 
-  const sortLabel = isEditorCategory ? '↑↓ 추천순' : '↑↓ 최신순';
+  const sortLabel = isShareCategory
+    ? `↑↓ ${shareFilter.sort.split(' (')[0]}`
+    : isEditorCategory
+      ? '↑↓ 추천순'
+      : '↑↓ 최신순';
 
   const editorTitle = expertTab === 'photo' ? '사진 작가' : '영상 편집자';
   const editorSubtitle = expertTab === 'photo'
@@ -140,8 +196,9 @@ const ShopMatchingScreen = () => {
             >
               <Text
                 style={[styles.categoryText, isActive && styles.categoryTextActive]}
+                numberOfLines={1}
                 adjustsFontSizeToFit
-                minimumFontScale={0.85}
+                minimumFontScale={0.75}
               >
                 {c}
               </Text>
@@ -216,15 +273,40 @@ const ShopMatchingScreen = () => {
           contentContainerStyle={styles.filterScroll}
           style={{ flex: 1 }}
         >
-          {activeFilters.map((f) => (
-            <TouchableOpacity key={f.label} style={styles.filterBtn} activeOpacity={0.8}>
-              <f.Icon size={13} color={COLORS.gray} />
-              <Text style={styles.filterText}>{f.label}</Text>
-              <ChevronDownIcon size={11} color={COLORS.gray} />
-            </TouchableOpacity>
-          ))}
+          {isShareCategory
+            ? shareFilterButtons.map((f) => (
+                <TouchableOpacity
+                  key={f.kind}
+                  onPress={() => setActiveFilterSheet(f.kind)}
+                  activeOpacity={0.75}
+                  style={[styles.filterBtn, f.active && styles.filterBtnActive]}
+                >
+                  <f.Icon size={13} color={f.active ? COLORS.gold : COLORS.gray} />
+                  <Text
+                    style={[styles.filterText, f.active && styles.filterTextActive]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                  >
+                    {f.label}
+                  </Text>
+                  <ChevronDownIcon size={11} color={f.active ? COLORS.gold : COLORS.gray} />
+                </TouchableOpacity>
+              ))
+            : nonShareFilters.map((f) => (
+                <TouchableOpacity key={f.label} style={styles.filterBtn} activeOpacity={0.8}>
+                  <f.Icon size={13} color={COLORS.gray} />
+                  <Text style={styles.filterText}>{f.label}</Text>
+                  <ChevronDownIcon size={11} color={COLORS.gray} />
+                </TouchableOpacity>
+              ))
+          }
         </ScrollView>
-        <TouchableOpacity style={styles.sortBtn} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.sortBtn}
+          activeOpacity={0.8}
+          onPress={isShareCategory ? () => setActiveFilterSheet('sort') : undefined}
+        >
           <Text style={styles.sortText}>{sortLabel}</Text>
           <ChevronDownIcon size={11} color={COLORS.gray} />
         </TouchableOpacity>
@@ -266,12 +348,17 @@ const ShopMatchingScreen = () => {
         />
       ) : (
         <FlatList
-          data={MOCK_TATTOO_SHARE_SHOPS}
+          data={filteredShops}
           keyExtractor={(item) => item.id}
           renderItem={renderShopItem}
           ListHeaderComponent={Header}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>조건에 맞는 공간이 없습니다.</Text>
+            </View>
+          }
         />
       )}
 
@@ -280,6 +367,48 @@ const ShopMatchingScreen = () => {
         <PenIcon size={20} color={COLORS.black} />
         <Text style={styles.fabText}>글쓰기</Text>
       </TouchableOpacity>
+
+      {/* Share filter bottom sheets */}
+      <ShareFilterBottomSheet<ShareRegion>
+        visible={activeFilterSheet === 'region'}
+        title="지역 선택"
+        options={SHARE_REGION_OPTIONS}
+        selected={shareFilter.region}
+        onSelect={(v) => setShareFilter((prev) => ({ ...prev, region: v }))}
+        onClose={() => setActiveFilterSheet(null)}
+      />
+      <ShareFilterBottomSheet<ShareLighting>
+        visible={activeFilterSheet === 'lighting'}
+        title="조명 선택"
+        options={SHARE_LIGHTING_OPTIONS}
+        selected={shareFilter.lighting}
+        onSelect={(v) => setShareFilter((prev) => ({ ...prev, lighting: v }))}
+        onClose={() => setActiveFilterSheet(null)}
+      />
+      <ShareFilterBottomSheet<ShareBedCount>
+        visible={activeFilterSheet === 'bed'}
+        title="베드 수 선택"
+        options={SHARE_BED_OPTIONS}
+        selected={shareFilter.bedCount}
+        onSelect={(v) => setShareFilter((prev) => ({ ...prev, bedCount: v }))}
+        onClose={() => setActiveFilterSheet(null)}
+      />
+      <ShareFilterBottomSheet<ShareOccupancy>
+        visible={activeFilterSheet === 'occupancy'}
+        title="인원 선택"
+        options={SHARE_OCCUPANCY_OPTIONS}
+        selected={shareFilter.occupancy}
+        onSelect={(v) => setShareFilter((prev) => ({ ...prev, occupancy: v }))}
+        onClose={() => setActiveFilterSheet(null)}
+      />
+      <ShareFilterBottomSheet<ShareSort>
+        visible={activeFilterSheet === 'sort'}
+        title="정렬"
+        options={SHARE_SORT_OPTIONS}
+        selected={shareFilter.sort}
+        onSelect={(v) => setShareFilter((prev) => ({ ...prev, sort: v }))}
+        onClose={() => setActiveFilterSheet(null)}
+      />
     </SafeAreaView>
   );
 };
@@ -300,23 +429,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     marginHorizontal: -16,
-    paddingHorizontal: 16,
-    paddingTop: 6,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    backgroundColor: '#000000',
   },
   categoryItem: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 2,
+    paddingHorizontal: 4,
+    minHeight: 48,
     position: 'relative',
   },
   categoryText: {
     color: COLORS.gray,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
-    lineHeight: 17,
+    lineHeight: 18,
     textAlign: 'center',
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   categoryTextActive: {
     color: COLORS.gold,
@@ -325,10 +457,11 @@ const styles = StyleSheet.create({
   categoryUnderline: {
     position: 'absolute',
     bottom: -1,
-    left: '15%',
-    right: '15%',
-    height: 2.5,
+    left: '25%',
+    right: '25%',
+    height: 2,
     backgroundColor: COLORS.gold,
+    borderRadius: 1,
   },
   titleBlock: {
     paddingTop: 20,
@@ -419,11 +552,30 @@ const styles = StyleSheet.create({
     borderColor: COLORS.chipBorder,
     paddingHorizontal: 10,
     paddingVertical: 7,
+    maxWidth: 140,
+  },
+  filterBtnActive: {
+    borderColor: COLORS.gold,
+    backgroundColor: COLORS.goldDim,
   },
   filterText: {
     color: COLORS.gray,
     fontSize: 12,
     lineHeight: 17,
+    flexShrink: 1,
+  },
+  filterTextActive: {
+    color: COLORS.gold,
+    fontWeight: '700',
+  },
+  emptyState: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: COLORS.gray,
+    fontSize: 13,
+    lineHeight: 19,
   },
   sortBtn: {
     flexDirection: 'row',

@@ -1,5 +1,8 @@
 import React from 'react';
-import Svg, { Path, Circle, Line, Rect, Polyline, Polygon, Text as SvgText } from 'react-native-svg';
+import Svg, {
+  Path, Circle, Line, Rect, Polyline, Polygon,
+  Text as SvgText, TextPath, Defs, G,
+} from 'react-native-svg';
 import { COLORS } from '../../theme/colors';
 
 interface IconProps {
@@ -524,59 +527,66 @@ export const SpecialIcon = ({ size = 20, color = COLORS.gold, strokeWidth = 1.7 
   </Svg>
 );
 
-export const RootsPickBadge = ({ size = 72 }: { size?: number }) => (
-  <Svg width={size} height={size} viewBox="0 0 100 100">
-    {/* Outer circle */}
-    <Circle cx="50" cy="50" r="48" stroke={COLORS.gold} strokeWidth="1.8" fill="none" />
-    {/* Inner circle */}
-    <Circle cx="50" cy="50" r="42" stroke={COLORS.gold} strokeWidth="0.9" fill="none" />
+export const RootsPickBadge = ({ size = 72 }: { size?: number }) => {
+  /*
+   * viewBox 100x100, center 50,50
+   * ROOT'S PICK 는 상단 아치 곡선(반경 ~36)을 따라 배치
+   * 좌·우 대칭으로 laurel 잎 5쌍
+   * 하단 중앙에 큰 별
+   */
+  return (
+    <Svg width={size} height={size} viewBox="0 0 100 100">
+      <Defs>
+        {/* 상단 아치 path — 좌측 25,60 → 상단을 지나 우측 75,60. 반원. */}
+        <Path
+          id="rp-arc"
+          d="M 20 55 A 30 30 0 0 1 80 55"
+          fill="none"
+        />
+      </Defs>
 
-    {/* Left laurel */}
-    <Path d="M14 50 Q22 42 30 46" stroke={COLORS.gold} strokeWidth="1.4" fill="none" strokeLinecap="round" />
-    <Path d="M14 50 Q22 58 30 54" stroke={COLORS.gold} strokeWidth="1.4" fill="none" strokeLinecap="round" />
-    <Path d="M22 44 Q28 36 34 40" stroke={COLORS.gold} strokeWidth="1.2" fill="none" strokeLinecap="round" />
-    <Path d="M22 56 Q28 64 34 60" stroke={COLORS.gold} strokeWidth="1.2" fill="none" strokeLinecap="round" />
-    <Path d="M28 42 Q34 34 40 38" stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
-    <Path d="M28 58 Q34 66 40 62" stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
+      {/* Outer circle */}
+      <Circle cx="50" cy="50" r="46" stroke={COLORS.gold} strokeWidth="1.6" fill="none" />
 
-    {/* Right laurel (mirror) */}
-    <Path d="M86 50 Q78 42 70 46" stroke={COLORS.gold} strokeWidth="1.4" fill="none" strokeLinecap="round" />
-    <Path d="M86 50 Q78 58 70 54" stroke={COLORS.gold} strokeWidth="1.4" fill="none" strokeLinecap="round" />
-    <Path d="M78 44 Q72 36 66 40" stroke={COLORS.gold} strokeWidth="1.2" fill="none" strokeLinecap="round" />
-    <Path d="M78 56 Q72 64 66 60" stroke={COLORS.gold} strokeWidth="1.2" fill="none" strokeLinecap="round" />
-    <Path d="M72 42 Q66 34 60 38" stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
-    <Path d="M72 58 Q66 66 60 62" stroke={COLORS.gold} strokeWidth="1" fill="none" strokeLinecap="round" />
+      {/* ROOT'S PICK on the arc */}
+      <SvgText
+        fill={COLORS.gold}
+        fontSize="9"
+        fontWeight="bold"
+        letterSpacing="2.5"
+      >
+        <TextPath href="#rp-arc" startOffset="50%" textAnchor="middle">
+          ROOT&apos;S PICK
+        </TextPath>
+      </SvgText>
 
-    {/* ROOT'S text */}
-    <SvgText
-      x="50"
-      y="42"
-      textAnchor="middle"
-      fill={COLORS.gold}
-      fontSize="10"
-      fontWeight="bold"
-      letterSpacing="1.5"
-    >
-      ROOT'S
-    </SvgText>
+      {/* ── Laurel wreath (양쪽 대칭, 아래로 뻗어 별 감쌈) ── */}
+      {/* Left branch: base at bottom center → curves up-left */}
+      <G>
+        <Path d="M50 82 Q38 78 26 68" stroke={COLORS.gold} strokeWidth="1.2" fill="none" strokeLinecap="round" />
+        {/* leaves on left branch */}
+        <Path d="M44 82 Q40 76 35 76 Q40 79 43 82 Z" fill={COLORS.gold} />
+        <Path d="M39 79 Q34 74 29 75 Q34 77 37 80 Z" fill={COLORS.gold} />
+        <Path d="M34 75 Q29 71 24 73 Q29 74 32 77 Z" fill={COLORS.gold} />
+        <Path d="M30 70 Q26 66 22 68 Q26 69 28 72 Z" fill={COLORS.gold} />
+        <Path d="M27 65 Q24 61 21 63 Q24 64 26 67 Z" fill={COLORS.gold} />
+      </G>
 
-    {/* Star */}
-    <Polygon
-      points="50,48 52.9,55.5 61,55.5 54.5,60.5 57,68 50,63.5 43,68 45.5,60.5 39,55.5 47.1,55.5"
-      fill={COLORS.gold}
-    />
+      {/* Right branch (mirror) */}
+      <G>
+        <Path d="M50 82 Q62 78 74 68" stroke={COLORS.gold} strokeWidth="1.2" fill="none" strokeLinecap="round" />
+        <Path d="M56 82 Q60 76 65 76 Q60 79 57 82 Z" fill={COLORS.gold} />
+        <Path d="M61 79 Q66 74 71 75 Q66 77 63 80 Z" fill={COLORS.gold} />
+        <Path d="M66 75 Q71 71 76 73 Q71 74 68 77 Z" fill={COLORS.gold} />
+        <Path d="M70 70 Q74 66 78 68 Q74 69 72 72 Z" fill={COLORS.gold} />
+        <Path d="M73 65 Q76 61 79 63 Q76 64 74 67 Z" fill={COLORS.gold} />
+      </G>
 
-    {/* PICK text */}
-    <SvgText
-      x="50"
-      y="80"
-      textAnchor="middle"
-      fill={COLORS.gold}
-      fontSize="10"
-      fontWeight="bold"
-      letterSpacing="1.5"
-    >
-      PICK
-    </SvgText>
-  </Svg>
-);
+      {/* Center star */}
+      <Polygon
+        points="50,54 53.1,63 62.5,63 55,68.5 57.6,77.5 50,72 42.4,77.5 45,68.5 37.5,63 46.9,63"
+        fill={COLORS.gold}
+      />
+    </Svg>
+  );
+};

@@ -1,7 +1,7 @@
 import React, { useCallback, memo } from 'react';
 import {
   View, Text, Image, TouchableOpacity, ScrollView, StyleSheet,
-  Dimensions, StatusBar,
+  Dimensions, StatusBar, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +18,20 @@ const { width: W, height: H } = Dimensions.get('window');
 const HERO_HEIGHT = H * 0.55;
 const GRID_CARD_W = (W - 2) / 2;
 const GRID_CARD_H = GRID_CARD_W * 1.5;
+
+// 시스템 세리프 (커스텀 폰트 로드 없이) — 목업 Playfair Display 근사
+const SERIF = Platform.select({
+  ios: 'Didot',              // iOS 기본 세리프 (얇고 우아함)
+  android: 'serif',          // Android 기본 세리프 (Noto Serif)
+  default: 'serif',
+});
+
+// 산세리프 트래킹 강조 라벨용
+const SANS_MONO = Platform.select({
+  ios: 'Menlo',
+  android: 'monospace',
+  default: 'monospace',
+});
 
 type RootsPickNavProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -189,6 +203,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2.5,
     lineHeight: 16,
+    fontFamily: SANS_MONO,
   },
   labelUnderline: {
     width: 34,
@@ -198,11 +213,11 @@ const styles = StyleSheet.create({
   },
   titleLarge: {
     color: COLORS.white,
-    fontSize: 34,
+    fontSize: 38,
     fontWeight: '400',
     letterSpacing: -0.5,
-    lineHeight: 40,
-    fontFamily: undefined,
+    lineHeight: 44,
+    fontFamily: SERIF,
   },
   subtitle: {
     color: COLORS.gray,
@@ -228,6 +243,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.8,
     lineHeight: 17,
+    fontFamily: SANS_MONO,
   },
   heroBottomLeft: {
     position: 'absolute',
@@ -236,10 +252,11 @@ const styles = StyleSheet.create({
   },
   featuredName: {
     color: COLORS.white,
-    fontSize: 34,
+    fontSize: 40,
     fontWeight: '400',
-    letterSpacing: 1,
-    lineHeight: 40,
+    letterSpacing: 2,
+    lineHeight: 46,
+    fontFamily: SERIF,
   },
   featuredMeta: {
     color: COLORS.white,
@@ -298,10 +315,11 @@ const styles = StyleSheet.create({
   },
   gridName: {
     color: COLORS.white,
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '400',
-    letterSpacing: 0.5,
-    lineHeight: 34,
+    letterSpacing: 1.5,
+    lineHeight: 38,
+    fontFamily: SERIF,
   },
   gridMeta: {
     color: COLORS.white,
@@ -330,5 +348,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.5,
     lineHeight: 15,
+    fontFamily: SANS_MONO,
   },
 });

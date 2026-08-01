@@ -45,12 +45,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingTop: 6,
+    paddingBottom: 6,
     backgroundColor: '#000000',
+    minHeight: 52,
   },
   logo: {
-    height: 32,
-    width: 60,
+    height: 34,
+    width: 92,
   },
   actions: {
     flexDirection: 'row',
