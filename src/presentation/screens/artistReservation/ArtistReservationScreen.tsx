@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar,
-  Alert, LayoutAnimation, Platform, UIManager, TextInput, Share,
+  Alert, LayoutAnimation, Platform, UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -13,7 +13,6 @@ import {
   CalendarIcon, CheckCircleIcon, ClockOutlineIcon,
   ChatBubbleIcon, PaletteIcon, RefreshIcon, EditPenIcon, XIcon,
   CalendarPlusIcon, WalletIcon, WonIcon,
-  UserPlusIcon, ShieldCheckIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import {
@@ -29,6 +28,7 @@ import {
 import ReservationDetailModal, {
   ReservationDetail,
 } from '../../components/artistReservation/ReservationDetailModal';
+import ShopInviteSection from '../../components/artistReservation/ShopInviteSection';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 if (
@@ -481,6 +481,7 @@ const ArtistReservationScreen = () => {
   const todayRef = useRef<Date>(new Date());
   const today = todayRef.current;
 
+  const [topTab, setTopTab] = useState<TopTab>('my');
   const [view, setView] = useState<ViewKey>('timeline');
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [statusOverride, setStatusOverride] = useState<Record<string, BookingStatus>>({});
@@ -665,11 +666,50 @@ const ArtistReservationScreen = () => {
         </View>
       </View>
 
+      {/* Top tab (내 예약 관리 / 샵) */}
+      <View style={styles.topTabRow}>
+        <TouchableOpacity
+          onPress={() => {
+            easeLayoutAnim();
+            setTopTab('my');
+          }}
+          activeOpacity={0.75}
+          style={styles.topTabBtn}
+        >
+          <Text style={[styles.topTabText, topTab === 'my' && styles.topTabTextActive]}>
+            내 예약 관리
+          </Text>
+          {topTab === 'my' && <View style={styles.topTabUnderline} />}
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            easeLayoutAnim();
+            setTopTab('shop');
+          }}
+          activeOpacity={0.75}
+          style={styles.topTabBtn}
+        >
+          <View style={styles.topTabLabelWrap}>
+            <Text style={[styles.topTabText, topTab === 'shop' && styles.topTabTextActive]}>
+              샵
+            </Text>
+            <View style={styles.topTabDot} />
+          </View>
+          {topTab === 'shop' && <View style={styles.topTabUnderline} />}
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {topTab === 'shop' ? (
+          <View style={styles.shopWrap}>
+            <ShopInviteSection />
+          </View>
+        ) : (
+          <>
         {/* Summary */}
         <SummaryBar
           total={stats.total}
@@ -726,16 +766,20 @@ const ArtistReservationScreen = () => {
             summaryMap={monthlyMap}
           />
         )}
+          </>
+        )}
       </ScrollView>
 
-      {/* FAB */}
-      <TouchableOpacity
-        onPress={handleFab}
-        activeOpacity={0.85}
-        style={styles.fab}
-      >
-        <CalendarPlusIcon size={26} color={COLORS.black} strokeWidth={2} />
-      </TouchableOpacity>
+      {/* FAB — 내 예약 탭에서만 표시 */}
+      {topTab === 'my' && (
+        <TouchableOpacity
+          onPress={handleFab}
+          activeOpacity={0.85}
+          style={styles.fab}
+        >
+          <CalendarPlusIcon size={26} color={COLORS.black} strokeWidth={2} />
+        </TouchableOpacity>
+      )}
 
       {/* Detail modal */}
       <ReservationDetailModal
@@ -787,6 +831,52 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     paddingBottom: 110,
+  },
+
+  /* Top Tabs */
+  topTabRow: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.black,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  topTabBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 14,
+    position: 'relative',
+  },
+  topTabLabelWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  topTabText: {
+    color: COLORS.gray,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  topTabTextActive: {
+    color: COLORS.gold,
+    fontWeight: '800',
+  },
+  topTabDot: {
+    width: 5, height: 5, borderRadius: 2.5,
+    backgroundColor: COLORS.gold,
+  },
+  topTabUnderline: {
+    position: 'absolute',
+    bottom: 0,
+    left: '15%',
+    right: '15%',
+    height: 2,
+    backgroundColor: COLORS.gold,
+  },
+
+  shopWrap: {
+    paddingHorizontal: H_PAD,
+    paddingTop: 16,
   },
 
   /* Summary */
