@@ -53,6 +53,7 @@ const styles = StyleSheet.create({
   logo: {
     height: 34,
     width: 92,
+    marginLeft: -8,
   },
   actions: {
     flexDirection: 'row',

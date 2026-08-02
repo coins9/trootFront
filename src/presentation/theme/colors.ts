@@ -14,4 +14,5 @@ export const COLORS = {
   black: '#000000',
   overlay: 'rgba(0,0,0,0.75)',
   transparent: 'transparent',
+  danger: '#E85555',
 } as const;

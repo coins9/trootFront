@@ -360,6 +360,160 @@ export const PeopleIcon = ({ size = 14, color = COLORS.gray, strokeWidth = 1.7 }
   </Svg>
 );
 
+export const StoreIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M3 9l2-5h14l2 5"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M3 9c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const FolderIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const ListIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Line x1="8" y1="6" x2="20" y2="6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="8" y1="12" x2="20" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="8" y1="18" x2="20" y2="18" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Circle cx="4" cy="6" r="1" fill={color} />
+    <Circle cx="4" cy="12" r="1" fill={color} />
+    <Circle cx="4" cy="18" r="1" fill={color} />
+  </Svg>
+);
+
+export const PaletteIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 3a9 9 0 0 0 0 18c1 0 1.5-.8 1.5-1.5 0-.4-.2-.7-.4-1-.3-.3-.4-.6-.4-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinejoin="round"
+    />
+    <Circle cx="7.5" cy="10.5" r="1.2" fill={color} />
+    <Circle cx="12" cy="7.5" r="1.2" fill={color} />
+    <Circle cx="16.5" cy="10.5" r="1.2" fill={color} />
+  </Svg>
+);
+
+export const CrownIcon = ({ size = 16, color = COLORS.gold, strokeWidth = 1.6 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M3 8l4 4 5-7 5 7 4-4-2 12H5L3 8z"
+      fill={color}
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinejoin="round"
+    />
+    <Circle cx="3" cy="8" r="1.3" fill={color} />
+    <Circle cx="12" cy="5" r="1.3" fill={color} />
+    <Circle cx="21" cy="8" r="1.3" fill={color} />
+  </Svg>
+);
+
+export const TagIcon = ({ size = 14, color = COLORS.gray, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle cx="7" cy="7" r="1.3" fill={color} />
+  </Svg>
+);
+
+export const BarChartIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Line x1="6" y1="20" x2="6" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="12" y1="20" x2="12" y2="6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="18" y1="20" x2="18" y2="15" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="3" y1="21" x2="21" y2="21" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </Svg>
+);
+
+export const ChatBubbleIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M21 12a8 8 0 0 1-8 8H8l-5 3v-4.5A8 8 0 1 1 21 12z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle cx="8.5" cy="12" r="1" fill={color} />
+    <Circle cx="12" cy="12" r="1" fill={color} />
+    <Circle cx="15.5" cy="12" r="1" fill={color} />
+  </Svg>
+);
+
+export const EditPenIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M4 20h4l10-10-4-4L4 16v4z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Line x1="14" y1="6" x2="18" y2="10" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </Svg>
+);
+
+export const GearIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth={strokeWidth} />
+    <Path
+      d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const UserOutlineIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="8" r="4" stroke={color} strokeWidth={strokeWidth} />
+    <Path
+      d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 export const VerifiedBadgeIcon = ({ size = 16 }: { size?: number }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
@@ -590,3 +744,146 @@ export const RootsPickBadge = ({ size = 72 }: { size?: number }) => {
     </Svg>
   );
 };
+
+export const CheckIcon = ({ size = 18, color = COLORS.gold, strokeWidth = 2 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Polyline
+      points="20 6 9 17 4 12"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const MailIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect
+      x="3" y="5" width="18" height="14" rx="2"
+      stroke={color}
+      strokeWidth={strokeWidth}
+    />
+    <Polyline
+      points="3 7 12 13 21 7"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const PhoneIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect
+      x="6" y="2" width="12" height="20" rx="2.5"
+      stroke={color}
+      strokeWidth={strokeWidth}
+    />
+    <Line
+      x1="11" y1="18" x2="13" y2="18"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
+export const MenuIcon = ({ size = 24, color = COLORS.white, strokeWidth = 1.8 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Line x1="4" y1="7" x2="20" y2="7" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="4" y1="12" x2="20" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="4" y1="17" x2="20" y2="17" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </Svg>
+);
+
+export const SlidersIcon = ({ size = 18, color = COLORS.white, strokeWidth = 1.8 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Line x1="4" y1="7" x2="20" y2="7" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="4" y1="17" x2="20" y2="17" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Circle cx="9" cy="7" r="2.6" fill={COLORS.bg} stroke={color} strokeWidth={strokeWidth} />
+    <Circle cx="16" cy="17" r="2.6" fill={COLORS.bg} stroke={color} strokeWidth={strokeWidth} />
+  </Svg>
+);
+
+export const ChevronLeftIcon = ({ size = 16, color = COLORS.gray, strokeWidth = 2 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Polyline
+      points="15 6 9 12 15 18"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const CalendarPlusIcon = ({ size = 24, color = COLORS.black, strokeWidth = 1.8 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect x="3" y="5" width="18" height="16" rx="2.5" stroke={color} strokeWidth={strokeWidth} />
+    <Line x1="3" y1="10" x2="21" y2="10" stroke={color} strokeWidth={strokeWidth} />
+    <Line x1="8" y1="3" x2="8" y2="7" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="16" y1="3" x2="16" y2="7" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="12" y1="13" x2="12" y2="18" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="9.5" y1="15.5" x2="14.5" y2="15.5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </Svg>
+);
+
+export const HelpCircleIcon = ({ size = 18, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="9.5" stroke={color} strokeWidth={strokeWidth} />
+    <Path
+      d="M9.2 9.2c.4-1.4 1.6-2.2 3-2.2 1.7 0 3 1.2 3 2.7 0 1.7-2 2-3 3.3v.5"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle cx="12" cy="17" r="0.9" fill={color} />
+  </Svg>
+);
+
+export const AlertInfoIcon = ({ size = 20, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="9.5" stroke={color} strokeWidth={strokeWidth} />
+    <Line x1="12" y1="7.5" x2="12" y2="13" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Circle cx="12" cy="16.5" r="0.9" fill={color} />
+  </Svg>
+);
+
+export const WalletIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect x="3" y="6" width="18" height="14" rx="2.5" stroke={color} strokeWidth={strokeWidth} />
+    <Path
+      d="M3 9V7.5C3 6.7 3.7 6 4.5 6H18"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+    />
+    <Circle cx="16.5" cy="13" r="1.4" fill={color} />
+  </Svg>
+);
+
+export const DotsVerticalIcon = ({ size = 18, color = COLORS.gray, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="5" r="1.5" fill={color} />
+    <Circle cx="12" cy="12" r="1.5" fill={color} />
+    <Circle cx="12" cy="19" r="1.5" fill={color} />
+  </Svg>
+);
+
+export const UserPlusIcon = ({ size = 24, color = COLORS.black, strokeWidth = 1.8 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="10" cy="8" r="4" stroke={color} strokeWidth={strokeWidth} />
+    <Path
+      d="M2 21c0-4.5 3.5-8 8-8s8 3.5 8 8"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+    />
+    <Line x1="19" y1="6" x2="19" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="16" y1="9" x2="22" y2="9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </Svg>
+);
+

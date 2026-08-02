@@ -1,4 +1,4 @@
-export type ShopMatchingCategory = '타투 쉐어' | '타투 모델 구인 (비기너)' | '사진/영상 편집자';
+export type ShopMatchingCategory = '부스 쉐어' | '타투 모델 구인 (비기너)' | '사진/영상 편집자';
 
 export interface ShopHost {
   id: string;
@@ -34,7 +34,7 @@ export interface TattooShareShop {
 }
 
 /* ─────────────────────────────────────────────────────
- * 타투 쉐어 필터
+ * 부스 쉐어 필터
  * ───────────────────────────────────────────────────── */
 
 export type ShareRegion =
@@ -362,7 +362,7 @@ export const formatWorkInquiryMessage = (
 };
 
 /* ─────────────────────────────────────────────────────
- * 타투 쉐어 예약 문의
+ * 부스 쉐어 예약 문의
  * ───────────────────────────────────────────────────── */
 
 export const formatShareBookingMessage = (
@@ -371,7 +371,7 @@ export const formatShareBookingMessage = (
   form: ShareBookingForm,
 ): string => {
   const lines = [
-    '[T:ROOT 타투 쉐어 문의]',
+    '[T:ROOT 부스 쉐어 문의]',
     `공간: ${shopTitle}`,
     `호스트: ${hostName}`,
     '',

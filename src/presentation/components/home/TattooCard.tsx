@@ -91,15 +91,15 @@ const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooC
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <HeartIcon size={13} color={COLORS.gray} />
+            <HeartIcon size={13} color="#B8A57E" />
             <Text style={styles.statText}>{formatCount(tattoo.likeCount)}</Text>
           </View>
           <View style={styles.statItem}>
-            <CommentIcon size={13} color={COLORS.gray} />
+            <CommentIcon size={13} color="#B8A57E" />
             <Text style={styles.statText}>{formatCount(tattoo.commentCount)}</Text>
           </View>
           <View style={styles.statItem}>
-            <EyeIcon size={13} color={COLORS.gray} />
+            <EyeIcon size={13} color="#B8A57E" />
             <Text style={styles.statText}>{tattoo.viewCount}</Text>
           </View>
         </View>
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   statText: {
-    color: COLORS.gray,
+    color: '#B8A57E',
     fontSize: 11,
     lineHeight: 15,
   },

@@ -10,6 +10,18 @@ import TattooShareDetailScreen from '../../presentation/screens/shopMatching/Tat
 import BeginnerModelDetailScreen from '../../presentation/screens/shopMatching/BeginnerModelDetailScreen';
 import MediaExpertDetailScreen from '../../presentation/screens/shopMatching/MediaExpertDetailScreen';
 import TattooSupplyDetailScreen from '../../presentation/screens/tattooSupplies/TattooSupplyDetailScreen';
+import ReservationManageScreen from '../../presentation/screens/reservation/ReservationManageScreen';
+import FavoriteArtistsScreen from '../../presentation/screens/favorites/FavoriteArtistsScreen';
+import FavoriteWorksScreen from '../../presentation/screens/favorites/FavoriteWorksScreen';
+import FavoritePhotoShopsScreen from '../../presentation/screens/favorites/FavoritePhotoShopsScreen';
+import FavoriteSuppliesScreen from '../../presentation/screens/favorites/FavoriteSuppliesScreen';
+import TattooReviewScreen from '../../presentation/screens/review/TattooReviewScreen';
+import AccountInfoScreen from '../../presentation/screens/accountInfo/AccountInfoScreen';
+import NotificationSettingsScreen from '../../presentation/screens/notificationSettings/NotificationSettingsScreen';
+import PrivacySecurityScreen from '../../presentation/screens/privacySecurity/PrivacySecurityScreen';
+import ArtistReservationScreen from '../../presentation/screens/artistReservation/ArtistReservationScreen';
+import DepositManagementScreen from '../../presentation/screens/deposit/DepositManagementScreen';
+import AdStatsScreen from '../../presentation/screens/artistAd/AdStatsScreen';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -19,6 +31,18 @@ export type RootStackParamList = {
   BeginnerModelDetail: { post: BeginnerModelRecruit };
   MediaExpertDetail: { expert: MediaExpert };
   TattooSupplyDetail: { supply: TattooSupply };
+  ReservationManage: undefined;
+  FavoriteArtists: undefined;
+  FavoriteWorks: undefined;
+  FavoritePhotoShops: undefined;
+  FavoriteSupplies: undefined;
+  TattooReview: undefined;
+  AccountInfo: undefined;
+  NotificationSettings: undefined;
+  PrivacySecurity: undefined;
+  ArtistReservation: undefined;
+  DepositManagement: undefined;
+  ArtistAdStats: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -54,6 +78,66 @@ const RootNavigator = () => (
     <Stack.Screen
       name="TattooSupplyDetail"
       component={TattooSupplyDetailScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="ReservationManage"
+      component={ReservationManageScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="FavoriteArtists"
+      component={FavoriteArtistsScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="FavoriteWorks"
+      component={FavoriteWorksScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="FavoritePhotoShops"
+      component={FavoritePhotoShopsScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="FavoriteSupplies"
+      component={FavoriteSuppliesScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="TattooReview"
+      component={TattooReviewScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="AccountInfo"
+      component={AccountInfoScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="NotificationSettings"
+      component={NotificationSettingsScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="PrivacySecurity"
+      component={PrivacySecurityScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="ArtistReservation"
+      component={ArtistReservationScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="DepositManagement"
+      component={DepositManagementScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="ArtistAdStats"
+      component={AdStatsScreen}
       options={{ animation: 'slide_from_right' }}
     />
   </Stack.Navigator>

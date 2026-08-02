@@ -1,0 +1,90 @@
+import { DepositItem } from '../../domain/entities/depositTypes';
+
+export const MOCK_PENDING_DEPOSITS: DepositItem[] = [
+  {
+    id: 'd1',
+    reservationNumber: '#R240815-001',
+    customer: {
+      id: 'c1', nickname: '지윤', handle: '@jiyoon_tattoo',
+      avatarUri: '', isVip: true,
+    },
+    procedureDateLabel: '2024. 08. 15 (목)',
+    procedureTimeLabel: '14:00',
+    style: '블랙앤그레이',
+    bodyPart: '팔 전체',
+    depositAmount: 50000,
+    requestedAt: '2024. 08. 01  20:30',
+    dueAt: '2024. 08. 03  23:59',
+    status: 'pending',
+  },
+  {
+    id: 'd2',
+    reservationNumber: '#R240814-002',
+    customer: {
+      id: 'c2', nickname: '현우', handle: '@hyunwoo_ink',
+      avatarUri: '', isVip: true,
+    },
+    procedureDateLabel: '2024. 08. 20 (화)',
+    procedureTimeLabel: '16:00',
+    style: '라인워크',
+    bodyPart: '다리',
+    depositAmount: 70000,
+    requestedAt: '2024. 08. 02  11:15',
+    dueAt: '2024. 08. 04  23:59',
+    status: 'pending',
+  },
+];
+
+export const MOCK_CONFIRMED_DEPOSITS: DepositItem[] = [
+  {
+    id: 'c1',
+    reservationNumber: '#R240810-005',
+    customer: {
+      id: 'c3', nickname: '민규', handle: '@mingyu_ink',
+      avatarUri: '',
+    },
+    procedureDateLabel: '2024. 08. 10 (토)',
+    procedureTimeLabel: '13:00',
+    style: '블랙앤그레이',
+    bodyPart: '어깨',
+    depositAmount: 80000,
+    requestedAt: '2024. 07. 28  18:20',
+    dueAt: '2024. 07. 30  23:59',
+    confirmedAt: '2024. 07. 30  10:12',
+    status: 'confirmed',
+  },
+  {
+    id: 'c2',
+    reservationNumber: '#R240809-004',
+    customer: {
+      id: 'c4', nickname: '소연', handle: '@soyeon.art',
+      avatarUri: '',
+    },
+    procedureDateLabel: '2024. 08. 09 (금)',
+    procedureTimeLabel: '15:30',
+    style: '플라워',
+    bodyPart: '쇄골',
+    depositAmount: 60000,
+    requestedAt: '2024. 07. 27  09:10',
+    dueAt: '2024. 07. 29  23:59',
+    confirmedAt: '2024. 07. 28  15:34',
+    status: 'confirmed',
+  },
+  {
+    id: 'c3',
+    reservationNumber: '#R240808-003',
+    customer: {
+      id: 'c5', nickname: '태현', handle: '@taehyun_tat',
+      avatarUri: '',
+    },
+    procedureDateLabel: '2024. 08. 08 (목)',
+    procedureTimeLabel: '11:00',
+    style: '다리 슬리브',
+    bodyPart: '허벅지',
+    depositAmount: 120000,
+    requestedAt: '2024. 07. 25  12:00',
+    dueAt: '2024. 07. 27  23:59',
+    confirmedAt: '2024. 07. 26  09:15',
+    status: 'confirmed',
+  },
+];

@@ -34,7 +34,7 @@ import { RootStackParamList } from '../../../infrastructure/navigation/RootNavig
 type ShareFilterKind = 'region' | 'lighting' | 'bed' | 'occupancy' | 'sort';
 
 const CATEGORIES: ShopMatchingCategory[] = [
-  '타투 쉐어', '타투 모델 구인 (비기너)', '사진/영상 편집자',
+  '부스 쉐어', '타투 모델 구인 (비기너)', '사진/영상 편집자',
 ];
 
 const SHARE_FILTERS: { label: string; Icon: React.ComponentType<any> }[] = [
@@ -66,14 +66,14 @@ const BEGINNER_FILTERS: { label: string; Icon: React.ComponentType<any> }[] = [
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const CATEGORY_SUBTITLES: Record<ShopMatchingCategory, string> = {
-  '타투 쉐어': '타투 공간을 공유하고, 함께 성장하세요.',
+  '부스 쉐어': '타투 공간을 공유하고, 함께 성장하세요.',
   '타투 모델 구인 (비기너)': '비기너 타투이스트의 모델을 지원해보세요.',
   '사진/영상 편집자': '타투샵 콘텐츠를 함께 만들 전문가를 찾아보세요.',
 };
 
 const ShopMatchingScreen = () => {
   const navigation = useNavigation<Nav>();
-  const [category, setCategory] = useState<ShopMatchingCategory>('타투 쉐어');
+  const [category, setCategory] = useState<ShopMatchingCategory>('부스 쉐어');
   const [expertTab, setExpertTab] = useState<MediaSpecialty>('photo');
 
   /* ── Share filter state ── */
@@ -124,7 +124,7 @@ const ShopMatchingScreen = () => {
     [expertTab],
   );
 
-  /* ── 타투 쉐어 필터·정렬 적용 ── */
+  /* ── 부스 쉐어 필터·정렬 적용 ── */
   const filteredShops = useMemo(() => {
     const list = MOCK_TATTOO_SHARE_SHOPS.filter((s) =>
       matchRegion(s.address, shareFilter.region)

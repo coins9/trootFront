@@ -1,0 +1,43 @@
+import { HomeAd } from '../../domain/entities/adTypes';
+
+export const MOCK_HOME_ADS: HomeAd[] = [
+  {
+    id: 'ad1',
+    category: '도안 광고',
+    title: '한정 도안 30% 할인',
+    subtitle: '이달만 진행하는 미니멀 라인 특가',
+    advertiserName: 'MINSOO STUDIO',
+    location: '서울 · 강남',
+    priceLabel: '7만원~',
+    imageUri: '',
+    ctaLabel: '도안 보러가기',
+    targetType: 'artist',
+    isSponsored: true,
+  },
+  {
+    id: 'ad2',
+    category: '샵 홍보',
+    title: '오픈 기념 신규 예약 이벤트',
+    subtitle: '리터치 1회 무료 · 예약 시 즉시 적용',
+    advertiserName: 'INK LAB',
+    location: '서울 · 성수',
+    priceLabel: '리터치 무료',
+    imageUri: '',
+    ctaLabel: '샵 둘러보기',
+    targetType: 'artist',
+    isSponsored: true,
+  },
+  {
+    id: 'ad3',
+    category: '이벤트',
+    title: '5월 컬러 타투 페어',
+    subtitle: '10명의 아티스트 참여 · 특별 할인가',
+    advertiserName: 'T:ROOT PICK',
+    location: '전국',
+    priceLabel: '최대 40%',
+    imageUri: '',
+    ctaLabel: '이벤트 보기',
+    targetType: 'external',
+    isSponsored: true,
+  },
+];

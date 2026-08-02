@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
-import { RootsPickBadge, ArrowRightIcon, TattooPlaceholderIcon } from '../../components/icons';
+import { ArrowRightIcon, TattooPlaceholderIcon } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { ROOTS_PICK_ARTISTS, MOCK_ARTISTS } from '../../../data/mock/mockData';
 import { RootsPickArtist } from '../../../data/mock/mockData';
@@ -56,7 +56,7 @@ const GridCard = memo(({ item, onPress }: { item: RootsPickArtist; onPress: () =
     </View>
     <View style={styles.gridBottomAction} pointerEvents="none">
       <Text style={styles.viewProfile}>VIEW PROFILE</Text>
-      <ArrowRightIcon size={14} color={COLORS.white} />
+      <ArrowRightIcon size={14} color={COLORS.gold} />
     </View>
   </TouchableOpacity>
 ));
@@ -105,8 +105,22 @@ const RootsPickScreen = () => {
               <Text style={styles.labelSmall}>ROOT'S PICK</Text>
               <View style={styles.labelUnderline} />
             </View>
-            <Text style={styles.titleLarge}>CURATED.</Text>
-            <Text style={styles.titleLarge}>TIMELESS.</Text>
+            <Text
+              style={styles.titleLarge}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              CURATED.
+            </Text>
+            <Text
+              style={styles.titleLarge}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              TIMELESS.
+            </Text>
             <Text style={styles.subtitle}>
               루트가 선정한{'\n'}최고의 타투 아티스트
             </Text>
@@ -119,7 +133,7 @@ const RootsPickScreen = () => {
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.viewArtistsText}>VIEW ARTISTS</Text>
-              <ArrowRightIcon size={20} color={COLORS.white} strokeWidth={1.8} />
+              <ArrowRightIcon size={20} color={COLORS.gold} strokeWidth={1.8} />
             </TouchableOpacity>
           </View>
 
@@ -131,10 +145,6 @@ const RootsPickScreen = () => {
             </Text>
           </View>
 
-          {/* Bottom-right: laurel badge */}
-          <View style={styles.heroBottomRight} pointerEvents="box-none">
-            <RootsPickBadge size={82} />
-          </View>
         </View>
 
         {/* ── 2-column grid ── */}
@@ -192,7 +202,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     left: 20,
-    width: W * 0.5,
+    width: W * 0.6,
   },
   labelBlock: {
     marginBottom: 10,
@@ -228,7 +238,7 @@ const styles = StyleSheet.create({
   viewArtistsDivider: {
     width: 70,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: COLORS.gold,
     marginTop: 16,
   },
   viewArtistsRow: {
@@ -238,7 +248,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   viewArtistsText: {
-    color: COLORS.white,
+    color: COLORS.gold,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1.8,
@@ -271,12 +281,6 @@ const styles = StyleSheet.create({
     color: COLORS.gold,
     fontSize: 16,
   },
-  heroBottomRight: {
-    position: 'absolute',
-    right: 16,
-    bottom: 20,
-  },
-
   /* Grid */
   grid: {
     marginTop: 0,
@@ -343,7 +347,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   viewProfile: {
-    color: COLORS.white,
+    color: COLORS.gold,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.5,
