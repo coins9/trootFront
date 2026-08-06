@@ -204,13 +204,40 @@ workflows:
       - *install_node_deps
       - name: Pin NODE_BINARY for Xcode script phase
         # Xcode "Bundle React Native code and images" build phase 는 /bin/sh 로 실행되어
-        # 기본 PATH 에 node 가 없어 실패함. 절대경로로 .xcode.env.local 을 만들어 고정.
+        # 기본 PATH 에 node 가 없어 실패함. 절대경로로 두 파일 모두 덮어써 확실히 고정.
         script: |
           set -e
           NODE_PATH_ABS="$(command -v node)"
-          echo "Using node: $NODE_PATH_ABS"
-          echo "export NODE_BINARY=$NODE_PATH_ABS" > "$CM_BUILD_DIR/ios/.xcode.env.local"
+          echo "==> Resolved node: $NODE_PATH_ABS"
+          $NODE_PATH_ABS --version
+
+          # tracked .xcode.env 와 untracked .xcode.env.local 둘 다 절대경로로 덮어씀
+          cat > "$CM_BUILD_DIR/ios/.xcode.env" <<EOF
+          export NODE_BINARY="$NODE_PATH_ABS"
+          EOF
+          cat > "$CM_BUILD_DIR/ios/.xcode.env.local" <<EOF
+          export NODE_BINARY="$NODE_PATH_ABS"
+          EOF
+
+          echo "==> .xcode.env:"
+          cat "$CM_BUILD_DIR/ios/.xcode.env"
+          echo "==> .xcode.env.local:"
           cat "$CM_BUILD_DIR/ios/.xcode.env.local"
+
+      - name: Verify JS bundle can build (diagnostic)
+        # 실제 archive 전에 metro 로 번들 만들어봐서 JS 문제인지 signing 이후 문제인지 구분
+        script: |
+          set -e
+          cd $CM_BUILD_DIR
+          npx react-native bundle \
+            --platform ios \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output /tmp/main.jsbundle \
+            --assets-dest /tmp/assets \
+            --minify true
+          echo "==> Pre-bundle OK. Size: $(du -h /tmp/main.jsbundle | cut -f1)"
+
       - name: Install CocoaPods
         script: |
           cd ios
