@@ -252,7 +252,7 @@ workflows:
       - name: IPA 빌드
         script: |
           set -e
-          PROFILE_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles/ -name "*.mobileprovision" 2>/dev/null | head -1)
+          PROFILE_PATH=$(find / -name "*.mobileprovision" -maxdepth 12 2>/dev/null | head -1)
           if [ -z "$PROFILE_PATH" ]; then
             echo "ERROR: 프로파일 없음"
             exit 1
