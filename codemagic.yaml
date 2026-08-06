@@ -1,33 +1,22 @@
 # =============================================================================
 # T:ROOT (trootfront) - Codemagic CI/CD
 # =============================================================================
-# React Native 0.86.2 · Node 20 · Xcode 16 · Ruby 3.2
-#
-# 워크플로우:
-#   1) android-debug      → 개발용 debug APK (Sideload/직접 설치)
-#   2) android-release    → Play Store internal 트랙 자동 배포 (AAB)
-#   3) ios-unsigned       → Sideloadly용 unsigned IPA
-#   4) ios-testflight     → App Store Connect (TestFlight) 자동 업로드
+# React Native 0.86.2 · Node 22 · Xcode 26 · Ruby 3.2
 #
 # App Store Connect 등록 정보:
 #   ▶ 앱 이름         : TROOT-타투루트
 #   ▶ Apple ID       : 6796560858
-#   ▶ SKU            : TROOT_001
 #   ▶ Bundle ID      : com.troot.app
 #
-# App Store Connect API Key (Team 발급):
-#   ▶ Integration 이름 : "TROOT API Key"   (Codemagic > Teams > Integrations)
+# App Store Connect API Key:
 #   ▶ Key ID          : S3J35WH3LL
 #   ▶ Issuer ID       : 472b6530-725e-4611-8d26-f92d5520d536
 #
-# Codemagic 웹 UI → Teams → Environment variables (Groups):
-#   ▶ app_credentials
-#       - APP_STORE_APP_ID = 6796560858
-#       - BUNDLE_ID        = com.troot.app
-#   ▶ keystore_credentials
-#       - CM_KEYSTORE (base64), CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
-#   ▶ google_play (Android AAB 배포 시)
-#       - GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+# Codemagic 웹 UI → Teams → Environment variables > Group "troot_secrets":
+#   ▶ APP_STORE_CONNECT_PRIVATE_KEY  ← .p8 파일 내용 그대로
+#   ▶ DIST_CERT_P12                  ← 배포 인증서 .p12 base64
+#   ▶ DIST_CERT_P12_PASSWORD         ← p12 비밀번호
+#   ▶ PROVISIONING_PROFILE           ← .mobileprovision base64
 # =============================================================================
 
 definitions:
@@ -37,29 +26,23 @@ definitions:
     - $CM_BUILD_DIR/node_modules
     - $CM_BUILD_DIR/ios/Pods
 
-  scripts:
-    - &install_node_deps
-      name: Install Node dependencies
-      script: |
-        npm ci --legacy-peer-deps || npm install --legacy-peer-deps
-
-# =============================================================================
 workflows:
 
   # ---------------------------------------------------------------------------
-  # 1) Android — Debug APK (Sideload 배포용)
+  # 1) Android — Debug APK
   # ---------------------------------------------------------------------------
   android-debug:
     name: Android · Debug APK
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
-      node: 22.11.0
+      node: 22
       java: 17
     cache:
       cache_paths: *cache_paths
     scripts:
-      - *install_node_deps
+      - name: 패키지 설치
+        script: npm install --legacy-peer-deps
       - name: Build debug APK
         script: |
           cd android
@@ -76,7 +59,7 @@ workflows:
           failure: true
 
   # ---------------------------------------------------------------------------
-  # 2) Android — Release AAB (Google Play internal 배포)
+  # 2) Android — Release AAB
   # ---------------------------------------------------------------------------
   android-release:
     name: Android · Release (Play Store)
@@ -84,17 +67,18 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       groups:
-        - keystore_credentials       # CM_KEYSTORE, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
+        - keystore_credentials
       android_signing:
         - trootapp_keystore
-      node: 22.11.0
+      node: 22
       java: 17
       vars:
         PACKAGE_NAME: "com.troot.app"
     cache:
       cache_paths: *cache_paths
     scripts:
-      - *install_node_deps
+      - name: 패키지 설치
+        script: npm install --legacy-peer-deps
       - name: Set up local.properties
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
@@ -103,7 +87,6 @@ workflows:
           cd android
           BUILD_NUMBER=$(($(google-play get-latest-build-number --package-name "$PACKAGE_NAME" --tracks internal 2>/dev/null || echo 0) + 1))
           sed -i.bak "s/versionCode [0-9]*/versionCode $BUILD_NUMBER/" app/build.gradle
-          echo "New versionCode: $BUILD_NUMBER"
       - name: Build AAB
         script: |
           cd android
@@ -124,184 +107,100 @@ workflows:
         submit_as_draft: true
 
   # ---------------------------------------------------------------------------
-  # 3) iOS — Unsigned IPA (Sideloadly 설치용, 무료 계정 폴백)
+  # 3) iOS — Unsigned IPA (Sideloadly 배포용, 무서명)
   # ---------------------------------------------------------------------------
-  ios-unsigned:
+  ios-unsigned-build:
     name: iOS · Unsigned IPA (Sideloadly)
-    max_build_duration: 90
     instance_type: mac_mini_m2
+    max_build_duration: 60
     environment:
-      node: 22.11.0
-      xcode: 16.0
+      node: 22
+      xcode: 26
       cocoapods: default
-    cache:
-      cache_paths: *cache_paths
     scripts:
-      - *install_node_deps
-      - name: Install CocoaPods
+      - name: 패키지 설치
+        script: npm install --legacy-peer-deps
+
+      - name: CocoaPods 설치
         script: |
           cd ios
           pod install --repo-update
-      - name: Build unsigned archive
-        script: |
-          cd ios
-          xcodebuild -workspace TRootApp.xcworkspace \
-            -scheme TRootApp \
-            -configuration Release \
-            -sdk iphoneos \
-            -archivePath $CM_BUILD_DIR/build/TRootApp.xcarchive \
-            archive \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
-      - name: Package unsigned IPA
-        script: |
-          cd $CM_BUILD_DIR/build/TRootApp.xcarchive/Products/Applications
-          mkdir -p Payload
-          mv TRootApp.app Payload/
-          zip -qr $CM_BUILD_DIR/build/TRootApp-unsigned.ipa Payload
-          echo "IPA ready: build/TRootApp-unsigned.ipa"
-    artifacts:
-      - build/*.ipa
-      - build/*.xcarchive
-    publishing:
-      email:
-        recipients:
-          - tmddus9259@gmail.com
-        notify:
-          success: true
-          failure: true
 
-  # ---------------------------------------------------------------------------
-  # 4) iOS — Signed IPA → TestFlight 자동 업로드
-  # ---------------------------------------------------------------------------
-  #
-  # 사전 조건 (Codemagic 웹):
-  #   Teams > Integrations > "App Store Connect API keys"
-  #     - Name    : TROOT API Key
-  #     - Issuer  : 472b6530-725e-4611-8d26-f92d5520d536
-  #     - Key ID  : S3J35WH3LL
-  #     - API Key : (.p8 파일 업로드)
-  #   Teams > Environment variables > Group "app_credentials"
-  #     - APP_STORE_APP_ID = 6796560858
-  #     - BUNDLE_ID        = com.troot.app
-  # ---------------------------------------------------------------------------
-  ios-testflight:
-    name: iOS · TestFlight
-    max_build_duration: 90
-    instance_type: mac_mini_m2
-    integrations:
-      app_store_connect: TROOT API Key         # Codemagic에 등록한 정확한 Integration 이름
-    environment:
-      groups:
-        - app_credentials                       # APP_STORE_APP_ID, BUNDLE_ID
-      node: 22.11.0
-      xcode: 16.0
-      cocoapods: default
-    cache:
-      cache_paths: *cache_paths
-    scripts:
-      - *install_node_deps
-      - name: Pin NODE_BINARY for Xcode script phase
-        # Xcode "Bundle React Native code and images" build phase 는 /bin/sh 로 실행되어
-        # 기본 PATH 에 node 가 없어 실패함. 절대경로로 두 파일 모두 덮어써 확실히 고정.
+      - name: JS 번들 사전 생성
         script: |
-          set -e
-          NODE_PATH_ABS="$(command -v node)"
-          echo "==> Resolved node: $NODE_PATH_ABS"
-          $NODE_PATH_ABS --version
-
-          # tracked .xcode.env 와 untracked .xcode.env.local 둘 다 절대경로로 덮어씀
-          cat > "$CM_BUILD_DIR/ios/.xcode.env" <<EOF
-          export NODE_BINARY="$NODE_PATH_ABS"
-          EOF
-          cat > "$CM_BUILD_DIR/ios/.xcode.env.local" <<EOF
-          export NODE_BINARY="$NODE_PATH_ABS"
-          EOF
-
-          echo "==> .xcode.env:"
-          cat "$CM_BUILD_DIR/ios/.xcode.env"
-          echo "==> .xcode.env.local:"
-          cat "$CM_BUILD_DIR/ios/.xcode.env.local"
-
-      - name: Verify JS bundle can build (diagnostic)
-        # 실제 archive 전에 metro 로 번들 만들어봐서 JS 문제인지 signing 이후 문제인지 구분
-        script: |
-          set -e
-          cd $CM_BUILD_DIR
-          npx react-native bundle \
+          node_modules/.bin/react-native bundle \
             --platform ios \
             --dev false \
             --entry-file index.js \
-            --bundle-output /tmp/main.jsbundle \
-            --assets-dest /tmp/assets \
-            --minify true
-          echo "==> Pre-bundle OK. Size: $(du -h /tmp/main.jsbundle | cut -f1)"
+            --bundle-output ios/TRootApp/main.jsbundle \
+            --assets-dest ios/TRootApp
 
-      - name: Install CocoaPods
+          if [ ! -f "ios/TRootApp/main.jsbundle" ]; then
+            echo "main.jsbundle 생성 실패"
+            exit 1
+          fi
+          echo "main.jsbundle 생성 완료 · $(du -h ios/TRootApp/main.jsbundle | cut -f1)"
+
+      - name: Xcode Archive (완전 무서명)
         script: |
           cd ios
-          pod install --repo-update
-      - name: Register bundle ID (idempotent)
-        script: |
-          # com.troot.app 이 Developer Portal 에 없으면 자동 등록
-          app-store-connect bundle-ids register "com.troot.app" \
-            --name "TROOT" \
-            --platform IOS \
-            || echo "Bundle ID already registered (ok)"
-      - name: Fetch or create signing files
-        script: |
-            # 우리가 등록한 새로운 비밀번호(Key)를 파일로 빼냄
-            echo "$CERT_PRIVATE_KEY" > /tmp/ios_key
-            
-            # 이 새로운 Key를 쥐여주면서 애플 서버에 인증서 새로 만들라고 강제 명령
-            app-store-connect fetch-signing-files "com.troot.app" \
-              --type IOS_APP_STORE \
-              --certificate-key=@file:/tmp/ios_key \
-              --create
-      - name: Add signing certs to keychain
-        script: |
-          keychain add-certificates
-      - name: Set up provisioning profiles for Xcode
-        script: |
-          xcode-project use-profiles
-      - name: Bump build number from TestFlight
-        script: |
-          set -e
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
-          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
-          cd ios
-          agvtool new-version -all $NEW_BUILD_NUMBER
-          echo "New build number: $NEW_BUILD_NUMBER"
-      - name: Build signed IPA
-        script: |
+          export NODE_BINARY=$(command -v node)
+
           set -o pipefail
-          # 실패 시 xcodebuild raw 로그의 진짜 에러 라인을 강제로 노출
-          xcode-project build-ipa \
-            --workspace "ios/TRootApp.xcworkspace" \
-            --scheme "TRootApp" \
-            --config "Release" \
-            2>&1 | tee /tmp/build-ipa.log || (
-              echo ""
-              echo "=========================================="
-              echo "==> BUILD FAILED. Real error lines below:"
-              echo "=========================================="
-              # xcodebuild 세부 로그가 저장되는 경로
-              LOG_FILE=$(ls -t /tmp/xcodebuild_logs/*.log 2>/dev/null | head -1)
-              if [ -n "$LOG_FILE" ]; then
-                echo "--- $LOG_FILE ---"
-                grep -B 2 -A 8 "^error:" "$LOG_FILE" | head -n 200 || tail -n 200 "$LOG_FILE"
-              fi
-              echo ""
-              echo "==> build-ipa summary log:"
-              tail -n 100 /tmp/build-ipa.log
-              exit 1
-            )
+          xcodebuild archive \
+            -workspace TRootApp.xcworkspace \
+            -scheme TRootApp \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath ../build/TRootApp.xcarchive \
+            -destination "generic/platform=iOS" \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            PROVISIONING_PROFILE="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="" \
+            2>&1 | tee ../build.log
+
+          BUILD_EXIT=${PIPESTATUS[0]}
+
+          if [ $BUILD_EXIT -ne 0 ]; then
+            echo "====== 빌드 실패 로그 ======"
+            grep -E "error:" ../build.log | grep -v "^2" | head -60
+            exit $BUILD_EXIT
+          fi
+          echo "Archive 성공"
+
+      - name: 서명 흔적 완전 제거 + IPA 패키징
+        script: |
+          APP_PATH=$(find ./build/TRootApp.xcarchive -name "*.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo ".app 없음"
+            exit 1
+          fi
+
+          find "$APP_PATH" -name "_CodeSignature" -type d -exec rm -rf {} + 2>/dev/null || true
+          find "$APP_PATH" -name "embedded.mobileprovision" -delete 2>/dev/null || true
+
+          find "$APP_PATH" \( -name "*.dylib" -o -name "*.framework" \) | while read -r f; do
+            codesign --remove-signature "$f" 2>/dev/null || true
+          done
+          codesign --remove-signature "$APP_PATH" 2>/dev/null || true
+
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -qr TRootApp-unsigned.ipa Payload/
+          rm -rf Payload
+
+          echo "IPA 패키징 완료"
+
     artifacts:
-      - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+      - TRootApp-unsigned.ipa
+      - build.log
     publishing:
       email:
         recipients:
@@ -309,12 +208,114 @@ workflows:
         notify:
           success: true
           failure: true
+
+  # ---------------------------------------------------------------------------
+  # 4) iOS — TestFlight (수동 서명 파일 관리)
+  # ---------------------------------------------------------------------------
+  ios-testflight:
+    name: iOS · TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    environment:
+      node: 22
+      xcode: 26
+      cocoapods: default
+      groups:
+        - troot_secrets           # APP_STORE_CONNECT_PRIVATE_KEY, DIST_CERT_P12, DIST_CERT_P12_PASSWORD, PROVISIONING_PROFILE
+      vars:
+        APP_STORE_CONNECT_KEY_IDENTIFIER: S3J35WH3LL
+        APP_STORE_CONNECT_ISSUER_ID: 472b6530-725e-4611-8d26-f92d5520d536
+        BUNDLE_IDENTIFIER: com.troot.app
+    scripts:
+      - name: 패키지 설치
+        script: npm install --legacy-peer-deps
+
+      - name: CocoaPods 설치
+        script: |
+          cd ios
+          pod install --repo-update
+
+      - name: JS 번들 사전 생성
+        script: |
+          node_modules/.bin/react-native bundle \
+            --platform ios \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output ios/TRootApp/main.jsbundle \
+            --assets-dest ios/TRootApp
+
+          if [ ! -f "ios/TRootApp/main.jsbundle" ]; then
+            echo "main.jsbundle 생성 실패"
+            exit 1
+          fi
+
+      - name: 빌드 번호 자동 증가
+        script: |
+          cd ios
+          agvtool new-version -all $BUILD_NUMBER
+          agvtool new-marketing-version 1.0.0
+
+      - name: 인증서 및 프로파일 복원 (수동 서명)
+        script: |
+          echo "=== 1. 환경변수 확인 ==="
+          echo "DIST_CERT_P12 길이: ${#DIST_CERT_P12}"
+          echo "DIST_CERT_P12_PASSWORD 길이: ${#DIST_CERT_P12_PASSWORD}"
+          echo "PROVISIONING_PROFILE 길이: ${#PROVISIONING_PROFILE}"
+
+          echo "=== 2. keychain initialize ==="
+          keychain initialize || { echo "keychain initialize 실패"; exit 1; }
+
+          echo "=== 3. p12 디코딩 ==="
+          echo "$DIST_CERT_P12" | base64 --decode > /tmp/distribution.p12 || { echo "p12 디코딩 실패"; exit 1; }
+          echo "p12 파일 크기: $(wc -c < /tmp/distribution.p12) bytes"
+
+          echo "=== 4. 인증서 추가 ==="
+          keychain add-certificates \
+            --certificate /tmp/distribution.p12 \
+            --certificate-password "$DIST_CERT_P12_PASSWORD" || { echo "인증서 추가 실패"; exit 1; }
+
+          echo "=== 5. 프로비저닝 프로파일 설치 ==="
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROVISIONING_PROFILE" | base64 --decode > \
+            ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision || { echo "프로파일 디코딩 실패"; exit 1; }
+
+          echo "=== 6. use-profiles ==="
+          cd ios && xcode-project use-profiles || { echo "use-profiles 실패"; exit 1; }
+          cd ..
+
+          echo "=== 완료 ==="
+
+      - name: IPA 빌드
+        script: |
+          set -o pipefail
+          mkdir -p build/ios/ipa
+          xcode-project build-ipa \
+            --workspace ios/TRootApp.xcworkspace \
+            --scheme TRootApp \
+            --config Release \
+            2>&1 | tee build.log
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "====== 빌드 실패 ======"
+            grep -E "error:" build.log | grep -v "^2" | head -40
+            exit 1
+          fi
+          rm -f /tmp/distribution.p12
+          echo "IPA 빌드 완료"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - build.log
+
+    publishing:
       app_store_connect:
-        auth: integration
-        # TestFlight 자동 처리 완료까지 대기 (30분 이내). 실패 시 워크플로우도 실패로 마킹.
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
-        # App Store 자동 심사 제출은 안전을 위해 수동 승인 권장 (필요 시 true).
-        # submit_to_app_store: false
-        # TestFlight 그룹 자동 배포 (App Store Connect > TestFlight > 그룹 이름 정확히 일치해야 함)
-        # beta_groups:
-        #   - Internal Testers
+      email:
+        recipients:
+          - tmddus9259@gmail.com
+        notify:
+          success: true
+          failure: true
