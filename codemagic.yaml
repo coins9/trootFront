@@ -9,19 +9,25 @@
 #   3) ios-unsigned       → Sideloadly용 unsigned IPA
 #   4) ios-testflight     → App Store Connect (TestFlight) 자동 업로드
 #
-# 사전 준비 (Codemagic 웹 UI → Teams → Environment variables):
-#   ▶ ios_signing (group)   : App Store Connect API Key 연결 후
-#                              APP_STORE_CONNECT_KEY_IDENTIFIER,
-#                              APP_STORE_CONNECT_ISSUER_ID,
-#                              APP_STORE_CONNECT_PRIVATE_KEY 자동 세팅
-#   ▶ app_credentials       : APP_STORE_APP_ID (예: 1234567890),
-#                              BUNDLE_ID     (예: com.troot.app)
-#   ▶ keystore_credentials  : CM_KEYSTORE (base64), CM_KEYSTORE_PASSWORD,
-#                              CM_KEY_ALIAS, CM_KEY_PASSWORD
+# App Store Connect 등록 정보:
+#   ▶ 앱 이름         : TROOT-타투루트
+#   ▶ Apple ID       : 6796560858
+#   ▶ SKU            : TROOT_001
+#   ▶ Bundle ID      : com.troot.app
 #
-# ⚠ iOS 첫 배포 전 필수 작업:
-#   Xcode에서 PRODUCT_BUNDLE_IDENTIFIER를
-#   "org.reactjs.native.example.TRootApp" → "com.troot.app" 등 실제 값으로 변경
+# App Store Connect API Key (Team 발급):
+#   ▶ Integration 이름 : "TROOT API Key"   (Codemagic > Teams > Integrations)
+#   ▶ Key ID          : S3J35WH3LL
+#   ▶ Issuer ID       : 472b6530-725e-4611-8d26-f92d5520d536
+#
+# Codemagic 웹 UI → Teams → Environment variables (Groups):
+#   ▶ app_credentials
+#       - APP_STORE_APP_ID = 6796560858
+#       - BUNDLE_ID        = com.troot.app
+#   ▶ keystore_credentials
+#       - CM_KEYSTORE (base64), CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
+#   ▶ google_play (Android AAB 배포 시)
+#       - GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
 # =============================================================================
 
 definitions:
@@ -154,7 +160,7 @@ workflows:
           mkdir -p Payload
           mv TRootApp.app Payload/
           zip -qr $CM_BUILD_DIR/build/TRootApp-unsigned.ipa Payload
-          echo "✅ IPA ready: build/TRootApp-unsigned.ipa"
+          echo "IPA ready: build/TRootApp-unsigned.ipa"
     artifacts:
       - build/*.ipa
       - build/*.xcarchive
@@ -169,18 +175,29 @@ workflows:
   # ---------------------------------------------------------------------------
   # 4) iOS — Signed IPA → TestFlight 자동 업로드
   # ---------------------------------------------------------------------------
+  #
+  # 사전 조건 (Codemagic 웹):
+  #   Teams > Integrations > "App Store Connect API keys"
+  #     - Name    : TROOT API Key
+  #     - Issuer  : 472b6530-725e-4611-8d26-f92d5520d536
+  #     - Key ID  : S3J35WH3LL
+  #     - API Key : (.p8 파일 업로드)
+  #   Teams > Environment variables > Group "app_credentials"
+  #     - APP_STORE_APP_ID = 6796560858
+  #     - BUNDLE_ID        = com.troot.app
+  # ---------------------------------------------------------------------------
   ios-testflight:
     name: iOS · TestFlight
     max_build_duration: 90
     instance_type: mac_mini_m2
     integrations:
-      app_store_connect: TRoot ASC API      # Codemagic > Integrations > App Store Connect
+      app_store_connect: TROOT API Key         # Codemagic에 등록한 정확한 Integration 이름
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.troot.app     # ⚠ Xcode에서 실제로 설정한 값과 일치해야 함
+        bundle_identifier: com.troot.app
       groups:
-        - app_credentials                   # APP_STORE_APP_ID
+        - app_credentials                       # APP_STORE_APP_ID, BUNDLE_ID
       node: 20.11.1
       xcode: 16.0
       cocoapods: default
@@ -197,6 +214,7 @@ workflows:
           xcode-project use-profiles
       - name: Bump build number from TestFlight
         script: |
+          set -e
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
           NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
           cd ios
@@ -222,7 +240,10 @@ workflows:
           failure: true
       app_store_connect:
         auth: integration
+        # TestFlight 자동 처리 완료까지 대기 (30분 이내). 실패 시 워크플로우도 실패로 마킹.
         submit_to_testflight: true
-        # submit_to_app_store: false        # 심사 자동 제출은 수동 승인 권장
+        # App Store 자동 심사 제출은 안전을 위해 수동 승인 권장 (필요 시 true).
+        # submit_to_app_store: false
+        # TestFlight 그룹 자동 배포 (App Store Connect > TestFlight > 그룹 이름 정확히 일치해야 함)
         # beta_groups:
-        #   - Internal Testers               # TestFlight 그룹명 (선택)
+        #   - Internal Testers
