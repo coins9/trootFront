@@ -226,27 +226,19 @@ workflows:
           cd ios
           pod install --repo-update
 
-      - name: 인증서 생성 및 키체인 설치
+      - name: 인증서·프로파일 설치
         script: |
           set -e
           keychain initialize
-          app-store-connect create-certificate \
-            --type IOS_DISTRIBUTION \
-            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
-            --save
-          keychain add-certificates
-          echo "인증서 설치 완료"
-
-      - name: 프로파일 생성 및 Xcode 적용
-        script: |
-          set -e
+          # create-certificate 대신 fetch-signing-files --certificate-key 사용:
+          # 기존 인증서를 재사용하고, 해당 인증서가 포함된 프로파일도 함께 가져옴
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --verbose
+          keychain add-certificates
           xcode-project use-profiles --verbose
-          echo "=== 프로파일 위치 확인 ==="
-          find / -name "*.mobileprovision" -maxdepth 12 2>/dev/null | head -10 || echo "없음"
 
       - name: 빌드 번호 자동 증가
         script: |
