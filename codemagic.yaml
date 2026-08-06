@@ -209,7 +209,23 @@ workflows:
         script: |
           cd ios
           pod install --repo-update
-      - name: Set up provisioning profiles
+      - name: Register bundle ID (idempotent)
+        script: |
+          # com.troot.app 이 Developer Portal 에 없으면 자동 등록
+          app-store-connect bundle-ids register "com.troot.app" \
+            --name "TROOT" \
+            --platform IOS \
+            || echo "Bundle ID already registered (ok)"
+      - name: Fetch or create signing files
+        script: |
+          # App Store 배포용 인증서/프로파일 자동 발급 (없으면 --create 로 생성)
+          app-store-connect fetch-signing-files "com.troot.app" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Add signing certs to keychain
+        script: |
+          keychain add-certificates
+      - name: Set up provisioning profiles for Xcode
         script: |
           xcode-project use-profiles
       - name: Bump build number from TestFlight
