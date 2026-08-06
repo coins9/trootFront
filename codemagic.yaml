@@ -215,10 +215,14 @@ workflows:
             || echo "Bundle ID already registered (ok)"
       - name: Fetch or create signing files
         script: |
-          # App Store 배포용 인증서/프로파일 자동 발급 (없으면 --create 로 생성)
-          app-store-connect fetch-signing-files "com.troot.app" \
-            --type IOS_APP_STORE \
-            --create
+            # 우리가 등록한 새로운 비밀번호(Key)를 파일로 빼냄
+            echo "$CERT_PRIVATE_KEY" > /tmp/ios_key
+            
+            # 이 새로운 Key를 쥐여주면서 애플 서버에 인증서 새로 만들라고 강제 명령
+            app-store-connect fetch-signing-files "com.troot.app" \
+              --type IOS_APP_STORE \
+              --certificate-key=@file:/tmp/ios_key \
+              --create
       - name: Add signing certs to keychain
         script: |
           keychain add-certificates
