@@ -132,7 +132,7 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       node: 22.11.0
-      xcode: 16.1
+      xcode: 16.0
       cocoapods: default
     cache:
       cache_paths: *cache_paths
@@ -196,7 +196,7 @@ workflows:
       groups:
         - app_credentials                       # APP_STORE_APP_ID, BUNDLE_ID
       node: 22.11.0
-      xcode: 16.1
+      xcode: 16.0
       cocoapods: default
     cache:
       cache_paths: *cache_paths
@@ -275,10 +275,28 @@ workflows:
           echo "New build number: $NEW_BUILD_NUMBER"
       - name: Build signed IPA
         script: |
+          set -o pipefail
+          # 실패 시 xcodebuild raw 로그의 진짜 에러 라인을 강제로 노출
           xcode-project build-ipa \
             --workspace "ios/TRootApp.xcworkspace" \
             --scheme "TRootApp" \
-            --config "Release"
+            --config "Release" \
+            2>&1 | tee /tmp/build-ipa.log || (
+              echo ""
+              echo "=========================================="
+              echo "==> BUILD FAILED. Real error lines below:"
+              echo "=========================================="
+              # xcodebuild 세부 로그가 저장되는 경로
+              LOG_FILE=$(ls -t /tmp/xcodebuild_logs/*.log 2>/dev/null | head -1)
+              if [ -n "$LOG_FILE" ]; then
+                echo "--- $LOG_FILE ---"
+                grep -B 2 -A 8 "^error:" "$LOG_FILE" | head -n 200 || tail -n 200 "$LOG_FILE"
+              fi
+              echo ""
+              echo "==> build-ipa summary log:"
+              tail -n 100 /tmp/build-ipa.log
+              exit 1
+            )
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
