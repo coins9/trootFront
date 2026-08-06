@@ -209,15 +209,15 @@ workflows:
     integrations:
       app_store_connect: TROOT API Key
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.troot.app
       node: 22
       xcode: 26
       cocoapods: default
       vars:
         APP_STORE_APP_ID: "6796560858"
         BUNDLE_ID: "com.troot.app"
+        TEAM_ID: "H2YL36R6Y7"
+        ARCHIVE_PATH: "$CM_BUILD_DIR/build/ios/TRootApp.xcarchive"
+        EXPORT_PATH: "$CM_BUILD_DIR/build/ios/ipa"
     scripts:
       - name: 패키지 설치
         script: npm install --legacy-peer-deps
@@ -237,8 +237,15 @@ workflows:
             --assets-dest ios/TRootApp
           test -f "ios/TRootApp/main.jsbundle" && echo "main.jsbundle OK"
 
-      - name: 프로파일 → Xcode 프로젝트 적용
-        script: xcode-project use-profiles --verbose
+      - name: 인증서·프로파일 설치
+        script: |
+          set -e
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --verbose
+          keychain add-certificates
 
       - name: 빌드 번호 자동 증가
         script: |
@@ -249,21 +256,48 @@ workflows:
           agvtool new-marketing-version 1.0.0
           echo "빌드 번호: $NEW"
 
-      - name: IPA 빌드
+      - name: IPA 빌드 및 내보내기
         script: |
-          set -o pipefail
-          xcode-project build-ipa \
-            --workspace "ios/TRootApp.xcworkspace" \
-            --scheme "TRootApp" \
-            --config "Release" \
-            2>&1 | tee build.log
-          if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            echo "====== 빌드 실패 ======"
-            grep -E "error:" build.log | grep -v "^2" | head -40
-            LOG_FILE=$(ls -t /tmp/xcodebuild_logs/*.log 2>/dev/null | head -1)
-            [ -n "$LOG_FILE" ] && grep -B 2 -A 8 "^error:" "$LOG_FILE" | head -n 100
+          set -e
+          # 설치된 프로비저닝 프로파일 UUID 추출
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_PATH=$(find "$PROFILE_DIR" -name "*.mobileprovision" 2>/dev/null | head -1)
+          if [ -z "$PROFILE_PATH" ]; then
+            echo "ERROR: 프로비저닝 프로파일이 설치되지 않음"
+            ls -la "$PROFILE_DIR" 2>/dev/null || echo "디렉토리 없음"
             exit 1
           fi
+          PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" 2>/dev/null | \
+            awk '/<key>UUID<\/key>/{found=1;next} found{gsub(/.*<string>|<\/string>.*/,""); print; exit}')
+          PROFILE_NAME=$(security cms -D -i "$PROFILE_PATH" 2>/dev/null | \
+            awk '/<key>Name<\/key>/{found=1;next} found{gsub(/.*<string>|<\/string>.*/,""); print; exit}')
+          echo "Profile: $PROFILE_NAME ($PROFILE_UUID)"
+
+          mkdir -p "$CM_BUILD_DIR/build/ios"
+
+          # Archive
+          set -o pipefail
+          xcodebuild archive \
+            -workspace ios/TRootApp.xcworkspace \
+            -scheme TRootApp \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath "$ARCHIVE_PATH" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE="$PROFILE_UUID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            2>&1 | tee build.log
+          echo "Archive 완료"
+
+          # Export
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            2>&1 | tee -a build.log
+          echo "Export 완료"
 
     artifacts:
       - build/ios/ipa/*.ipa
@@ -274,8 +308,6 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        # beta_groups:
-        #   - Internal Testers
       email:
         recipients:
           - tmddus9259@gmail.com
