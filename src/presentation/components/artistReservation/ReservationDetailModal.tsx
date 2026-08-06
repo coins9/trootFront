@@ -1,8 +1,9 @@
 import React, { memo, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, Animated,
-  Dimensions, Platform, Alert,
+  Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import {
   XIcon, CalendarIcon, ClockOutlineIcon, PaletteIcon, ChatBubbleIcon,
@@ -28,7 +29,8 @@ export interface ReservationDetail {
 interface Props {
   detail: ReservationDetail | null;
   onClose: () => void;
-  onChangeStatus: (id: string, next: BookingStatus) => void;
+  onRequestNoShow: (id: string, customerName?: string) => void;
+  onRequestComplete: (id: string) => void;
   onEdit: (id: string) => void;
 }
 
@@ -45,10 +47,11 @@ const kindIcon = (kind: ReservationDetail['kind']) => {
 };
 
 const ReservationDetailModal = memo(({
-  detail, onClose, onChangeStatus, onEdit,
+  detail, onClose, onRequestNoShow, onRequestComplete, onEdit,
 }: Props) => {
   const visible = detail !== null;
   const translate = useRef(new Animated.Value(SH)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     Animated.timing(translate, {
@@ -60,25 +63,13 @@ const ReservationDetailModal = memo(({
 
   const handleNoShow = useCallback(() => {
     if (!detail) return;
-    Alert.alert(
-      '노쇼(No-show) 처리',
-      `${detail.customerName ?? '해당 고객'}을(를) 노쇼로 처리하시겠습니까?\n노쇼 처리 시 고객 신뢰도에 반영됩니다.`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '노쇼 확정',
-          style: 'destructive',
-          onPress: () => onChangeStatus(detail.id, '노쇼'),
-        },
-      ],
-      { cancelable: true },
-    );
-  }, [detail, onChangeStatus]);
+    onRequestNoShow(detail.id, detail.customerName);
+  }, [detail, onRequestNoShow]);
 
   const handleConfirmDone = useCallback(() => {
     if (!detail) return;
-    onChangeStatus(detail.id, '완료');
-  }, [detail, onChangeStatus]);
+    onRequestComplete(detail.id);
+  }, [detail, onRequestComplete]);
 
   const handleEdit = useCallback(() => {
     if (!detail) return;
@@ -101,7 +92,11 @@ const ReservationDetailModal = memo(({
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Animated.View
-          style={[styles.sheet, { transform: [{ translateY: translate }] }]}
+          style={[
+            styles.sheet,
+            { paddingBottom: Math.max(insets.bottom, 12) + 14 },
+            { transform: [{ translateY: translate }] },
+          ]}
         >
           <Pressable onPress={() => {}}>
             <View style={styles.handle} />
@@ -259,7 +254,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 22,
     borderTopWidth: 1,
     borderColor: COLORS.border,
   },

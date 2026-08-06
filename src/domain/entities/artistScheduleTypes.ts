@@ -50,12 +50,27 @@ export interface TodayReservation {
   status: BookingStatus;
 }
 
+export interface MonthlyCellEvent {
+  time: string;
+  label: string;
+  tone: 'red' | 'gold' | 'purple' | 'blue';
+}
+
+export interface MultiDayEvent {
+  id: string;
+  label: string;
+  startISO: string;
+  endISO: string;
+  tone: 'red' | 'gold' | 'purple' | 'blue' | 'green';
+}
+
 export interface MonthlyCellSummary {
   bed1?: number;
   bed2?: number;
   consulting?: number;
   isBreak?: boolean;
   hasEvent?: boolean;
+  events?: MonthlyCellEvent[];
 }
 
 export interface UpcomingItem {

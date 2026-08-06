@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar,
-  Alert, LayoutAnimation, Platform, UIManager,
+  LayoutAnimation, Platform, UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -17,18 +17,26 @@ import {
 import { useToast } from '../../components/common/Toast';
 import {
   BookingStatus,
-  WEEKDAY_KO, addDays, startOfMonth, toISODate, isSameDate,
+  WEEKDAY_KO, addDays, startOfMonth, startOfWeek, toISODate, isSameDate,
   formatMonth,
   PersonalTimelineItem, MonthlyCellSummary,
 } from '../../../domain/entities/artistScheduleTypes';
 import {
   getPersonalTimelineForDate,
   getMonthlySummary,
+  getShopBookingsForRange,
+  getMultiDayEvents,
+  MOCK_ARTIST_COLUMNS,
 } from '../../../data/mock/artistScheduleMockData';
+import { MultiDayEvent } from '../../../domain/entities/artistScheduleTypes';
 import ReservationDetailModal, {
   ReservationDetail,
 } from '../../components/artistReservation/ReservationDetailModal';
 import ShopInviteSection from '../../components/artistReservation/ShopInviteSection';
+import ShopOnboarding from '../../components/artistReservation/ShopOnboarding';
+import NewReservationSheet from '../../components/artistReservation/NewReservationSheet';
+import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
+import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 if (
@@ -48,12 +56,12 @@ const easeLayoutAnim = () => {
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ViewKey = 'timeline' | 'calendar';
-type TopTab = 'my' | 'shop';
+type TopTab = 'my' | 'shop_schedule' | 'shop';
 
 const H_PAD = 16;
-const HOUR_START = 9;
-const HOUR_END = 20;
-const HOUR_H = 44;
+const HOUR_START = 0;
+const HOUR_END = 23;
+const HOUR_H = 40;
 
 const formatHalfHour = (h: number) => {
   const hh = Math.floor(h);
@@ -215,11 +223,9 @@ interface TimelineProps {
   items: PersonalTimelineItem[];
   statusOverride: Record<string, BookingStatus>;
   onOpenDetail: (item: PersonalTimelineItem) => void;
-  onConfirm: (id: string) => void;
-  onNoShow: (id: string, name?: string) => void;
 }
 const TimelineView = React.memo(({
-  items, statusOverride, onOpenDetail, onConfirm, onNoShow,
+  items, statusOverride, onOpenDetail,
 }: TimelineProps) => {
   const totalHours = HOUR_END - HOUR_START + 1;
   const totalH = totalHours * HOUR_H;
@@ -312,52 +318,21 @@ const TimelineView = React.memo(({
                 </View>
 
                 <View style={styles.timelineBlockRight}>
-                  {!isCompact ? (
-                    <View style={styles.inlineActions}>
-                      <TouchableOpacity
-                        onPress={() => onNoShow(it.id, it.customerName)}
-                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        activeOpacity={0.75}
-                        style={[
-                          styles.inlineBtn, styles.inlineBtnDanger,
-                          isNoShow && styles.inlineBtnDisabled,
-                        ]}
-                        disabled={isNoShow}
-                      >
-                        <Text style={styles.inlineBtnDangerText}>노쇼</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => onConfirm(it.id)}
-                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        activeOpacity={0.75}
-                        style={[
-                          styles.inlineBtn, styles.inlineBtnGold,
-                          isDone && styles.inlineBtnDisabled,
-                        ]}
-                        disabled={isDone}
-                      >
-                        <Text style={styles.inlineBtnGoldText}>
-                          {isPending ? '확정' : '완료'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={[
-                      styles.statusChip,
-                      isPending && styles.statusChipPending,
-                      isNoShow && styles.statusChipDanger,
-                      isDone && styles.statusChipDone,
+                  <View style={[
+                    styles.statusChip,
+                    isPending && styles.statusChipPending,
+                    isNoShow && styles.statusChipDanger,
+                    isDone && styles.statusChipDone,
+                  ]}>
+                    <Text style={[
+                      styles.statusChipText,
+                      isPending && styles.statusChipTextPending,
+                      isNoShow && styles.statusChipTextDanger,
+                      isDone && styles.statusChipTextDone,
                     ]}>
-                      <Text style={[
-                        styles.statusChipText,
-                        isPending && styles.statusChipTextPending,
-                        isNoShow && styles.statusChipTextDanger,
-                        isDone && styles.statusChipTextDone,
-                      ]}>
-                        {currentStatus}
-                      </Text>
-                    </View>
-                  )}
+                      {currentStatus}
+                    </Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             );
@@ -378,9 +353,10 @@ interface CalendarProps {
   today: Date;
   onSelect: (d: Date) => void;
   summaryMap: Record<string, MonthlyCellSummary>;
+  multiEvents: MultiDayEvent[];
 }
 const CalendarView = React.memo(({
-  monthStart, selectedDate, today, onSelect, summaryMap,
+  monthStart, selectedDate, today, onSelect, summaryMap, multiEvents,
 }: CalendarProps) => {
   const gridStart = useMemo(() => {
     const d = new Date(monthStart);
@@ -389,8 +365,11 @@ const CalendarView = React.memo(({
     d.setHours(0, 0, 0, 0);
     return d;
   }, [monthStart]);
-  const cells = useMemo(
-    () => Array.from({ length: 42 }, (_, i) => addDays(gridStart, i)),
+  // 주 단위 6주 (weeks[weekIdx][dayIdx])
+  const weeks = useMemo(
+    () => Array.from({ length: 6 }, (_, w) =>
+      Array.from({ length: 7 }, (__, d) => addDays(gridStart, w * 7 + d))
+    ),
     [gridStart],
   );
 
@@ -409,68 +388,160 @@ const CalendarView = React.memo(({
         ))}
       </View>
 
-      <View style={styles.calGrid}>
-        {cells.map((d, i) => {
-          const iso = toISODate(d);
-          const summary = summaryMap[iso];
-          const dim = d.getMonth() !== monthStart.getMonth();
-          const selected = isSameDate(d, selectedDate);
-          const isToday = isSameDate(d, today);
-          const dowIdx = i % 7;
-          const numColor = selected
-            ? COLORS.black
-            : dim
-              ? COLORS.gray3
-              : dowIdx === 6
-                ? COLORS.danger
-                : dowIdx === 5
-                  ? '#4E8CFF'
-                  : COLORS.white;
+      {weeks.map((weekDays, wIdx) => {
+        // 해당 주에 걸치는 다일 이벤트 분할
+        const weekStart = weekDays[0];
+        const weekEnd = weekDays[6];
+        const weekStartTime = weekStart.getTime();
+        const weekEndTime = weekEnd.getTime();
+        const weekBars = multiEvents
+          .map((ev) => {
+            const evStart = new Date(ev.startISO).getTime();
+            const evEnd = new Date(ev.endISO).getTime();
+            if (evEnd < weekStartTime || evStart > weekEndTime) return null;
+            const barStart = Math.max(evStart, weekStartTime);
+            const barEnd = Math.min(evEnd, weekEndTime);
+            const startCol = Math.round((barStart - weekStartTime) / (24 * 60 * 60 * 1000));
+            const endCol = Math.round((barEnd - weekStartTime) / (24 * 60 * 60 * 1000));
+            const span = endCol - startCol + 1;
+            const isLeftCap = evStart >= weekStartTime;
+            const isRightCap = evEnd <= weekEndTime;
+            return { ev, startCol, span, isLeftCap, isRightCap };
+          })
+          .filter((b): b is NonNullable<typeof b> => b !== null);
 
-          const count =
-            (summary?.bed1 ?? 0) +
-            (summary?.bed2 ?? 0) +
-            (summary?.consulting ?? 0);
+        return (
+          <View key={wIdx} style={styles.calWeek}>
+            {/* 날짜 셀 행 */}
+            <View style={styles.calWeekRow}>
+              {weekDays.map((d, i) => {
+                const iso = toISODate(d);
+                const summary = summaryMap[iso];
+                const dim = d.getMonth() !== monthStart.getMonth();
+                const selected = isSameDate(d, selectedDate);
+                const isToday = isSameDate(d, today);
+                const numColor = selected
+                  ? COLORS.gold
+                  : dim
+                    ? COLORS.gray3
+                    : i === 6
+                      ? COLORS.danger
+                      : i === 5
+                        ? '#4E8CFF'
+                        : COLORS.white;
 
-          return (
-            <TouchableOpacity
-              key={iso}
-              onPress={() => onSelect(d)}
-              activeOpacity={0.75}
-              style={styles.calCell}
-            >
-              <View style={[
-                styles.calNumWrap,
-                selected && styles.calNumSelected,
-                !selected && isToday && styles.calNumToday,
-              ]}>
-                <Text style={[styles.calNum, { color: numColor }]}>
-                  {d.getDate()}
-                </Text>
+                const events = !dim ? (summary?.events ?? []) : [];
+                // 다일 바가 이 셀에 있으면 단일 이벤트는 개수 줄임
+                const hasBar = weekBars.some(
+                  (b) => i >= b.startCol && i < b.startCol + b.span,
+                );
+                const maxSingles = hasBar ? 1 : 2;
+                const visibleEvents = events.slice(0, maxSingles);
+                const extra = events.length - visibleEvents.length;
+
+                return (
+                  <TouchableOpacity
+                    key={iso}
+                    onPress={() => onSelect(d)}
+                    activeOpacity={0.75}
+                    style={[
+                      styles.calCell,
+                      selected && styles.calCellSelected,
+                    ]}
+                  >
+                    <Text style={[styles.calNum, { color: numColor }]}>
+                      {d.getDate()}
+                    </Text>
+                    {isToday && !selected && (
+                      <View style={styles.calTodayDot} />
+                    )}
+                    {!dim && (
+                      <View style={[
+                        styles.calCellBody,
+                        hasBar && { marginTop: 14 },
+                      ]}>
+                        {summary?.isBreak && !hasBar ? (
+                          <View style={styles.calBreak}>
+                            <Text style={styles.calBreakText}>마감</Text>
+                          </View>
+                        ) : (
+                          <>
+                            {visibleEvents.map((ev, idx) => (
+                              <View
+                                key={idx}
+                                style={[styles.calStripe, stripeToneStyle(ev.tone)]}
+                              >
+                                <Text style={styles.calStripeText} numberOfLines={1}>
+                                  {ev.time} {ev.label}
+                                </Text>
+                              </View>
+                            ))}
+                            {extra > 0 && (
+                              <Text style={styles.calMore}>+{extra}</Text>
+                            )}
+                          </>
+                        )}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* 다일 이벤트 오버레이 바 */}
+            {weekBars.map((b, i) => (
+              <View
+                key={`${b.ev.id}-${wIdx}`}
+                pointerEvents="none"
+                style={[
+                  styles.multiBar,
+                  multiBarToneStyle(b.ev.tone),
+                  {
+                    left: `${(100 / 7) * b.startCol}%`,
+                    width: `${(100 / 7) * b.span}%`,
+                    top: 22 + i * 14,
+                    borderTopLeftRadius: b.isLeftCap ? 4 : 0,
+                    borderBottomLeftRadius: b.isLeftCap ? 4 : 0,
+                    borderTopRightRadius: b.isRightCap ? 4 : 0,
+                    borderBottomRightRadius: b.isRightCap ? 4 : 0,
+                    marginLeft: b.isLeftCap ? 2 : 0,
+                    marginRight: b.isRightCap ? 2 : 0,
+                  },
+                ]}
+              >
+                {b.isLeftCap && (
+                  <Text style={styles.multiBarText} numberOfLines={1}>
+                    {b.ev.label}
+                  </Text>
+                )}
               </View>
-              {!dim && (
-                <View style={styles.calCellBody}>
-                  {summary?.isBreak ? (
-                    <View style={styles.calBreak}>
-                      <Text style={styles.calBreakText}>마감</Text>
-                    </View>
-                  ) : count > 0 ? (
-                    <View style={styles.calCount}>
-                      <Text style={styles.calCountText}>{count}</Text>
-                    </View>
-                  ) : summary?.hasEvent ? (
-                    <View style={styles.calDot} />
-                  ) : null}
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+            ))}
+          </View>
+        );
+      })}
     </View>
   );
 });
 CalendarView.displayName = 'CalendarView';
+
+const multiBarToneStyle = (tone: MultiDayEvent['tone']) => {
+  switch (tone) {
+    case 'red':    return { backgroundColor: 'rgba(232,85,85,0.55)' };
+    case 'gold':   return { backgroundColor: 'rgba(212,168,67,0.55)' };
+    case 'purple': return { backgroundColor: 'rgba(140,110,200,0.55)' };
+    case 'blue':   return { backgroundColor: 'rgba(78,140,255,0.55)' };
+    case 'green':  return { backgroundColor: 'rgba(90,175,120,0.55)' };
+  }
+};
+
+const stripeToneStyle = (tone: 'red' | 'gold' | 'purple' | 'blue') => {
+  switch (tone) {
+    case 'red':    return { backgroundColor: 'rgba(232,85,85,0.35)',  borderColor: 'rgba(232,85,85,0.6)' };
+    case 'gold':   return { backgroundColor: 'rgba(212,168,67,0.35)', borderColor: 'rgba(212,168,67,0.6)' };
+    case 'purple': return { backgroundColor: 'rgba(140,110,200,0.35)', borderColor: 'rgba(140,110,200,0.6)' };
+    case 'blue':   return { backgroundColor: 'rgba(78,140,255,0.30)', borderColor: 'rgba(78,140,255,0.6)' };
+  }
+};
 
 /* ============================================================
    Screen
@@ -484,6 +555,12 @@ const ArtistReservationScreen = () => {
   const [topTab, setTopTab] = useState<TopTab>('my');
   const [view, setView] = useState<ViewKey>('timeline');
   const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [shopInfo, setShopInfo] = useState<{ name: string; location: string } | null>(null);
+  const [customItems, setCustomItems] = useState<Record<string, PersonalTimelineItem[]>>({});
+  const [reservationSheetOpen, setReservationSheetOpen] = useState(false);
+  const [reservationSheetEditing, setReservationSheetEditing] = useState<PersonalTimelineItem | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
+  const bottomTabHeight = useBottomTabHeight();
   const [statusOverride, setStatusOverride] = useState<Record<string, BookingStatus>>({});
   const [detail, setDetail] = useState<ReservationDetail | null>(null);
 
@@ -491,13 +568,25 @@ const ArtistReservationScreen = () => {
   const todayISO = useMemo(() => toISODate(today), [today]);
   const isSelectedToday = isSameDate(selectedDate, today);
 
-  const items = useMemo(
-    () => getPersonalTimelineForDate(selectedDate),
-    [selectedDate],
-  );
+  const items = useMemo(() => {
+    const base = getPersonalTimelineForDate(selectedDate);
+    const iso = toISODate(selectedDate);
+    const extras = customItems[iso] ?? [];
+    // 편집된 아이템(같은 id)은 extras가 우선
+    const editedIds = new Set(extras.map((e) => e.id));
+    const merged = [
+      ...base.filter((b) => !editedIds.has(b.id)),
+      ...extras,
+    ].sort((a, b) => a.startHour - b.startHour);
+    return merged;
+  }, [selectedDate, customItems]);
   const monthlyMap = useMemo(
     () => getMonthlySummary(monthStart, todayISO),
     [monthStart, todayISO],
+  );
+  const multiEvents = useMemo(
+    () => getMultiDayEvents(monthStart),
+    [monthStart],
   );
 
   /* Summary stats */
@@ -539,52 +628,6 @@ const ArtistReservationScreen = () => {
     setDetail((prev) => (prev && prev.id === id ? { ...prev, status: next } : prev));
   }, []);
 
-  const handleInlineConfirm = useCallback((id: string) => {
-    const item = items.find((i) => i.id === id);
-    const currentStatus = statusOverride[id] ?? item?.status;
-    const isPending = currentStatus === '대기';
-    Alert.alert(
-      isPending ? '예약 확정' : '시술 완료',
-      isPending
-        ? '해당 예약을 확정 상태로 변경하시겠습니까?'
-        : '해당 시술을 완료 처리하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '확인',
-          style: 'default',
-          onPress: () => {
-            setStatus(id, isPending ? '확정' : '완료');
-            toast(
-              isPending ? '예약이 확정되었습니다.' : '시술 완료로 표시되었습니다.',
-              { variant: 'success' },
-            );
-          },
-        },
-      ],
-      { cancelable: true },
-    );
-  }, [items, statusOverride, setStatus, toast]);
-
-  const handleInlineNoShow = useCallback((id: string, name?: string) => {
-    Alert.alert(
-      '노쇼(No-show) 처리',
-      `${name ?? '해당 고객'}을(를) 노쇼로 처리하시겠습니까?\n노쇼 처리 시 고객 신뢰도에 반영됩니다.`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '노쇼 확정',
-          style: 'destructive',
-          onPress: () => {
-            setStatus(id, '노쇼');
-            toast('노쇼 처리되었습니다.', { variant: 'error' });
-          },
-        },
-      ],
-      { cancelable: true },
-    );
-  }, [setStatus, toast]);
-
   const openDetail = useCallback((it: PersonalTimelineItem) => {
     const currentStatus = statusOverride[it.id] ?? it.status;
     setDetail({
@@ -603,38 +646,96 @@ const ArtistReservationScreen = () => {
   }, [statusOverride, selectedDate]);
 
   const closeDetail = useCallback(() => setDetail(null), []);
-  const changeStatusFromModal = useCallback((id: string, next: BookingStatus) => {
-    setStatus(id, next);
-    toast(
-      next === '노쇼'
-        ? '노쇼 처리되었습니다.'
-        : next === '완료'
-          ? '시술 완료로 표시되었습니다.'
-          : `상태가 ${next}로 변경되었습니다.`,
-      { variant: next === '노쇼' ? 'error' : 'success' },
-    );
+
+  const requestNoShow = useCallback((id: string, customerName?: string) => {
+    setConfirm({
+      title: '노쇼(No-show) 처리',
+      message: `${customerName ?? '해당 고객'}을(를) 노쇼로 처리하시겠습니까?\n노쇼 처리 시 고객 신뢰도에 반영됩니다.`,
+      cancelLabel: '취소',
+      confirmLabel: '노쇼 확정',
+      variant: 'danger',
+      onConfirm: () => {
+        setStatus(id, '노쇼');
+        toast('노쇼 처리되었습니다.', { variant: 'error' });
+      },
+    });
   }, [setStatus, toast]);
-  const handleEdit = useCallback((_id: string) => {
+
+  const requestComplete = useCallback((id: string) => {
+    setConfirm({
+      title: '시술 완료 처리',
+      message: '해당 시술을 완료 상태로 변경하시겠습니까?',
+      cancelLabel: '취소',
+      confirmLabel: '완료 처리',
+      variant: 'default',
+      onConfirm: () => {
+        setStatus(id, '완료');
+        toast('시술 완료로 표시되었습니다.', { variant: 'success' });
+      },
+    });
+  }, [setStatus, toast]);
+
+  /* FAB → 새 예약 등록 시트 오픈 */
+  const handleFab = useCallback(() => {
+    setReservationSheetEditing(null);
+    setReservationSheetOpen(true);
+  }, []);
+
+  /* 예약 수정 (상세 모달에서 진입) */
+  const handleEditFromModal = useCallback((id: string) => {
+    const target = items.find((i) => i.id === id);
+    if (!target) return;
     setDetail(null);
-    setTimeout(() => toast('예약 수정 — 준비 중입니다'), 220);
+    setTimeout(() => {
+      setReservationSheetEditing({
+        ...target,
+        status: statusOverride[id] ?? target.status,
+      });
+      setReservationSheetOpen(true);
+    }, 220);
+  }, [items, statusOverride]);
+
+  const handleSubmitReservation = useCallback((next: PersonalTimelineItem) => {
+    const iso = toISODate(selectedDate);
+    easeLayoutAnim();
+    setCustomItems((prev) => {
+      const cur = prev[iso] ?? [];
+      const exists = cur.some((c) => c.id === next.id);
+      const nextArr = exists
+        ? cur.map((c) => (c.id === next.id ? next : c))
+        : [...cur, next];
+      return { ...prev, [iso]: nextArr };
+    });
+    setReservationSheetOpen(false);
+    setReservationSheetEditing(null);
+    toast(
+      reservationSheetEditing
+        ? '예약이 수정되었습니다.'
+        : '새 예약이 등록되었습니다.',
+      { variant: 'success' },
+    );
+  }, [selectedDate, reservationSheetEditing, toast]);
+
+  /* Shop registration */
+  const handleShopRegister = useCallback((name: string, location: string) => {
+    setConfirm({
+      title: '샵 등록',
+      message: `'${name}' (${location})\n오너로 새 샵을 등록하시겠습니까?`,
+      cancelLabel: '취소',
+      confirmLabel: '등록',
+      onConfirm: () => {
+        easeLayoutAnim();
+        setShopInfo({ name, location });
+        toast(`샵 '${name}' 등록이 완료되었습니다.`, { variant: 'success' });
+      },
+    });
   }, [toast]);
 
-  /* FAB */
-  const handleFab = useCallback(() => {
-    Alert.alert(
-      '새 예약 등록',
-      `${formatDateLabel(selectedDate)}에 새 예약을 등록하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '등록',
-          style: 'default',
-          onPress: () => toast('새 예약 등록 — 준비 중입니다', { variant: 'success' }),
-        },
-      ],
-      { cancelable: true },
-    );
-  }, [selectedDate, toast]);
+  const handleShopJoin = useCallback((code: string) => {
+    easeLayoutAnim();
+    setShopInfo({ name: `합류 완료 (${code})`, location: '서울' });
+    toast(`${code} 코드로 샵 합류 요청이 전송되었습니다.`, { variant: 'success' });
+  }, [toast]);
 
   /* Calendar cell tap → 시간별 뷰로 전환 */
   const handleCalendarSelect = useCallback((d: Date) => {
@@ -666,7 +767,7 @@ const ArtistReservationScreen = () => {
         </View>
       </View>
 
-      {/* Top tab (내 예약 관리 / 샵) */}
+      {/* Top tabs — 샵 등록 여부에 따라 2/3탭 */}
       <View style={styles.topTabRow}>
         <TouchableOpacity
           onPress={() => {
@@ -677,10 +778,27 @@ const ArtistReservationScreen = () => {
           style={styles.topTabBtn}
         >
           <Text style={[styles.topTabText, topTab === 'my' && styles.topTabTextActive]}>
-            내 예약 관리
+            내 예약
           </Text>
           {topTab === 'my' && <View style={styles.topTabUnderline} />}
         </TouchableOpacity>
+
+        {shopInfo && (
+          <TouchableOpacity
+            onPress={() => {
+              easeLayoutAnim();
+              setTopTab('shop_schedule');
+            }}
+            activeOpacity={0.75}
+            style={styles.topTabBtn}
+          >
+            <Text style={[styles.topTabText, topTab === 'shop_schedule' && styles.topTabTextActive]}>
+              샵 일정
+            </Text>
+            {topTab === 'shop_schedule' && <View style={styles.topTabUnderline} />}
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           onPress={() => {
             easeLayoutAnim();
@@ -691,9 +809,9 @@ const ArtistReservationScreen = () => {
         >
           <View style={styles.topTabLabelWrap}>
             <Text style={[styles.topTabText, topTab === 'shop' && styles.topTabTextActive]}>
-              샵
+              샵 {shopInfo ? '관리' : '등록'}
             </Text>
-            <View style={styles.topTabDot} />
+            {!shopInfo && <View style={styles.topTabDot} />}
           </View>
           {topTab === 'shop' && <View style={styles.topTabUnderline} />}
         </TouchableOpacity>
@@ -701,12 +819,78 @@ const ArtistReservationScreen = () => {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: bottomTabHeight + 80 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {topTab === 'shop' ? (
           <View style={styles.shopWrap}>
-            <ShopInviteSection />
+            {shopInfo ? (
+              <ShopInviteSection shopName={shopInfo.name} />
+            ) : (
+              <ShopOnboarding
+                onRegister={handleShopRegister}
+                onJoinCode={handleShopJoin}
+              />
+            )}
+          </View>
+        ) : topTab === 'shop_schedule' && shopInfo ? (
+          <View style={styles.shopWrap}>
+            <View style={styles.shopScheduleHeader}>
+              <Text style={styles.shopScheduleTitle}>{shopInfo.name} 오늘 일정</Text>
+              <Text style={styles.shopScheduleSub}>
+                {formatDateLabel(today)} · {shopInfo.location}
+              </Text>
+            </View>
+            {MOCK_ARTIST_COLUMNS.map((col) => {
+              const todayBookings = getShopBookingsForRange(startOfWeek(today), 1)
+                .filter((b) => b.columnId === col.id && b.dateISO === toISODate(today));
+              return (
+                <View key={col.id} style={styles.shopColCard}>
+                  <View style={styles.shopColHeader}>
+                    <Text style={styles.shopColName}>{col.artistName}</Text>
+                    <Text style={styles.shopColBed}>{col.bedName}</Text>
+                    <View style={styles.shopColCount}>
+                      <Text style={styles.shopColCountText}>{todayBookings.length}건</Text>
+                    </View>
+                  </View>
+                  {todayBookings.length === 0 ? (
+                    <Text style={styles.shopColEmpty}>오늘 예약이 없습니다.</Text>
+                  ) : (
+                    <View style={styles.shopColList}>
+                      {todayBookings.map((b) => (
+                        <View key={b.id} style={styles.shopColItem}>
+                          <Text style={styles.shopColTime}>
+                            {formatHalfHour(b.startHour)} - {formatHalfHour(b.endHour)}
+                          </Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.shopColCustomer} numberOfLines={1}>
+                              {b.customerName}
+                            </Text>
+                            <Text style={styles.shopColKind} numberOfLines={1}>
+                              {b.tattooType}
+                            </Text>
+                          </View>
+                          <View style={[
+                            styles.shopColChip,
+                            b.kind === 'consulting' && styles.shopColChipConsult,
+                          ]}>
+                            <Text style={[
+                              styles.shopColChipText,
+                              b.kind === 'consulting' && styles.shopColChipTextConsult,
+                            ]}>
+                              {b.kind === 'consulting' ? '상담' : '시술'}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </View>
         ) : (
           <>
@@ -751,8 +935,6 @@ const ArtistReservationScreen = () => {
               items={items}
               statusOverride={statusOverride}
               onOpenDetail={openDetail}
-              onConfirm={handleInlineConfirm}
-              onNoShow={handleInlineNoShow}
             />
           )
         )}
@@ -764,30 +946,50 @@ const ArtistReservationScreen = () => {
             today={today}
             onSelect={handleCalendarSelect}
             summaryMap={monthlyMap}
+            multiEvents={multiEvents}
           />
         )}
           </>
         )}
       </ScrollView>
 
-      {/* FAB — 내 예약 탭에서만 표시 */}
-      {topTab === 'my' && (
+      {/* FAB — 내 예약/샵 일정에서만 표시 (바텀탭 위) */}
+      {(topTab === 'my' || topTab === 'shop_schedule') && (
         <TouchableOpacity
           onPress={handleFab}
           activeOpacity={0.85}
-          style={styles.fab}
+          style={[styles.fab, { bottom: bottomTabHeight + 12 }]}
         >
           <CalendarPlusIcon size={26} color={COLORS.black} strokeWidth={2} />
         </TouchableOpacity>
       )}
 
+      {/* Persistent bottom tab */}
+      <AppBottomTabBar activeTab="ProfileTab" />
+
       {/* Detail modal */}
       <ReservationDetailModal
         detail={detail}
         onClose={closeDetail}
-        onChangeStatus={changeStatusFromModal}
-        onEdit={handleEdit}
+        onRequestNoShow={requestNoShow}
+        onRequestComplete={requestComplete}
+        onEdit={handleEditFromModal}
       />
+
+      {/* 새 예약 등록 / 수정 시트 */}
+      <NewReservationSheet
+        visible={reservationSheetOpen}
+        dateLabel={formatDateLabel(selectedDate)}
+        editing={reservationSheetEditing}
+        onClose={() => {
+          setReservationSheetOpen(false);
+          setReservationSheetEditing(null);
+        }}
+        onSubmit={handleSubmitReservation}
+      />
+
+      {/* 커스텀 컨펌 모달 */}
+      <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
     </SafeAreaView>
   );
 };
@@ -829,9 +1031,7 @@ const styles = StyleSheet.create({
   },
 
   scroll: { flex: 1 },
-  scrollContent: {
-    paddingBottom: 110,
-  },
+  scrollContent: {},
 
   /* Top Tabs */
   topTabRow: {
@@ -877,6 +1077,121 @@ const styles = StyleSheet.create({
   shopWrap: {
     paddingHorizontal: H_PAD,
     paddingTop: 16,
+    gap: 14,
+  },
+
+  /* Shop schedule tab */
+  shopScheduleHeader: {
+    gap: 4,
+    marginBottom: 4,
+  },
+  shopScheduleTitle: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 24,
+  },
+  shopScheduleSub: {
+    color: COLORS.gray,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  shopColCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    padding: 14,
+    gap: 10,
+  },
+  shopColHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  shopColName: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 19,
+  },
+  shopColBed: {
+    color: COLORS.gray,
+    fontSize: 12,
+    lineHeight: 16,
+    flex: 1,
+  },
+  shopColCount: {
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(212,168,67,0.1)',
+  },
+  shopColCountText: {
+    color: COLORS.gold,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
+  },
+  shopColEmpty: {
+    color: COLORS.gray,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+  shopColList: {
+    gap: 6,
+  },
+  shopColItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 8,
+  },
+  shopColTime: {
+    color: COLORS.gold,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+    minWidth: 92,
+  },
+  shopColCustomer: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 17,
+  },
+  shopColKind: {
+    color: COLORS.gray,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 1,
+  },
+  shopColChip: {
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(212,168,67,0.08)',
+  },
+  shopColChipConsult: {
+    borderColor: '#4E8CFF',
+    backgroundColor: 'rgba(78,140,255,0.08)',
+  },
+  shopColChipText: {
+    color: COLORS.gold,
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 13,
+  },
+  shopColChipTextConsult: {
+    color: '#4E8CFF',
   },
 
   /* Summary */
@@ -1144,44 +1459,6 @@ const styles = StyleSheet.create({
     lineHeight: 13,
   },
 
-  inlineActions: {
-    flexDirection: 'row',
-    gap: 4,
-    alignItems: 'center',
-  },
-  inlineBtn: {
-    minWidth: 40,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  inlineBtnDanger: {
-    borderColor: COLORS.danger,
-    backgroundColor: 'rgba(232,85,85,0.12)',
-  },
-  inlineBtnDangerText: {
-    color: COLORS.danger,
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 14,
-  },
-  inlineBtnGold: {
-    borderColor: COLORS.gold,
-    backgroundColor: COLORS.gold,
-  },
-  inlineBtnGoldText: {
-    color: COLORS.black,
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 14,
-  },
-  inlineBtnDisabled: {
-    opacity: 0.4,
-  },
-
   statusChip: {
     borderWidth: 1,
     borderColor: COLORS.gold,
@@ -1238,68 +1515,81 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 16,
   },
-  calGrid: {
+  calWeek: {
+    position: 'relative',
+  },
+  calWeekRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+  },
+  multiBar: {
+    position: 'absolute',
+    height: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  multiBarText: {
+    color: COLORS.white,
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 12,
   },
   calCell: {
     width: `${100 / 7}%`,
-    minHeight: 62,
-    padding: 3,
-    alignItems: 'center',
-    gap: 4,
+    minHeight: 96,
+    paddingHorizontal: 2,
+    paddingTop: 4,
+    paddingBottom: 3,
+    gap: 2,
+    borderRadius: 6,
   },
-  calNumWrap: {
-    width: 28, height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  calNumSelected: {
-    backgroundColor: COLORS.gold,
-  },
-  calNumToday: {
+  calCellSelected: {
+    backgroundColor: 'rgba(212,168,67,0.10)',
     borderWidth: 1,
     borderColor: COLORS.gold,
   },
   calNum: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    lineHeight: 17,
+    lineHeight: 16,
+    paddingLeft: 3,
+  },
+  calTodayDot: {
+    position: 'absolute',
+    top: 5, right: 4,
+    width: 5, height: 5, borderRadius: 2.5,
+    backgroundColor: COLORS.gold,
   },
   calCellBody: {
-    alignItems: 'center',
-    minHeight: 18,
-    justifyContent: 'center',
+    gap: 2,
   },
-  calDot: {
-    width: 4, height: 4, borderRadius: 2,
-    backgroundColor: COLORS.gold,
-    marginTop: 2,
-  },
-  calCount: {
-    borderWidth: 1,
-    borderColor: 'rgba(212,168,67,0.55)',
-    backgroundColor: 'rgba(212,168,67,0.1)',
-    borderRadius: 8,
-    minWidth: 20,
-    paddingHorizontal: 5,
+  calStripe: {
+    borderRadius: 3,
+    borderLeftWidth: 2,
+    paddingHorizontal: 3,
     paddingVertical: 1,
-    alignItems: 'center',
   },
-  calCountText: {
-    color: COLORS.gold,
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 13,
+  calStripeText: {
+    color: COLORS.white,
+    fontSize: 8.5,
+    fontWeight: '700',
+    lineHeight: 11,
+  },
+  calMore: {
+    color: COLORS.gray,
+    fontSize: 8,
+    fontWeight: '700',
+    lineHeight: 11,
+    paddingLeft: 3,
   },
   calBreak: {
     borderWidth: 1,
     borderColor: COLORS.gray3,
-    borderRadius: 8,
-    paddingHorizontal: 6,
+    borderRadius: 4,
+    paddingHorizontal: 4,
     paddingVertical: 1,
     backgroundColor: COLORS.elevated,
+    alignSelf: 'flex-start',
+    marginLeft: 3,
   },
   calBreakText: {
     color: COLORS.gray,

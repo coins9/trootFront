@@ -10,6 +10,7 @@ import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import { BackArrowIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import PromoBanner from '../../components/artistAd/PromoBanner';
 import AdCard from '../../components/artistAd/AdCard';
 import SuperUpBottomSheet, { SuperUpPlan } from '../../components/artistAd/SuperUpBottomSheet';
@@ -27,6 +28,7 @@ const AdStatsScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const [sheet, setSheet] = useState<SheetKind | null>(null);
+  const bottomTabHeight = useBottomTabHeight();
 
   const openBottomSheet = useCallback((kind: SheetKind) => {
     // NOTE: superUp → 슈퍼UP 횟수권 결제 바텀시트가 올라옵니다.
@@ -112,7 +114,7 @@ const AdStatsScreen = () => {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomTabHeight + 32 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Promo banners */}
@@ -138,6 +140,8 @@ const AdStatsScreen = () => {
           />
         ))}
       </ScrollView>
+
+      <AppBottomTabBar activeTab="ProfileTab" />
 
       <SuperUpBottomSheet
         visible={sheet === 'superUp'}

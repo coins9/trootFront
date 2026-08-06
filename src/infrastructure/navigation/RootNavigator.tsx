@@ -22,6 +22,7 @@ import PrivacySecurityScreen from '../../presentation/screens/privacySecurity/Pr
 import ArtistReservationScreen from '../../presentation/screens/artistReservation/ArtistReservationScreen';
 import DepositManagementScreen from '../../presentation/screens/deposit/DepositManagementScreen';
 import AdStatsScreen from '../../presentation/screens/artistAd/AdStatsScreen';
+import ArtistMyPageScreen from '../../presentation/screens/artistMyPage/ArtistMyPageScreen';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -43,6 +44,7 @@ export type RootStackParamList = {
   ArtistReservation: undefined;
   DepositManagement: undefined;
   ArtistAdStats: undefined;
+  ArtistMyPage: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -138,6 +140,11 @@ const RootNavigator = () => (
     <Stack.Screen
       name="ArtistAdStats"
       component={AdStatsScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="ArtistMyPage"
+      component={ArtistMyPageScreen}
       options={{ animation: 'slide_from_right' }}
     />
   </Stack.Navigator>

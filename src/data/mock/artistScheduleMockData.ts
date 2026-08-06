@@ -1,6 +1,6 @@
 import {
   ArtistColumn, ShopBooking, PersonalTimelineItem, TodayReservation,
-  MonthlyCellSummary, UpcomingItem,
+  MonthlyCellSummary, UpcomingItem, MultiDayEvent,
   toISODate, addDays, startOfMonth,
 } from '../../domain/entities/artistScheduleTypes';
 
@@ -159,18 +159,23 @@ export const getTodayReservationsForDate = (date: Date): TodayReservation[] => {
 /* ============================================================
    월간 셀 요약 — 특정 달의 각 날짜 자동 생성
    ============================================================ */
+const EVENT_POOL: Array<{ time: string; label: string; tone: 'red' | 'gold' | 'purple' | 'blue' }> = [
+  { time: '10AM', label: 'MINSOO · 상담',   tone: 'red' },
+  { time: '1PM',  label: 'MINSOO · 시술',   tone: 'red' },
+  { time: '3PM',  label: 'RIN · 시술',     tone: 'purple' },
+  { time: '11AM', label: 'RIN · 리터치',   tone: 'purple' },
+  { time: '2PM',  label: 'ZERO · 프라이빗', tone: 'gold' },
+  { time: '5PM',  label: 'ZERO · 상담',    tone: 'gold' },
+  { time: '7PM',  label: '공용 · 미팅',    tone: 'blue' },
+];
+
 const patternForDay = (day: number): MonthlyCellSummary => {
   const m = day % 7;
-  switch (m) {
-    case 0: return { bed1: 2 + (day % 3) };
-    case 1: return { consulting: 1 + (day % 2) };
-    case 2: return { hasEvent: true };
-    case 3: return { bed2: 1 + (day % 3) };
-    case 4: return { hasEvent: true };
-    case 5: return { bed1: 3 + (day % 2) };
-    case 6: return { consulting: 1 };
-    default: return { hasEvent: true };
-  }
+  const pickCount = (m === 5) ? 3 : (m === 0 || m === 3) ? 2 : 1;
+  const events = Array.from({ length: pickCount }, (_, i) => (
+    EVENT_POOL[(day * 3 + i) % EVENT_POOL.length]
+  ));
+  return { events, hasEvent: true };
 };
 
 export const getMonthlySummary = (
@@ -228,6 +233,38 @@ export const getUpcomingItems = (base: Date): UpcomingItem[] => {
 /* ============================================================
    주간 도트 인디케이터
    ============================================================ */
+/* ============================================================
+   다일(멀티데이) 이벤트 — 승연 태국 스타일
+   ============================================================ */
+export const getMultiDayEvents = (monthBase: Date): MultiDayEvent[] => {
+  const start = startOfMonth(monthBase);
+  const y = start.getFullYear();
+  const m = start.getMonth();
+  return [
+    {
+      id: 'trip1',
+      label: '휴가 · 여행',
+      tone: 'purple',
+      startISO: toISODate(new Date(y, m, 8)),
+      endISO:   toISODate(new Date(y, m, 12)),
+    },
+    {
+      id: 'workshop1',
+      label: '워크샵 · 컨벤션',
+      tone: 'gold',
+      startISO: toISODate(new Date(y, m, 20)),
+      endISO:   toISODate(new Date(y, m, 22)),
+    },
+    {
+      id: 'break1',
+      label: '샵 정기 휴무',
+      tone: 'red',
+      startISO: toISODate(new Date(y, m, 26)),
+      endISO:   toISODate(new Date(y, m, 27)),
+    },
+  ];
+};
+
 export const getWeeklyDots = (weekStart: Date): Record<string, number> => {
   const map: Record<string, number> = {};
   for (let i = 0; i < 7; i += 1) {

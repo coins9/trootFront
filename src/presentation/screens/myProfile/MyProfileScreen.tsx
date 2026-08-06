@@ -80,6 +80,10 @@ const MyProfileScreen = () => {
     navigation.navigate('ArtistAdStats');
   }, [navigation]);
 
+  const goToArtistMyPage = useCallback(() => {
+    navigation.navigate('ArtistMyPage');
+  }, [navigation]);
+
   const toggleArtistMode = useCallback(() => {
     setIsArtistMode((v) => {
       const next = !v;
@@ -123,9 +127,9 @@ const MyProfileScreen = () => {
     },
     {
       Icon: EditPenIcon,
-      label: '포트폴리오 관리',
-      description: '작품 등록, 수정 및 관리',
-      onPress: notImplemented('포트폴리오 관리'),
+      label: '포트폴리오 · 리뷰 관리',
+      description: '프로필 · 작품 · 리뷰를 한 화면에서 관리',
+      onPress: goToArtistMyPage,
     },
     {
       Icon: GearIcon,
