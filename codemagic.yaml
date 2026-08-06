@@ -202,6 +202,15 @@ workflows:
       cache_paths: *cache_paths
     scripts:
       - *install_node_deps
+      - name: Pin NODE_BINARY for Xcode script phase
+        # Xcode "Bundle React Native code and images" build phase 는 /bin/sh 로 실행되어
+        # 기본 PATH 에 node 가 없어 실패함. 절대경로로 .xcode.env.local 을 만들어 고정.
+        script: |
+          set -e
+          NODE_PATH_ABS="$(command -v node)"
+          echo "Using node: $NODE_PATH_ABS"
+          echo "export NODE_BINARY=$NODE_PATH_ABS" > "$CM_BUILD_DIR/ios/.xcode.env.local"
+          cat "$CM_BUILD_DIR/ios/.xcode.env.local"
       - name: Install CocoaPods
         script: |
           cd ios
