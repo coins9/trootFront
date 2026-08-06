@@ -209,11 +209,12 @@ workflows:
     integrations:
       app_store_connect: TROOT API Key
     environment:
+      groups:
+        - app_credentials
       node: 22
       xcode: 26
       cocoapods: default
       vars:
-        APP_STORE_APP_ID: "6796560858"
         BUNDLE_ID: "com.troot.app"
         TEAM_ID: "H2YL36R6Y7"
         ARCHIVE_PATH: "$CM_BUILD_DIR/build/ios/TRootApp.xcarchive"
@@ -244,6 +245,7 @@ workflows:
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --verbose
           keychain add-certificates
 
