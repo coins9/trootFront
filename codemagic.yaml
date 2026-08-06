@@ -196,7 +196,7 @@ workflows:
       groups:
         - app_credentials                       # APP_STORE_APP_ID, BUNDLE_ID
       node: 20.11.1
-      xcode: 16.0
+      xcode: 16.1
       cocoapods: default
     cache:
       cache_paths: *cache_paths
