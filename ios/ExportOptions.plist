@@ -12,5 +12,10 @@
   <false/>
   <key>signingStyle</key>
   <string>manual</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>com.troot.app</key>
+    <string>__PROFILE_UUID__</string>
+  </dict>
 </dict>
 </plist>

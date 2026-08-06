@@ -264,32 +264,9 @@ workflows:
           mkdir -p "$CM_BUILD_DIR/build/ios"
           ARCHIVE_PATH="$CM_BUILD_DIR/build/ios/TRootApp.xcarchive"
           EXPORT_PATH="$CM_BUILD_DIR/build/ios/ipa"
-          EXPORT_PLIST="$CM_BUILD_DIR/ExportOptions.plist"
-
-          # Export용 plist 동적 생성 (provisioningProfiles에 UUID 명시)
-          cat > "$EXPORT_PLIST" << PLIST_EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>app-store-connect</string>
-  <key>teamID</key>
-  <string>$TEAM_ID</string>
-  <key>uploadSymbols</key>
-  <true/>
-  <key>compileBitcode</key>
-  <false/>
-  <key>signingStyle</key>
-  <string>manual</string>
-  <key>provisioningProfiles</key>
-  <dict>
-    <key>$BUNDLE_ID</key>
-    <string>$PROFILE_UUID</string>
-  </dict>
-</dict>
-</plist>
-PLIST_EOF
+          # ExportOptions.plist의 __PROFILE_UUID__ 자리에 실제 UUID 치환
+          cp ios/ExportOptions.plist /tmp/ExportOptions.plist
+          sed -i "s/__PROFILE_UUID__/$PROFILE_UUID/" /tmp/ExportOptions.plist
 
           set -o pipefail
           xcodebuild archive \
@@ -308,7 +285,7 @@ PLIST_EOF
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_PATH" \
-            -exportOptionsPlist "$EXPORT_PLIST" \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
             2>&1 | tee -a build.log
 
     artifacts:
