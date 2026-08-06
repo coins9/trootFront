@@ -248,6 +248,7 @@ workflows:
             --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --verbose
           keychain add-certificates
+          xcode-project use-profiles --verbose
 
       - name: 빌드 번호 자동 증가
         script: |
@@ -261,7 +262,6 @@ workflows:
       - name: IPA 빌드 및 내보내기
         script: |
           set -e
-          # 설치된 프로비저닝 프로파일 UUID 추출
           PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           PROFILE_PATH=$(find "$PROFILE_DIR" -name "*.mobileprovision" 2>/dev/null | head -1)
           if [ -z "$PROFILE_PATH" ]; then
@@ -271,13 +271,10 @@ workflows:
           fi
           PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" 2>/dev/null | \
             awk '/<key>UUID<\/key>/{found=1;next} found{gsub(/.*<string>|<\/string>.*/,""); print; exit}')
-          PROFILE_NAME=$(security cms -D -i "$PROFILE_PATH" 2>/dev/null | \
-            awk '/<key>Name<\/key>/{found=1;next} found{gsub(/.*<string>|<\/string>.*/,""); print; exit}')
-          echo "Profile: $PROFILE_NAME ($PROFILE_UUID)"
+          echo "Profile UUID: $PROFILE_UUID"
 
           mkdir -p "$CM_BUILD_DIR/build/ios"
 
-          # Archive
           set -o pipefail
           xcodebuild archive \
             -workspace ios/TRootApp.xcworkspace \
@@ -293,7 +290,6 @@ workflows:
             2>&1 | tee build.log
           echo "Archive 완료"
 
-          # Export
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_PATH" \
