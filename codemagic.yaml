@@ -132,7 +132,7 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       node: 20.11.1
-      xcode: 16.0
+      xcode: 16.1
       cocoapods: default
     cache:
       cache_paths: *cache_paths
