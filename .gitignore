@@ -1,3 +1,14 @@
+# Keys & secrets (절대 커밋 금지)
+*.key
+*.pem
+*.p12
+*.p8
+*_key
+*_key.pub
+ios_key
+ios_key.pub
+distribution.key
+
 # OSX
 #
 .DS_Store
