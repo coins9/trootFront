@@ -241,14 +241,29 @@ workflows:
       - name: 인증서·프로파일 설치
         script: |
           set -e
+          echo "Bundle ID: '$BUNDLE_ID'"
+          echo "Private key 첫줄: $(echo "$CERTIFICATE_PRIVATE_KEY" | head -1)"
+
           keychain initialize
+
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create \
             --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --verbose
+
           keychain add-certificates
+
+          echo "=== fetch 이후 mobileprovision 위치 탐색 ==="
+          find "$HOME" -name "*.mobileprovision" 2>/dev/null || echo "HOME에 없음"
+          find /tmp -name "*.mobileprovision" 2>/dev/null || echo "/tmp에 없음"
+          find /var -name "*.mobileprovision" 2>/dev/null || echo "/var에 없음"
+
+          echo "=== use-profiles ==="
           xcode-project use-profiles --verbose
+
+          echo "=== use-profiles 이후 시스템 프로파일 디렉토리 ==="
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" 2>/dev/null || echo "비어있음"
 
       - name: 빌드 번호 자동 증가
         script: |
