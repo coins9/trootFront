@@ -193,9 +193,6 @@ workflows:
     integrations:
       app_store_connect: TROOT API Key         # Codemagic에 등록한 정확한 Integration 이름
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.troot.app
       groups:
         - app_credentials                       # APP_STORE_APP_ID, BUNDLE_ID
       node: 20.11.1
