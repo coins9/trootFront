@@ -252,7 +252,7 @@ workflows:
       - name: IPA 빌드
         script: |
           set -e
-          PROFILE_PATH=$(find / -name "*.mobileprovision" -maxdepth 12 2>/dev/null | head -1)
+          PROFILE_PATH=$(find ~/Library/MobileDevice/Provisioning\ Profiles/ -name "*.mobileprovision" 2>/dev/null | head -1)
           if [ -z "$PROFILE_PATH" ]; then
             echo "ERROR: 프로파일 없음"
             exit 1
@@ -264,6 +264,32 @@ workflows:
           mkdir -p "$CM_BUILD_DIR/build/ios"
           ARCHIVE_PATH="$CM_BUILD_DIR/build/ios/TRootApp.xcarchive"
           EXPORT_PATH="$CM_BUILD_DIR/build/ios/ipa"
+          EXPORT_PLIST="$CM_BUILD_DIR/ExportOptions.plist"
+
+          # Export용 plist 동적 생성 (provisioningProfiles에 UUID 명시)
+          cat > "$EXPORT_PLIST" << PLIST_EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>teamID</key>
+  <string>$TEAM_ID</string>
+  <key>uploadSymbols</key>
+  <true/>
+  <key>compileBitcode</key>
+  <false/>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>$BUNDLE_ID</key>
+    <string>$PROFILE_UUID</string>
+  </dict>
+</dict>
+</plist>
+PLIST_EOF
 
           set -o pipefail
           xcodebuild archive \
@@ -282,7 +308,7 @@ workflows:
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_PATH" \
-            -exportOptionsPlist ios/ExportOptions.plist \
+            -exportOptionsPlist "$EXPORT_PLIST" \
             2>&1 | tee -a build.log
 
     artifacts:
