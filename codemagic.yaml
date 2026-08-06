@@ -200,7 +200,7 @@ workflows:
           failure: true
 
   # ---------------------------------------------------------------------------
-  # 4) iOS — TestFlight (Codemagic 자동 서명)
+  # 4) iOS — TestFlight
   # ---------------------------------------------------------------------------
   ios-testflight:
     name: iOS · TestFlight
@@ -209,14 +209,14 @@ workflows:
     integrations:
       app_store_connect: TROOT API Key
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.troot.app
       groups:
         - app_credentials
       node: 22
       xcode: 26
       cocoapods: default
+      vars:
+        BUNDLE_ID: "com.troot.app"
+        TEAM_ID: "H2YL36R6Y7"
     scripts:
       - name: 패키지 설치
         script: npm install --legacy-peer-deps
@@ -225,6 +225,28 @@ workflows:
         script: |
           cd ios
           pod install --repo-update
+
+      - name: 인증서 생성 및 키체인 설치
+        script: |
+          set -e
+          keychain initialize
+          app-store-connect create-certificate \
+            --type IOS_DISTRIBUTION \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
+            --save
+          keychain add-certificates
+          echo "인증서 설치 완료"
+
+      - name: 프로파일 생성 및 Xcode 적용
+        script: |
+          set -e
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --verbose
+          xcode-project use-profiles --verbose
+          echo "=== 프로파일 위치 확인 ==="
+          find / -name "*.mobileprovision" -maxdepth 12 2>/dev/null | head -10 || echo "없음"
 
       - name: 빌드 번호 자동 증가
         script: |
@@ -237,14 +259,44 @@ workflows:
 
       - name: IPA 빌드
         script: |
-          xcode-project build-ipa \
-            --workspace "ios/TRootApp.xcworkspace" \
-            --scheme "TRootApp" \
-            --config Release
+          set -e
+          PROFILE_PATH=$(find / -name "*.mobileprovision" -maxdepth 12 2>/dev/null | head -1)
+          if [ -z "$PROFILE_PATH" ]; then
+            echo "ERROR: 프로파일 없음"
+            exit 1
+          fi
+          PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" 2>/dev/null | \
+            awk '/<key>UUID<\/key>/{found=1;next} found{gsub(/.*<string>|<\/string>.*/,""); print; exit}')
+          echo "Profile UUID: $PROFILE_UUID"
+
+          mkdir -p "$CM_BUILD_DIR/build/ios"
+          ARCHIVE_PATH="$CM_BUILD_DIR/build/ios/TRootApp.xcarchive"
+          EXPORT_PATH="$CM_BUILD_DIR/build/ios/ipa"
+
+          set -o pipefail
+          xcodebuild archive \
+            -workspace ios/TRootApp.xcworkspace \
+            -scheme TRootApp \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath "$ARCHIVE_PATH" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE="$PROFILE_UUID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            2>&1 | tee build.log
+
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            2>&1 | tee -a build.log
 
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - build.log
 
     publishing:
       email:
