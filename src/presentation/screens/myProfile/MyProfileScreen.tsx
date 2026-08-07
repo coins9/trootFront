@@ -14,7 +14,7 @@ import {
   CalendarIcon, HeartIcon, StoreIcon, FolderIcon,
   ListIcon, UserOutlineIcon, BellIcon, LockIcon, ChevronRightIcon,
   PersonSilhouette, PaletteIcon, BarChartIcon,
-  EditPenIcon, GearIcon, LocationPinIcon, StarIcon,
+  EditPenIcon, LocationPinIcon, StarIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 
@@ -131,12 +131,6 @@ const MyProfileScreen = () => {
       description: '프로필 · 작품 · 리뷰를 한 화면에서 관리',
       onPress: goToArtistMyPage,
     },
-    {
-      Icon: GearIcon,
-      label: '계정 및 설정',
-      description: '계정 정보, 알림, 보안 설정',
-      onPress: notImplemented('계정 및 설정'),
-    },
   ];
 
   const renderCompactMenuItem = (item: MenuItem, isLast: boolean) => (
@@ -246,9 +240,12 @@ const MyProfileScreen = () => {
 
         {/* ── Body: 모드에 따라 분기 ── */}
         {isArtistMode ? (
-          <View style={styles.artistMenuList}>
-            {artistMenuItems.map(renderArtistMenuCard)}
-          </View>
+          <>
+            <View style={styles.artistMenuList}>
+              {artistMenuItems.map(renderArtistMenuCard)}
+            </View>
+            {renderCompactSection('설정', userSettingItems)}
+          </>
         ) : (
           <>
             {renderCompactSection('내 예약 및 관심 관리', userReservationItems)}
