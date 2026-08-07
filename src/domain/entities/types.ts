@@ -18,6 +18,7 @@ export interface Artist {
   isHygieneCertified: boolean;
   hasDepositProtection: boolean;
   isPromoted: boolean;
+  isSelectedMaster?: boolean;
   kakaoLink?: string;
 }
 

@@ -30,6 +30,7 @@ export const MOCK_ARTISTS: Artist[] = [
     isHygieneCertified: true,
     hasDepositProtection: true,
     isPromoted: true,
+    isSelectedMaster: true,
   },
   {
     id: 'a2',
@@ -51,6 +52,7 @@ export const MOCK_ARTISTS: Artist[] = [
     isHygieneCertified: true,
     hasDepositProtection: true,
     isPromoted: false,
+    isSelectedMaster: true,
   },
   {
     id: 'a3',
@@ -72,6 +74,7 @@ export const MOCK_ARTISTS: Artist[] = [
     isHygieneCertified: true,
     hasDepositProtection: false,
     isPromoted: false,
+    isSelectedMaster: true,
   },
   {
     id: 'a4',

@@ -16,6 +16,8 @@ import { RootStackParamList } from '../../../infrastructure/navigation/RootNavig
 import { MOCK_TATTOOS, PORTFOLIO_IMAGES } from '../../../data/mock/mockData';
 import { Tattoo } from '../../../domain/entities/types';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
+import ReportSheet, { ReportReason } from '../../components/report/ReportSheet';
+import { useToast } from '../../components/common/Toast';
 
 const { width: W } = Dimensions.get('window');
 const COVER_HEIGHT = 340;
@@ -32,6 +34,7 @@ const ArtistProfileScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ProfileNav>();
   const route = useRoute<ProfileRoute>();
+  const { toast } = useToast();
   const { artist } = route.params;
 
   const [activeTab, setActiveTab] = useState<TabType>('작품');
@@ -39,6 +42,11 @@ const ArtistProfileScreen = () => {
   const [following, setFollowing] = useState(false);
   const [showAllPortfolio, setShowAllPortfolio] = useState(false);
   const [bookingVisible, setBookingVisible] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+
+  const handleReportSubmit = useCallback((_reason: ReportReason, _detail: string) => {
+    toast('신고가 접수되었습니다. 운영팀이 검토 후 조치합니다.', { variant: 'success' });
+  }, [toast]);
 
   const artistTattoos = MOCK_TATTOOS.filter((t) => t.artistId === artist.id);
   const portfolioItems = showAllPortfolio ? PORTFOLIO_IMAGES : PORTFOLIO_IMAGES.slice(0, 9);
@@ -166,6 +174,7 @@ const ArtistProfileScreen = () => {
               <TouchableOpacity
                 style={styles.topBtn}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={() => setReportVisible(true)}
               >
                 <DotsIcon size={22} color={COLORS.white} />
               </TouchableOpacity>
@@ -390,6 +399,14 @@ const ArtistProfileScreen = () => {
         artistName={artist.nickname}
         artistKakaoLink={artist.kakaoLink}
         onClose={() => setBookingVisible(false)}
+      />
+
+      <ReportSheet
+        visible={reportVisible}
+        targetName={artist.nickname}
+        onClose={() => setReportVisible(false)}
+        onSubmit={handleReportSubmit}
+        onViewPolicy={() => navigation.navigate('SafetyPolicy')}
       />
     </View>
   );

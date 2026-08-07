@@ -1,8 +1,9 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Artist, Tattoo } from '../../domain/entities/types';
-import { TattooShareShop, BeginnerModelRecruit, MediaExpert } from '../../domain/entities/shopTypes';
+import { TattooShareShop, BeginnerModelRecruit, MediaExpert, ShopMatchingCategory } from '../../domain/entities/shopTypes';
 import { TattooSupply } from '../../domain/entities/supplyTypes';
+import { WritableReview } from '../../domain/entities/reviewTypes';
 import BottomTabNavigator from './BottomTabNavigator';
 import TattooDetailScreen from '../../presentation/screens/tattooDetail/TattooDetailScreen';
 import ArtistProfileScreen from '../../presentation/screens/artistProfile/ArtistProfileScreen';
@@ -23,6 +24,10 @@ import ArtistReservationScreen from '../../presentation/screens/artistReservatio
 import DepositManagementScreen from '../../presentation/screens/deposit/DepositManagementScreen';
 import AdStatsScreen from '../../presentation/screens/artistAd/AdStatsScreen';
 import ArtistMyPageScreen from '../../presentation/screens/artistMyPage/ArtistMyPageScreen';
+import ShopWriteScreen from '../../presentation/screens/shopMatching/ShopWriteScreen';
+import MyShopPostsScreen from '../../presentation/screens/myShopPosts/MyShopPostsScreen';
+import SafetyPolicyScreen from '../../presentation/screens/safetyPolicy/SafetyPolicyScreen';
+import ReviewWriteScreen from '../../presentation/screens/review/ReviewWriteScreen';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -45,6 +50,10 @@ export type RootStackParamList = {
   DepositManagement: undefined;
   ArtistAdStats: undefined;
   ArtistMyPage: undefined;
+  ShopWrite: { initialCategory?: ShopMatchingCategory } | undefined;
+  MyShopPosts: undefined;
+  SafetyPolicy: undefined;
+  ReviewWrite: { review: WritableReview };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -146,6 +155,26 @@ const RootNavigator = () => (
       name="ArtistMyPage"
       component={ArtistMyPageScreen}
       options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="ShopWrite"
+      component={ShopWriteScreen}
+      options={{ animation: 'slide_from_bottom' }}
+    />
+    <Stack.Screen
+      name="MyShopPosts"
+      component={MyShopPostsScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="SafetyPolicy"
+      component={SafetyPolicyScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="ReviewWrite"
+      component={ReviewWriteScreen}
+      options={{ animation: 'slide_from_bottom' }}
     />
   </Stack.Navigator>
 );

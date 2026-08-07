@@ -216,8 +216,8 @@ const TattooReviewScreen = () => {
   const written = MOCK_WRITTEN_REVIEWS;
 
   const handleWrite = useCallback((review: WritableReview) => {
-    toast(`${review.artist.nickname} 리뷰 작성 — 준비 중입니다`);
-  }, [toast]);
+    navigation.navigate('ReviewWrite', { review });
+  }, [navigation]);
 
   const handleAddHealed = useCallback((review: WrittenReview) => {
     toast(`${review.artist.nickname} Healed 사진 추가 — 준비 중입니다`, { variant: 'success' });

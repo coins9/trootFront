@@ -887,3 +887,51 @@ export const UserPlusIcon = ({ size = 24, color = COLORS.black, strokeWidth = 1.
   </Svg>
 );
 
+// Selected Master 크라운 (텍스트 라벨 앞에 붙는 작은 심볼)
+export const MasterCrownIcon = ({ size = 12, color = COLORS.gold }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M2.5 7.5 L7 11 L12 4 L17 11 L21.5 7.5 L19.5 19 H4.5 L2.5 7.5 Z"
+      fill={color}
+      stroke={color}
+      strokeWidth={1.2}
+      strokeLinejoin="round"
+    />
+    <Line x1="4.5" y1="19" x2="19.5" y2="19" stroke={COLORS.black} strokeWidth={1.4} strokeLinecap="round" />
+    <Circle cx="2.5" cy="7.5" r="1.4" fill={color} />
+    <Circle cx="12" cy="4" r="1.4" fill={color} />
+    <Circle cx="21.5" cy="7.5" r="1.4" fill={color} />
+  </Svg>
+);
+
+// Selected Master 원형 엠블럼 씰 (카드 코너용 · 월계관 + 크라운)
+export const SelectedMasterSeal = ({ size = 30 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    {/* 씰 배경 + 이중 링 */}
+    <Circle cx="24" cy="24" r="22.2" fill="#141210" stroke={COLORS.gold} strokeWidth={1.6} />
+    <Circle cx="24" cy="24" r="18.6" fill="none" stroke="rgba(212,168,67,0.5)" strokeWidth={0.9} />
+    {/* 월계관 좌 */}
+    <Path d="M15.5 34 C 9.5 30, 9.5 21.5, 13.5 16.5" stroke={COLORS.gold} strokeWidth={1.3} strokeLinecap="round" fill="none" />
+    <Path d="M12.6 20 q -2.4 0.4 -3.2 2.6 q 2.3 0.3 3.4 -1.3 Z" fill={COLORS.gold} />
+    <Path d="M11.8 24.4 q -2.3 0.7 -2.8 3 q 2.3 0 3.1 -1.8 Z" fill={COLORS.gold} />
+    <Path d="M12.4 28.8 q -2 1 -2.1 3.3 q 2.2 -0.4 2.6 -2.4 Z" fill={COLORS.gold} />
+    {/* 월계관 우 */}
+    <Path d="M32.5 34 C 38.5 30, 38.5 21.5, 34.5 16.5" stroke={COLORS.gold} strokeWidth={1.3} strokeLinecap="round" fill="none" />
+    <Path d="M35.4 20 q 2.4 0.4 3.2 2.6 q -2.3 0.3 -3.4 -1.3 Z" fill={COLORS.gold} />
+    <Path d="M36.2 24.4 q 2.3 0.7 2.8 3 q -2.3 0 -3.1 -1.8 Z" fill={COLORS.gold} />
+    <Path d="M35.6 28.8 q 2 1 2.1 3.3 q -2.2 -0.4 -2.6 -2.4 Z" fill={COLORS.gold} />
+    {/* 크라운 */}
+    <Path
+      d="M16 25 L19.5 28 L24 21 L28.5 28 L32 25 L30.2 33.5 H17.8 L16 25 Z"
+      fill={COLORS.gold}
+      strokeLinejoin="round"
+    />
+    <Line x1="17.8" y1="33.5" x2="30.2" y2="33.5" stroke="#141210" strokeWidth={1.3} strokeLinecap="round" />
+    {/* 상단 별 */}
+    <Polygon
+      points="24,9.5 25.15,12.55 28.4,12.7 25.85,14.75 26.75,17.9 24,16.05 21.25,17.9 22.15,14.75 19.6,12.7 22.85,12.55"
+      fill={COLORS.gold}
+    />
+  </Svg>
+);
+

@@ -14,7 +14,7 @@ import {
   CalendarIcon, HeartIcon, StoreIcon, FolderIcon,
   ListIcon, UserOutlineIcon, BellIcon, LockIcon, ChevronRightIcon,
   PersonSilhouette, PaletteIcon, BarChartIcon,
-  EditPenIcon, LocationPinIcon, StarIcon,
+  EditPenIcon, LocationPinIcon, StarIcon, HandshakeIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 
@@ -57,6 +57,10 @@ const MyProfileScreen = () => {
 
   const goToTattooReview = useCallback(() => {
     navigation.navigate('TattooReview');
+  }, [navigation]);
+
+  const goToMyShopPosts = useCallback(() => {
+    navigation.navigate('MyShopPosts');
   }, [navigation]);
 
   const goToAccountInfo = useCallback(() => {
@@ -104,6 +108,7 @@ const MyProfileScreen = () => {
   ];
   const userPostItems: MenuItem[] = [
     { Icon: ListIcon, label: '타투 리뷰', onPress: goToTattooReview },
+    { Icon: HandshakeIcon, label: '샵&매칭 글 관리', onPress: goToMyShopPosts },
   ];
   const userSettingItems: MenuItem[] = [
     { Icon: UserOutlineIcon, label: '계정 정보', onPress: goToAccountInfo },
@@ -130,6 +135,12 @@ const MyProfileScreen = () => {
       label: '포트폴리오 · 리뷰 관리',
       description: '프로필 · 작품 · 리뷰를 한 화면에서 관리',
       onPress: goToArtistMyPage,
+    },
+    {
+      Icon: HandshakeIcon,
+      label: '샵&매칭 글 관리',
+      description: '부스 쉐어 · 타투 모델 · 사진/영상 글 관리',
+      onPress: goToMyShopPosts,
     },
   ];
 

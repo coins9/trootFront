@@ -71,6 +71,10 @@ const PrivacySecurityScreen = () => {
   const openWithdraw = useCallback(() => setWithdrawOpen(true), []);
   const closeWithdraw = useCallback(() => setWithdrawOpen(false), []);
 
+  const goToSafetyPolicy = useCallback(() => {
+    navigation.navigate('SafetyPolicy');
+  }, [navigation]);
+
   const confirmWithdraw = useCallback(() => {
     setWithdrawOpen(false);
     setTimeout(() => {
@@ -85,6 +89,7 @@ const PrivacySecurityScreen = () => {
     { key: 'blocked', label: '차단된 사용자', onPress: notImplemented('차단된 사용자') },
   ];
   const legalItems = [
+    { key: 'safety', label: '이용 안전 정책 (신고 · 제재)', onPress: goToSafetyPolicy },
     { key: 'tos', label: '서비스 이용약관', onPress: notImplemented('서비스 이용약관') },
     { key: 'privacy', label: '개인정보 처리방침', onPress: notImplemented('개인정보 처리방침') },
     { key: 'community', label: '커뮤니티 가이드라인', onPress: notImplemented('커뮤니티 가이드라인') },

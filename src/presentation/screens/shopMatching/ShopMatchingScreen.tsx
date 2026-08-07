@@ -363,7 +363,11 @@ const ShopMatchingScreen = () => {
       )}
 
       {/* FAB - 글쓰기 */}
-      <TouchableOpacity style={styles.fab} activeOpacity={0.85}>
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('ShopWrite', { initialCategory: category })}
+      >
         <PenIcon size={20} color={COLORS.black} />
         <Text style={styles.fabText}>글쓰기</Text>
       </TouchableOpacity>

@@ -3,7 +3,10 @@ import {
   View, Text, Image, TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
-import { LocationPinIcon, StarIcon, PersonSilhouette } from '../icons';
+import {
+  LocationPinIcon, StarIcon, PersonSilhouette,
+  SelectedMasterSeal, MasterCrownIcon,
+} from '../icons';
 import { Artist } from '../../../domain/entities/types';
 
 const CARD_WIDTH = 130;
@@ -38,11 +41,26 @@ const ArtistCard = memo(({ artist, isActive, onPress }: ArtistCardProps) => {
             <PersonSilhouette size={64} color="#2e2e2e" />
           </View>
         )}
+
+        {artist.isSelectedMaster && (
+          <>
+            <View style={styles.sealWrap} pointerEvents="none">
+              <SelectedMasterSeal size={30} />
+            </View>
+            <View style={styles.masterLabel} pointerEvents="none">
+              <MasterCrownIcon size={9} color={COLORS.gold} />
+              <Text style={styles.masterLabelText}>SELECTED MASTER</Text>
+            </View>
+          </>
+        )}
       </View>
       <View style={styles.info}>
-        <Text style={styles.nickname} numberOfLines={1}>
-          {artist.nickname}
-        </Text>
+        <View style={styles.nameRow}>
+          {artist.isSelectedMaster && <MasterCrownIcon size={11} color={COLORS.gold} />}
+          <Text style={styles.nickname} numberOfLines={1}>
+            {artist.nickname}
+          </Text>
+        </View>
         <View style={styles.locationRow}>
           <LocationPinIcon size={10} color={COLORS.gray} />
           <Text style={styles.location} numberOfLines={1}>
@@ -86,10 +104,42 @@ const styles = StyleSheet.create({
     width: '100%',
     height: IMAGE_HEIGHT,
     backgroundColor: COLORS.elevated,
+    position: 'relative',
   },
   image: {
     width: '100%',
     height: '100%',
+  },
+  sealWrap: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  masterLabel: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(10,9,8,0.82)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(212,168,67,0.45)',
+  },
+  masterLabelText: {
+    color: COLORS.gold,
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 1,
+    lineHeight: 11,
   },
   placeholder: {
     flex: 1,
@@ -102,7 +152,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 3,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   nickname: {
+    flexShrink: 1,
     color: COLORS.white,
     fontSize: 13,
     fontWeight: '700',
