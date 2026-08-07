@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
@@ -155,6 +155,7 @@ const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete }: {
 
 const MyShopPostsScreen = () => {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { toast } = useToast();
 
   const [posts, setPosts] = useState<MyShopPost[]>(MOCK_POSTS);
@@ -242,7 +243,7 @@ const MyShopPostsScreen = () => {
         data={filtered}
         keyExtractor={item => item.id}
         renderItem={renderItem}
-        contentContainerStyle={s.listContent}
+        contentContainerStyle={[s.listContent, { paddingBottom: 16 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={s.empty}>

@@ -3,12 +3,12 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
-  BackArrowIcon, CameraAddIcon, XIcon,
+  BackArrowIcon, CameraAddIcon, XIcon, WarningTriangleIcon, ChevronRightIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
@@ -452,6 +452,7 @@ const ImageSection = ({ images, onAdd, onRemove }: {
 const ShopWriteScreen = () => {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteP>();
+  const insets = useSafeAreaInsets();
   const { toast } = useToast();
 
   const [category, setCategory] = useState<ShopMatchingCategory>(
@@ -543,7 +544,7 @@ const ShopWriteScreen = () => {
       >
         <ScrollView
           style={s.scroll}
-          contentContainerStyle={s.scrollContent}
+          contentContainerStyle={[s.scrollContent, { paddingBottom: 40 + insets.bottom }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -563,7 +564,25 @@ const ShopWriteScreen = () => {
             <MediaExpertForm form={mediaForm} setForm={setMediaForm} />
           )}
 
-          <View style={{ height: 40 }} />
+          {/* 운영 정책 안내 */}
+          <TouchableOpacity
+            style={s.policyBanner}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('SafetyPolicy')}
+          >
+            <WarningTriangleIcon size={16} color={COLORS.gold} />
+            <View style={s.policyTextWrap}>
+              <Text style={s.policyTitle}>게시 전 꼭 확인해주세요</Text>
+              <Text style={s.policyDesc}>
+                표기 가격과 현장 가격이 크게 다른 기망행위, 도안 · 포트폴리오 도용,
+                등록 정보와 다른 시술자(대리 · 수강생) 작업은 제재 대상입니다.
+              </Text>
+              <View style={s.policyLinkRow}>
+                <Text style={s.policyLink}>이용 안전 정책 자세히 보기</Text>
+                <ChevronRightIcon size={13} color={COLORS.gold} />
+              </View>
+            </View>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -577,6 +596,23 @@ const s = StyleSheet.create({
   flex1: { flex: 1 },
   scroll: { flex: 1, backgroundColor: COLORS.bg },
   scrollContent: { padding: 20 },
+
+  /* 정책 배너 */
+  policyBanner: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 24,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: COLORS.goldDim,
+    borderWidth: 1,
+    borderColor: 'rgba(212,168,67,0.28)',
+  },
+  policyTextWrap: { flex: 1, gap: 5 },
+  policyTitle: { fontSize: 13, fontWeight: '700', color: COLORS.gold, lineHeight: 18 },
+  policyDesc: { fontSize: 12, color: COLORS.gray, lineHeight: 18 },
+  policyLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 2 },
+  policyLink: { fontSize: 12, fontWeight: '600', color: COLORS.gold, lineHeight: 16 },
 
   /* 헤더 */
   header: {

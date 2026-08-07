@@ -2,7 +2,7 @@ import React from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
@@ -105,6 +105,7 @@ const PolicyCard = ({ policy, index }: { policy: Policy; index: number }) => (
 
 const SafetyPolicyScreen = () => {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -123,7 +124,7 @@ const SafetyPolicyScreen = () => {
 
       <ScrollView
         style={s.scroll}
-        contentContainerStyle={s.scrollContent}
+        contentContainerStyle={[s.scrollContent, { paddingBottom: 20 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={s.intro}>

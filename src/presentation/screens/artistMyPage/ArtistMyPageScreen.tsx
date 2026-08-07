@@ -10,7 +10,7 @@ import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import {
   BackArrowIcon, EditPenIcon, HeartIcon, StarIcon, LocationPinIcon,
-  PersonSilhouette, TattooPlaceholderIcon, CalendarPlusIcon,
+  PersonSilhouette, TattooPlaceholderIcon, PlusIcon,
   ChevronRightIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
@@ -161,7 +161,7 @@ const ArtistMyPageScreen = () => {
           >
             <BackArrowIcon size={22} color={COLORS.white} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>마이 프로필</Text>
+          <Text style={styles.headerTitle}>포트폴리오 · 리뷰 관리</Text>
         </View>
 
         {/* Profile card */}
@@ -275,7 +275,7 @@ const ArtistMyPageScreen = () => {
                   )}
                   {aw.isPromoted && (
                     <View style={styles.gridAdBadge}>
-                      <Text style={styles.gridAdText}>AD</Text>
+                      <Text style={styles.gridAdText}>광고중</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -357,7 +357,7 @@ const ArtistMyPageScreen = () => {
           activeOpacity={0.85}
           style={[styles.fab, { bottom: bottomTabHeight + 12 }]}
         >
-          <CalendarPlusIcon size={26} color={COLORS.black} strokeWidth={2} />
+          <PlusIcon size={28} color={COLORS.black} strokeWidth={2.4} />
         </TouchableOpacity>
       )}
 

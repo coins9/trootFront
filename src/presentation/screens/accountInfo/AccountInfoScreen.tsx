@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   Image, StatusBar, KeyboardAvoidingView, Platform, Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
@@ -62,6 +62,7 @@ LinkRow.displayName = 'LinkRow';
 
 const AccountInfoScreen = () => {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { toast } = useToast();
 
   const [avatarUri, setAvatarUri] = useState<string>('');
@@ -278,7 +279,7 @@ const AccountInfoScreen = () => {
           </TouchableOpacity>
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
           <TouchableOpacity
             onPress={handleSubmit}
             activeOpacity={0.85}
@@ -499,7 +500,6 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
     backgroundColor: COLORS.bg,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,

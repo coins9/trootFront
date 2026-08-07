@@ -97,7 +97,7 @@ const PrivacySecurityScreen = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
       <LogoHeader />
 

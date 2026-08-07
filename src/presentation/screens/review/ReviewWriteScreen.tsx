@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   Image, StatusBar, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
@@ -67,6 +67,7 @@ RatingBlock.displayName = 'RatingBlock';
 const ReviewWriteScreen = () => {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteP>();
+  const insets = useSafeAreaInsets();
   const { toast } = useToast();
   const { review } = route.params;
 
@@ -225,7 +226,7 @@ const ReviewWriteScreen = () => {
           <View style={{ height: 24 }} />
         </ScrollView>
 
-        <View style={s.footer}>
+        <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={!canSubmit}
@@ -356,7 +357,6 @@ const s = StyleSheet.create({
   footer: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 20,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.black,

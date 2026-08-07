@@ -251,12 +251,9 @@ const MyProfileScreen = () => {
 
         {/* ── Body: 모드에 따라 분기 ── */}
         {isArtistMode ? (
-          <>
-            <View style={styles.artistMenuList}>
-              {artistMenuItems.map(renderArtistMenuCard)}
-            </View>
-            {renderCompactSection('설정', userSettingItems)}
-          </>
+          <View style={styles.artistMenuList}>
+            {artistMenuItems.map(renderArtistMenuCard)}
+          </View>
         ) : (
           <>
             {renderCompactSection('내 예약 및 관심 관리', userReservationItems)}

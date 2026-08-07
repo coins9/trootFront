@@ -19,7 +19,7 @@ const easeLayoutAnim = () => {
     delete: { type: 'easeInEaseOut', property: 'opacity' },
   });
 };
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
@@ -181,6 +181,7 @@ DepositCard.displayName = 'DepositCard';
    ============================================================ */
 const DepositManagementScreen = () => {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabKey>('pending');
   const [pending, setPending] = useState<DepositItem[]>(MOCK_PENDING_DEPOSITS);
@@ -374,7 +375,7 @@ const DepositManagementScreen = () => {
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={handleSummaryTap}
-        style={styles.summaryBar}
+        style={[styles.summaryBar, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}
       >
         <View style={styles.summaryIconWrap}>
           <WalletIcon size={22} color={COLORS.gold} strokeWidth={1.7} />
