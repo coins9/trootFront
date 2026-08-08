@@ -1,0 +1,89 @@
+export const ko = {
+  common: {
+    confirm: '확인',
+    cancel: '취소',
+    next: '다음',
+    back: '뒤로',
+    close: '닫기',
+    save: '저장',
+    delete: '삭제',
+    edit: '수정',
+    done: '완료',
+    loading: '불러오는 중...',
+    retry: '다시 시도',
+    error: '오류가 발생했습니다',
+  },
+
+  auth: {
+    welcomeTitle: '타투의 뿌리를 잇다',
+    welcomeSubtitle: '타투이스트와 나를 연결하는 가장 확실한 방법',
+    login: '로그인',
+    signUp: '회원가입',
+    continueWith: '{{provider}}로 계속하기',
+    providerKakao: '카카오',
+    providerGoogle: 'Google',
+    providerApple: 'Apple',
+    orDivider: '또는',
+    moreOptions: '다른 방법으로 로그인',
+    alreadyMember: '이미 계정이 있으신가요?',
+    notMember: '아직 계정이 없으신가요?',
+    agreementPrefix: '가입하면 T:ROOT의',
+    termsOfService: '이용약관',
+    and: '및',
+    privacyPolicy: '개인정보 처리방침',
+    agreementSuffix: '에 동의하게 됩니다.',
+    loginFailed: '로그인에 실패했습니다. 다시 시도해주세요.',
+    loginCancelled: '로그인이 취소되었습니다.',
+    appleOnlyIos: 'Apple 로그인은 iOS에서만 사용할 수 있습니다.',
+    logout: '로그아웃',
+    logoutConfirm: '로그아웃 하시겠습니까?',
+  },
+
+  onboarding: {
+    selectRoleTitle: '어떤 목적으로 오셨나요?',
+    selectRoleSubtitle: '나중에 프로필에서 변경할 수 있어요',
+    roleUser: '타투를 받고 싶어요',
+    roleUserDesc: '타투이스트 탐색 · 예약 · 리뷰',
+    roleArtist: '타투이스트입니다',
+    roleArtistDesc: '포트폴리오 · 예약 관리 · 광고',
+    nicknameTitle: '닉네임을 정해주세요',
+    nicknamePlaceholder: '2~20자로 입력해주세요',
+    nicknameTaken: '이미 사용 중인 닉네임입니다',
+    startApp: 'T:ROOT 시작하기',
+  },
+
+  settings: {
+    title: '설정',
+    accountInfo: '계정 정보',
+    notification: '알림 설정',
+    privacySecurity: '개인정보 및 보안',
+    language: '언어',
+    languageDesc: '앱에서 사용할 언어를 선택하세요',
+    systemDefault: '기기 설정 따르기',
+    systemDefaultDesc: '기기 언어가 바뀌면 자동으로 적용됩니다',
+    languageKo: '한국어',
+    languageEn: 'English',
+    languageChanged: '언어가 변경되었습니다',
+  },
+
+  profile: {
+    title: '프로필',
+    myReservations: '내 예약 및 관심 관리',
+    myPosts: '내가 쓴 글',
+    switchToArtist: '타투이스트로 전환',
+    switchToUser: '일반 손님으로 전환',
+  },
+
+  tabs: {
+    home: 'Home',
+    rootsPick: "Root's Pick",
+    shopMatching: '샵 & 매칭',
+    supplies: '타투용품',
+    profile: '프로필',
+  },
+} as const;
+
+// 값은 string으로 넓히고 키 구조만 고정 — 번역본이 리터럴에 묶이지 않도록
+type Widen<T> = { [K in keyof T]: T[K] extends string ? string : Widen<T[K]> };
+
+export type TranslationSchema = Widen<typeof ko>;

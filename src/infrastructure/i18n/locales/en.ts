@@ -1,0 +1,87 @@
+import type { TranslationSchema } from './ko';
+
+// ko.ts가 스키마 원본. 키 누락 시 컴파일 에러로 잡힌다.
+export const en: TranslationSchema = {
+  common: {
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+    next: 'Next',
+    back: 'Back',
+    close: 'Close',
+    save: 'Save',
+    delete: 'Delete',
+    edit: 'Edit',
+    done: 'Done',
+    loading: 'Loading...',
+    retry: 'Try again',
+    error: 'Something went wrong',
+  },
+
+  auth: {
+    welcomeTitle: 'Rooted in ink',
+    welcomeSubtitle: 'The most reliable way to connect with tattoo artists',
+    login: 'Log in',
+    signUp: 'Sign up',
+    continueWith: 'Continue with {{provider}}',
+    providerKakao: 'Kakao',
+    providerGoogle: 'Google',
+    providerApple: 'Apple',
+    orDivider: 'or',
+    moreOptions: 'More ways to log in',
+    alreadyMember: 'Already have an account?',
+    notMember: "Don't have an account?",
+    agreementPrefix: 'By signing up, you agree to our',
+    termsOfService: 'Terms of Service',
+    and: 'and',
+    privacyPolicy: 'Privacy Policy',
+    agreementSuffix: '.',
+    loginFailed: 'Login failed. Please try again.',
+    loginCancelled: 'Login was cancelled.',
+    appleOnlyIos: 'Apple Sign In is only available on iOS.',
+    logout: 'Log out',
+    logoutConfirm: 'Are you sure you want to log out?',
+  },
+
+  onboarding: {
+    selectRoleTitle: 'What brings you here?',
+    selectRoleSubtitle: 'You can change this later in your profile',
+    roleUser: "I'm looking to get a tattoo",
+    roleUserDesc: 'Browse artists, book, and review',
+    roleArtist: "I'm a tattoo artist",
+    roleArtistDesc: 'Portfolio, bookings, and promotion',
+    nicknameTitle: 'Choose your nickname',
+    nicknamePlaceholder: 'Enter 2-20 characters',
+    nicknameTaken: 'This nickname is already taken',
+    startApp: 'Get started with T:ROOT',
+  },
+
+  settings: {
+    title: 'Settings',
+    accountInfo: 'Account',
+    notification: 'Notifications',
+    privacySecurity: 'Privacy & Security',
+    language: 'Language',
+    languageDesc: 'Choose the language for the app',
+    systemDefault: 'Use device language',
+    systemDefaultDesc: 'Applies automatically when your device language changes',
+    languageKo: '한국어',
+    languageEn: 'English',
+    languageChanged: 'Language updated',
+  },
+
+  profile: {
+    title: 'Profile',
+    myReservations: 'Bookings & Favorites',
+    myPosts: 'My Posts',
+    switchToArtist: 'Switch to Artist mode',
+    switchToUser: 'Switch to Client mode',
+  },
+
+  tabs: {
+    home: 'Home',
+    rootsPick: "Root's Pick",
+    shopMatching: 'Shop & Match',
+    supplies: 'Supplies',
+    profile: 'Profile',
+  },
+};

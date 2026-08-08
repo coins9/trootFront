@@ -12,6 +12,8 @@ import {
   BackArrowIcon, ChevronRightIcon, ShieldCheckIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import { useTranslation } from '../../store/languageStore';
+import { useAuthStore } from '../../store/authStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -58,6 +60,8 @@ Section.displayName = 'Section';
 const PrivacySecurityScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const logout = useAuthStore((s) => s.logout);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   const notImplemented = useCallback((label: string) => () => {
@@ -74,6 +78,11 @@ const PrivacySecurityScreen = () => {
   const goToSafetyPolicy = useCallback(() => {
     navigation.navigate('SafetyPolicy');
   }, [navigation]);
+
+  const handleLogout = useCallback(async () => {
+    await logout();
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  }, [logout, navigation]);
 
   const confirmWithdraw = useCallback(() => {
     setWithdrawOpen(false);
@@ -129,6 +138,14 @@ const PrivacySecurityScreen = () => {
         >
           <Text style={styles.downloadText}>개인정보 다운로드 </Text>
           <ChevronRightIcon size={16} color={COLORS.gray} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleLogout}
+          activeOpacity={0.85}
+          style={styles.logoutBtn}
+        >
+          <Text style={styles.logoutText}>{t('auth.logout')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -276,6 +293,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     lineHeight: 18,
+  },
+
+  logoutBtn: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.card,
+  },
+  logoutText: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 20,
   },
 
   withdrawBtn: {

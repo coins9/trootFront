@@ -132,7 +132,7 @@ const CardAdBottomSheet = memo(({ visible, onClose, onPurchase }: Props) => {
                     </View>
                     {plan.isBest && (
                       <View style={styles.bestBadge}>
-                        <Text style={styles.bestBadgeText}>BEST</Text>
+                        <Text style={styles.bestBadgeText}>PREMIUM</Text>
                       </View>
                     )}
                   </TouchableOpacity>

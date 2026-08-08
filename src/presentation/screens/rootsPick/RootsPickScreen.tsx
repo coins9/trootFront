@@ -122,7 +122,7 @@ const RootsPickScreen = () => {
               TIMELESS.
             </Text>
             <Text style={styles.subtitle}>
-              루트가 선정한{'\n'}최고의 타투 아티스트
+              루트가 선정한{'\n'}프리미엄 타투 아티스트
             </Text>
 
             <View style={styles.viewArtistsDivider} />

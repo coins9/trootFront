@@ -28,6 +28,10 @@ import ShopWriteScreen from '../../presentation/screens/shopMatching/ShopWriteSc
 import MyShopPostsScreen from '../../presentation/screens/myShopPosts/MyShopPostsScreen';
 import SafetyPolicyScreen from '../../presentation/screens/safetyPolicy/SafetyPolicyScreen';
 import ReviewWriteScreen from '../../presentation/screens/review/ReviewWriteScreen';
+import LoginScreen from '../../presentation/screens/auth/LoginScreen';
+import OnboardingScreen from '../../presentation/screens/auth/OnboardingScreen';
+import LanguageScreen from '../../presentation/screens/settings/LanguageScreen';
+import { useAuthStore } from '../../presentation/store/authStore';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -54,12 +58,32 @@ export type RootStackParamList = {
   MyShopPosts: undefined;
   SafetyPolicy: undefined;
   ReviewWrite: { review: WritableReview };
+  Login: undefined;
+  Onboarding: undefined;
+  Language: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const RootNavigator = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+const RootNavigator = () => {
+  const session = useAuthStore((s) => s.session);
+
+  // 세션 없음 → 로그인, 신규 가입 → 온보딩, 그 외 → 메인
+  const initialRouteName: keyof RootStackParamList = !session
+    ? 'Login'
+    : session.user.isNewUser
+      ? 'Onboarding'
+      : 'Main';
+
+  return (
+  <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Login" component={LoginScreen} />
+    <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+    <Stack.Screen
+      name="Language"
+      component={LanguageScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
     <Stack.Screen name="Main" component={BottomTabNavigator} />
     <Stack.Screen
       name="TattooDetail"
@@ -177,6 +201,7 @@ const RootNavigator = () => (
       options={{ animation: 'slide_from_bottom' }}
     />
   </Stack.Navigator>
-);
+  );
+};
 
 export default RootNavigator;

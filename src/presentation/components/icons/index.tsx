@@ -1,6 +1,6 @@
 import React from 'react';
 import Svg, {
-  Path, Circle, Line, Rect, Polyline, Polygon,
+  Path, Circle, Ellipse, Line, Rect, Polyline, Polygon,
   Text as SvgText, TextPath, Defs, G,
 } from 'react-native-svg';
 import { COLORS } from '../../theme/colors';
@@ -884,6 +884,15 @@ export const UserPlusIcon = ({ size = 24, color = COLORS.black, strokeWidth = 1.
     />
     <Line x1="19" y1="6" x2="19" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
     <Line x1="16" y1="9" x2="22" y2="9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </Svg>
+);
+
+export const GlobeIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="9" stroke={color} strokeWidth={strokeWidth} />
+    <Ellipse cx="12" cy="12" rx="4" ry="9" stroke={color} strokeWidth={strokeWidth} />
+    <Line x1="3.2" y1="9.2" x2="20.8" y2="9.2" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <Line x1="3.2" y1="14.8" x2="20.8" y2="14.8" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
   </Svg>
 );
 

@@ -30,6 +30,35 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- 소셜 로그인 리다이렉트 수신 스킴.
+	     값은 .env 의 키로 치환된다 (react-native-config → xcconfig).
+	     ※ 클라이언트 식별자만 노출되며, 서버 시크릿은 여기에 넣지 않는다. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>kakao</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kakao$(KAKAO_NATIVE_APP_KEY)</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>google</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(GOOGLE_IOS_URL_SCHEME)</string>
+			</array>
+		</dict>
+	</array>
+	<!-- 설치된 카카오톡으로 전환하려면 조회 허용이 필요 -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>kakaokompassauth</string>
+		<string>kakaolink</string>
+		<string>kakaoplus</string>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
