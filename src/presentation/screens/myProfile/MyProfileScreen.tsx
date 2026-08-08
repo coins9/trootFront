@@ -12,7 +12,7 @@ import { RootStackParamList } from '../../../infrastructure/navigation/RootNavig
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 import {
   CalendarIcon, HeartIcon, StoreIcon, FolderIcon,
-  ListIcon, UserOutlineIcon, BellIcon, LockIcon, GlobeIcon, ChevronRightIcon,
+  ListIcon, UserOutlineIcon, BellIcon, LockIcon, GlobeIcon, ChatBubbleIcon, ChevronRightIcon,
   PersonSilhouette, PaletteIcon, BarChartIcon,
   EditPenIcon, LocationPinIcon, StarIcon, HandshakeIcon,
 } from '../../components/icons';
@@ -81,6 +81,10 @@ const MyProfileScreen = () => {
     navigation.navigate('Language');
   }, [navigation]);
 
+  const goToSupport = useCallback(() => {
+    navigation.navigate('Support');
+  }, [navigation]);
+
   const goToArtistReservation = useCallback(() => {
     navigation.navigate('ArtistReservation');
   }, [navigation]);
@@ -121,6 +125,7 @@ const MyProfileScreen = () => {
     { Icon: BellIcon, label: '알림 설정', onPress: goToNotificationSettings },
     { Icon: LockIcon, label: '개인정보 및 보안', onPress: goToPrivacySecurity },
     { Icon: GlobeIcon, label: t('settings.language'), onPress: goToLanguage },
+    { Icon: ChatBubbleIcon, label: '문의하기', onPress: goToSupport },
   ];
 
   /* ── 타투이스트 메뉴 (목업 그대로) ── */

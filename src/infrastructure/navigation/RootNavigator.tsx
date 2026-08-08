@@ -31,6 +31,7 @@ import ReviewWriteScreen from '../../presentation/screens/review/ReviewWriteScre
 import LoginScreen from '../../presentation/screens/auth/LoginScreen';
 import OnboardingScreen from '../../presentation/screens/auth/OnboardingScreen';
 import LanguageScreen from '../../presentation/screens/settings/LanguageScreen';
+import SupportScreen from '../../presentation/screens/support/SupportScreen';
 import { useAuthStore } from '../../presentation/store/authStore';
 
 export type RootStackParamList = {
@@ -61,6 +62,7 @@ export type RootStackParamList = {
   Login: undefined;
   Onboarding: undefined;
   Language: undefined;
+  Support: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -83,6 +85,11 @@ const RootNavigator = () => {
       name="Language"
       component={LanguageScreen}
       options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="Support"
+      component={SupportScreen}
+      options={{ animation: "slide_from_right" }}
     />
     <Stack.Screen name="Main" component={BottomTabNavigator} />
     <Stack.Screen
