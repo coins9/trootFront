@@ -27,11 +27,21 @@ interface MenuItem {
   onPress?: () => void;
 }
 
+/** 프로필에서 전환 가능한 활동 모드 */
+type ProfileMode = 'user' | 'artist' | 'vendor';
+
+const MODE_TABS: { key: ProfileMode; label: string }[] = [
+  { key: 'user', label: '일반 손님' },
+  { key: 'artist', label: '타투이스트' },
+  { key: 'vendor', label: '용품 판매자' },
+];
+
 const MyProfileScreen = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
-  const [isArtistMode, setIsArtistMode] = useState(false);
+  const [mode, setMode] = useState<ProfileMode>('user');
+  const isArtistMode = mode === 'artist';
 
   const notImplemented = useCallback((label: string) => () => {
     toast(`${label} — 준비 중입니다`);
@@ -98,12 +108,19 @@ const MyProfileScreen = () => {
     navigation.navigate('ArtistMyPage');
   }, [navigation]);
 
-  const toggleArtistMode = useCallback(() => {
-    setIsArtistMode((v) => {
-      const next = !v;
-      toast(next ? '타투이스트 모드로 전환되었습니다' : '이용자 모드로 전환되었습니다', {
-        variant: 'success',
-      });
+  const goToMyProducts = useCallback(() => {
+    navigation.navigate('MyProducts');
+  }, [navigation]);
+
+  const goToProductForm = useCallback(() => {
+    navigation.navigate('ProductForm', {});
+  }, [navigation]);
+
+  const changeMode = useCallback((next: ProfileMode) => () => {
+    setMode((prev) => {
+      if (prev === next) return prev;
+      const label = MODE_TABS.find((m) => m.key === next)?.label ?? '';
+      toast(`${label} 모드로 전환되었습니다`, { variant: 'success' });
       return next;
     });
   }, [toast]);
@@ -153,6 +170,28 @@ const MyProfileScreen = () => {
       label: '샵&매칭 글 관리',
       description: '부스 쉐어 · 타투 모델 · 사진/영상 글 관리',
       onPress: goToMyShopPosts,
+    },
+  ];
+
+  /* ── 용품 판매자 메뉴 ── */
+  const vendorMenuItems: (MenuItem & { description: string })[] = [
+    {
+      Icon: FolderIcon,
+      label: '타투용품 등록하기',
+      description: '새 상품을 등록하고 판매를 시작하세요',
+      onPress: goToProductForm,
+    },
+    {
+      Icon: StoreIcon,
+      label: '판매 상품 관리',
+      description: '등록한 상품 수정 · 재고 · 판매 상태 관리',
+      onPress: goToMyProducts,
+    },
+    {
+      Icon: BarChartIcon,
+      label: '판매자 정보 · 정산',
+      description: '입점 상태와 수수료 · 정산 내역 확인',
+      onPress: goToMyProducts,
     },
   ];
 
@@ -243,30 +282,43 @@ const MyProfileScreen = () => {
               </Text>
             )}
           </View>
-          <TouchableOpacity
-            onPress={toggleArtistMode}
-            activeOpacity={0.85}
-            style={styles.artistToggleWrap}
-          >
-            <Text style={styles.artistToggleLabel}>
-              {isArtistMode ? '일반 손님으로 전환' : '타투이스트로 전환'}
-            </Text>
-            <View style={[styles.switchTrack, isArtistMode && styles.switchTrackOn]}>
-              <View
-                style={[styles.switchThumb, isArtistMode && styles.switchThumbOn]}
-              />
-            </View>
-          </TouchableOpacity>
+        </View>
+
+        {/* 활동 모드 전환 — 손님 · 타투이스트 · 용품 판매자 */}
+        <View style={styles.modeTabs}>
+          {MODE_TABS.map((tab) => {
+            const active = mode === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                onPress={changeMode(tab.key)}
+                activeOpacity={0.8}
+                style={[styles.modeTab, active && styles.modeTabActive]}
+              >
+                <Text style={[styles.modeTabText, active && styles.modeTabTextActive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <View style={styles.headerDivider} />
 
         {/* ── Body: 모드에 따라 분기 ── */}
-        {isArtistMode ? (
+        {mode === 'artist' && (
           <View style={styles.artistMenuList}>
             {artistMenuItems.map(renderArtistMenuCard)}
           </View>
-        ) : (
+        )}
+
+        {mode === 'vendor' && (
+          <View style={styles.artistMenuList}>
+            {vendorMenuItems.map(renderArtistMenuCard)}
+          </View>
+        )}
+
+        {mode === 'user' && (
           <>
             {renderCompactSection('내 예약 및 관심 관리', userReservationItems)}
             {renderCompactSection('내가 쓴 글', userPostItems)}
@@ -358,6 +410,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
+
+  /* 활동 모드 세그먼트 */
+  modeTabs: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginBottom: 18,
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 4,
+  },
+  modeTab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeTabActive: { backgroundColor: COLORS.gold },
+  modeTabText: {
+    color: COLORS.gray,
+    fontSize: 12.5,
+    fontWeight: '600',
+    lineHeight: 17,
+  },
+  modeTabTextActive: { color: COLORS.black, fontWeight: '700' },
 
   artistToggleWrap: {
     alignItems: 'center',

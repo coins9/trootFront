@@ -10,8 +10,9 @@ import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import { ArrowRightIcon, TattooPlaceholderIcon } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
-import { ROOTS_PICK_ARTISTS, MOCK_ARTISTS } from '../../../data/mock/mockData';
-import { RootsPickArtist } from '../../../data/mock/mockData';
+import { useApi } from '../../hooks/useApi';
+import { artistApi } from '../../../data/api';
+import { toArtist } from '../../../data/api/mappers';
 import { Artist } from '../../../domain/entities/types';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -35,10 +36,26 @@ const SANS_MONO = Platform.select({
 
 type RootsPickNavProp = NativeStackNavigationProp<RootStackParamList>;
 
-const resolveArtist = (artistRef: string): Artist =>
-  MOCK_ARTISTS.find((a) => a.id === artistRef) ?? MOCK_ARTISTS[0];
+/** 화면 표시용 뷰모델 — Selected Master 를 카드 형태로 변환 */
+interface PickItem {
+  id: string;
+  nickname: string;
+  city: string;
+  genre: string;
+  coverImage: string;
+  artist: Artist;
+}
 
-const GridCard = memo(({ item, onPress }: { item: RootsPickArtist; onPress: () => void }) => (
+const toPickItem = (artist: Artist): PickItem => ({
+  id: artist.id,
+  nickname: artist.nickname,
+  city: artist.city,
+  genre: artist.genres[0] ?? '',
+  coverImage: artist.coverImage || artist.profileImage,
+  artist,
+});
+
+const GridCard = memo(({ item, onPress }: { item: PickItem; onPress: () => void }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.gridCard}>
     {item.coverImage ? (
       <Image source={{ uri: item.coverImage }} style={styles.gridImage} resizeMode="cover" />
@@ -64,20 +81,37 @@ GridCard.displayName = 'GridCard';
 
 const RootsPickScreen = () => {
   const navigation = useNavigation<RootsPickNavProp>();
-  const featured = ROOTS_PICK_ARTISTS[0];
-  const gridArtists = ROOTS_PICK_ARTISTS.slice(1);
+
+  const { data, loading } = useApi(
+    async () => (await artistApi.selectedMasters()).map(toArtist).map(toPickItem),
+    [],
+  );
+  const items = data ?? [];
+  const featured = items[0];
+  const gridArtists = items.slice(1);
 
   const handleArtistPress = useCallback(
-    (item: RootsPickArtist) => {
-      const artist = resolveArtist(item.artistRef);
-      navigation.navigate('ArtistProfile', { artist });
-    },
+    (item: PickItem) => navigation.navigate('ArtistProfile', { artist: item.artist }),
     [navigation],
   );
 
-  const pairs: RootsPickArtist[][] = [];
+  const pairs: PickItem[][] = [];
   for (let i = 0; i < gridArtists.length; i += 2) {
     pairs.push(gridArtists.slice(i, i + 2));
+  }
+
+  if (!featured) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader />
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyText}>
+            {loading ? '불러오는 중...' : '아직 선정된 아티스트가 없습니다.'}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -168,6 +202,8 @@ const RootsPickScreen = () => {
 export default RootsPickScreen;
 
 const styles = StyleSheet.create({
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+  emptyText: { color: COLORS.gray, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   safe: {
     flex: 1,
     backgroundColor: COLORS.black,

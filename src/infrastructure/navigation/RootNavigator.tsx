@@ -32,7 +32,16 @@ import LoginScreen from '../../presentation/screens/auth/LoginScreen';
 import OnboardingScreen from '../../presentation/screens/auth/OnboardingScreen';
 import LanguageScreen from '../../presentation/screens/settings/LanguageScreen';
 import SupportScreen from '../../presentation/screens/support/SupportScreen';
+import MyProductsScreen from '../../presentation/screens/vendor/MyProductsScreen';
+import VendorApplyScreen from '../../presentation/screens/vendor/VendorApplyScreen';
+import ProductFormScreen from '../../presentation/screens/vendor/ProductFormScreen';
+import AdManageScreen from '../../presentation/screens/ad/AdManageScreen';
 import { useAuthStore } from '../../presentation/store/authStore';
+
+export type AdManageParams = {
+  placement: 'artwork' | 'product' | 'booth' | 'media' | 'model';
+  targetId?: string;
+};
 
 export type RootStackParamList = {
   Main: undefined;
@@ -63,6 +72,10 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Language: undefined;
   Support: undefined;
+  MyProducts: undefined;
+  VendorApply: undefined;
+  ProductForm: { productId?: string } | undefined;
+  AdManage: AdManageParams;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -70,10 +83,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const RootNavigator = () => {
   const session = useAuthStore((s) => s.session);
 
-  // 세션 없음 → 로그인, 신규 가입 → 온보딩, 그 외 → 메인
+  // 세션 없음 → 로그인, 온보딩 미완료 → 온보딩, 그 외 → 메인
   const initialRouteName: keyof RootStackParamList = !session
     ? 'Login'
-    : session.user.isNewUser
+    : !session.user.onboarded
       ? 'Onboarding'
       : 'Main';
 
@@ -89,7 +102,22 @@ const RootNavigator = () => {
     <Stack.Screen
       name="Support"
       component={SupportScreen}
-      options={{ animation: "slide_from_right" }}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="MyProducts"
+      component={MyProductsScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="VendorApply"
+      component={VendorApplyScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="ProductForm"
+      component={ProductFormScreen}
+      options={{ animation: 'slide_from_bottom' }}
     />
     <Stack.Screen name="Main" component={BottomTabNavigator} />
     <Stack.Screen
@@ -206,6 +234,11 @@ const RootNavigator = () => {
       name="ReviewWrite"
       component={ReviewWriteScreen}
       options={{ animation: 'slide_from_bottom' }}
+    />
+    <Stack.Screen
+      name="AdManage"
+      component={AdManageScreen}
+      options={{ animation: 'slide_from_right' }}
     />
   </Stack.Navigator>
   );

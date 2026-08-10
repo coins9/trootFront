@@ -12,14 +12,18 @@ export interface SocialCredential {
   providerUserId?: string;
 }
 
+/** 백엔드 /app/auth/social 응답의 user 구조와 일치해야 한다 */
 export interface AuthUser {
   id: string;
-  nickname: string;
-  email?: string;
+  nickname: string | null;
+  email: string | null;
   provider: AuthProvider;
   role: AccountRole;
-  profileImage?: string;
-  isNewUser: boolean;
+  activeRole?: AccountRole;
+  roles?: AccountRole[];
+  profileImage?: string | null;
+  onboarded: boolean;
+  language?: string;
 }
 
 export interface AuthSession {

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  KeyboardAvoidingView, Platform, StatusBar,
+  KeyboardAvoidingView, Platform, StatusBar, Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -11,6 +11,7 @@ import {
   BackArrowIcon, CameraAddIcon, XIcon, WarningTriangleIcon, ChevronRightIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import { useImageUpload } from '../../hooks/useImageUpload';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import {
   ShopMatchingCategory,
@@ -412,22 +413,29 @@ const MediaExpertForm = ({ form, setForm }: {
 /* ─────────────────────────────────────────────────────
  * 이미지 추가 섹션
  * ───────────────────────────────────────────────────── */
-const ImageSection = ({ images, onAdd, onRemove }: {
+const ImageSection = ({ images, onAdd, onRemove, uploading }: {
   images: string[];
   onAdd: () => void;
   onRemove: (i: number) => void;
+  uploading: boolean;
 }) => (
   <View>
     <SectionLabel label="사진 첨부" />
     <Text style={s.imageHint}>최대 10장 · 첫 번째 사진이 대표 이미지로 사용됩니다</Text>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.imageScroll}>
-      <TouchableOpacity style={s.imageAdd} onPress={onAdd} activeOpacity={0.75}>
-        <CameraAddIcon size={32} color={COLORS.gold} />
-        <Text style={s.imageAddCount}>{images.length}/10</Text>
+      <TouchableOpacity style={s.imageAdd} onPress={onAdd} activeOpacity={0.75} disabled={uploading}>
+        {uploading ? (
+          <ActivityIndicator color={COLORS.gold} />
+        ) : (
+          <>
+            <CameraAddIcon size={32} color={COLORS.gold} />
+            <Text style={s.imageAddCount}>{images.length}/10</Text>
+          </>
+        )}
       </TouchableOpacity>
-      {images.map((_, i) => (
-        <View key={i} style={s.imageThumb}>
-          <View style={s.imagePlaceholder} />
+      {images.map((uri, i) => (
+        <View key={uri} style={s.imageThumb}>
+          <Image source={{ uri }} style={s.imagePlaceholder} resizeMode="cover" />
           <TouchableOpacity
             style={s.imageRemoveBtn}
             onPress={() => onRemove(i)}
@@ -463,13 +471,17 @@ const ShopWriteScreen = () => {
   const [modelForm, setModelForm] = useState<ModelForm>(EMPTY_MODEL);
   const [mediaForm, setMediaForm] = useState<MediaForm>(EMPTY_MEDIA);
 
-  const handleAddImage = useCallback(() => {
-    if (images.length >= 10) {
-      toast('사진은 최대 10장까지 첨부 가능합니다', { variant: 'error' });
-      return;
-    }
-    setImages(p => [...p, `placeholder_${p.length}`]);
-  }, [images.length, toast]);
+  const { pickAndUpload, uploading } = useImageUpload({
+    scope: 'shop',
+    max: 10,
+    current: images.length,
+    onError: (m) => toast(m, { variant: 'error' }),
+  });
+
+  const handleAddImage = useCallback(async () => {
+    const urls = await pickAndUpload();
+    if (urls.length) setImages(p => [...p, ...urls]);
+  }, [pickAndUpload]);
 
   const handleRemoveImage = useCallback((i: number) => {
     setImages(p => p.filter((_, idx) => idx !== i));
@@ -549,7 +561,7 @@ const ShopWriteScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* 이미지 섹션 */}
-          <ImageSection images={images} onAdd={handleAddImage} onRemove={handleRemoveImage} />
+          <ImageSection images={images} onAdd={handleAddImage} onRemove={handleRemoveImage} uploading={uploading} />
 
           <View style={s.divider} />
 

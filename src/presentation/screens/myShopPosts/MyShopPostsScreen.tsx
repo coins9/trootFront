@@ -8,7 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
   BackArrowIcon, EditPenIcon, HeartIcon, CommentIcon, EyeIcon,
-  RegionIcon, PenIcon,
+  RegionIcon, PenIcon, BarChartIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
@@ -35,6 +35,13 @@ const CATEGORY_LABEL: Record<ShopMatchingCategory, string> = {
   '부스 쉐어': '부스 쉐어',
   '타투 모델 구인 (비기너)': '타투 모델',
   '사진/영상 편집자': '사진/영상',
+};
+
+// 매칭 글 카테고리 → 광고 노출 면
+const CATEGORY_PLACEMENT: Record<ShopMatchingCategory, 'booth' | 'model' | 'media'> = {
+  '부스 쉐어': 'booth',
+  '타투 모델 구인 (비기너)': 'model',
+  '사진/영상 편집자': 'media',
 };
 
 const FILTER_TABS: { key: 'all' | ShopMatchingCategory; label: string }[] = [
@@ -86,11 +93,12 @@ const StatusBadge = ({ status }: { status: PostStatus }) => (
   </View>
 );
 
-const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete }: {
+const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete, onAd }: {
   post: MyShopPost;
   onEdit: (p: MyShopPost) => void;
   onToggleStatus: (p: MyShopPost) => void;
   onDelete: (p: MyShopPost) => void;
+  onAd: (p: MyShopPost) => void;
 }) => (
   <View style={s.card}>
     <View style={s.cardTop}>
@@ -125,6 +133,14 @@ const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete }: {
     </View>
 
     <View style={s.actionRow}>
+      <TouchableOpacity
+        style={s.actionBtn}
+        onPress={() => onAd(post)}
+        activeOpacity={0.75}
+      >
+        <BarChartIcon size={14} color={COLORS.gold} strokeWidth={1.8} />
+        <Text style={s.actionBtnText}>광고</Text>
+      </TouchableOpacity>
       <TouchableOpacity
         style={s.actionBtn}
         onPress={() => onToggleStatus(post)}
@@ -200,14 +216,22 @@ const MyShopPostsScreen = () => {
     });
   }, [toast]);
 
+  const handleAd = useCallback((post: MyShopPost) => {
+    navigation.navigate('AdManage', {
+      placement: CATEGORY_PLACEMENT[post.category],
+      targetId: post.id,
+    });
+  }, [navigation]);
+
   const renderItem = useCallback(({ item }: { item: MyShopPost }) => (
     <PostCard
       post={item}
       onEdit={handleEdit}
       onToggleStatus={handleToggleStatus}
       onDelete={handleDelete}
+      onAd={handleAd}
     />
-  ), [handleEdit, handleToggleStatus, handleDelete]);
+  ), [handleEdit, handleToggleStatus, handleDelete, handleAd]);
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>

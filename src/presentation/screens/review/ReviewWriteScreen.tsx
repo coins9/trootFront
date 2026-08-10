@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  Image, StatusBar, KeyboardAvoidingView, Platform,
+  Image, StatusBar, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import {
   CalendarIcon, PaletteIcon, LocationPinIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import { useImageUpload } from '../../hooks/useImageUpload';
 import {
   ReviewRatings, RATING_LABELS, RATING_GUIDES,
 } from '../../../domain/entities/reviewTypes';
@@ -81,13 +82,17 @@ const ReviewWriteScreen = () => {
     setRatings((prev) => ({ ...prev, [key]: v }));
   }, []);
 
-  const addPhoto = useCallback(() => {
-    if (photos.length >= PHOTO_MAX) {
-      toast(`사진은 최대 ${PHOTO_MAX}장까지 첨부할 수 있어요`, { variant: 'error' });
-      return;
-    }
-    setPhotos((prev) => [...prev, `placeholder_${prev.length}`]);
-  }, [photos.length, toast]);
+  const { pickAndUpload, uploading } = useImageUpload({
+    scope: 'review',
+    max: PHOTO_MAX,
+    current: photos.length,
+    onError: (m) => toast(m, { variant: 'error' }),
+  });
+
+  const addPhoto = useCallback(async () => {
+    const urls = await pickAndUpload();
+    if (urls.length) setPhotos((prev) => [...prev, ...urls]);
+  }, [pickAndUpload]);
 
   const removePhoto = useCallback((i: number) => {
     setPhotos((prev) => prev.filter((_, idx) => idx !== i));
@@ -185,13 +190,24 @@ const ReviewWriteScreen = () => {
           <Text style={s.sectionTitle}>사진 첨부</Text>
           <Text style={s.sectionSub}>실제 시술 사진은 다른 유저에게 큰 도움이 됩니다. (최대 {PHOTO_MAX}장)</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.photoScroll}>
-            <TouchableOpacity style={s.photoAdd} onPress={addPhoto} activeOpacity={0.75}>
-              <CameraAddIcon size={30} color={COLORS.gold} />
-              <Text style={s.photoAddCount}>{photos.length}/{PHOTO_MAX}</Text>
+            <TouchableOpacity
+              style={s.photoAdd}
+              onPress={addPhoto}
+              activeOpacity={0.75}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <ActivityIndicator color={COLORS.gold} />
+              ) : (
+                <>
+                  <CameraAddIcon size={30} color={COLORS.gold} />
+                  <Text style={s.photoAddCount}>{photos.length}/{PHOTO_MAX}</Text>
+                </>
+              )}
             </TouchableOpacity>
-            {photos.map((_, i) => (
-              <View key={i} style={s.photoThumb}>
-                <View style={s.photoPlaceholder} />
+            {photos.map((uri, i) => (
+              <View key={uri} style={s.photoThumb}>
+                <Image source={{ uri }} style={s.photoPlaceholder} resizeMode="cover" />
                 <TouchableOpacity
                   style={s.photoRemove}
                   onPress={() => removePhoto(i)}

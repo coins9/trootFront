@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "trootadmin",
+      "name": "trootweb",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "C:/workspace/trootadmin", "run", "dev"],
+      "runtimeArgs": ["--prefix", "C:/workspace/trootweb", "run", "dev"],
       "port": 5173
     }
   ]

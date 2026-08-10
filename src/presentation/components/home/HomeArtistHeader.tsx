@@ -5,7 +5,9 @@ import {
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import ArtistCard from './ArtistCard';
-import { MOCK_ARTISTS } from '../../../data/mock/mockData';
+import { useApi } from '../../hooks/useApi';
+import { artistApi } from '../../../data/api';
+import { toArtist } from '../../../data/api/mappers';
 import { Artist } from '../../../domain/entities/types';
 import { ArrowRightIcon } from '../icons';
 
@@ -21,6 +23,10 @@ interface Props {
 
 const HomeArtistHeader = memo(({ onArtistPress, onBannerPress }: Props) => {
   const [activeIdx, setActiveIdx] = useState(0);
+
+  // 홈 상단 Selected Master — 서버 캐시가 걸려 있어 자주 호출해도 부담이 적다
+  const { data } = useApi(async () => (await artistApi.selectedMasters()).map(toArtist), []);
+  const artists = data ?? [];
   const activeRef = useRef(0);
 
   const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -32,7 +38,7 @@ const HomeArtistHeader = memo(({ onArtistPress, onBannerPress }: Props) => {
   }, []);
 
   const renderItem = useCallback(({ item, index }: { item: Artist; index: number }) => (
-    <View style={{ marginRight: index === MOCK_ARTISTS.length - 1 ? 0 : ARTIST_GAP }}>
+    <View style={{ marginRight: index === artists.length - 1 ? 0 : ARTIST_GAP }}>
       <ArtistCard
         artist={item}
         isActive={index === activeIdx}
@@ -44,7 +50,7 @@ const HomeArtistHeader = memo(({ onArtistPress, onBannerPress }: Props) => {
   return (
     <View>
       <FlatList
-        data={MOCK_ARTISTS}
+        data={artists}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         horizontal
@@ -57,14 +63,14 @@ const HomeArtistHeader = memo(({ onArtistPress, onBannerPress }: Props) => {
 
       <View style={styles.dotsRow}>
         <View style={styles.dotsGroup}>
-          {MOCK_ARTISTS.map((_, i) => (
+          {artists.map((_, i) => (
             <View
               key={i}
               style={[styles.dot, i === activeIdx && styles.dotActive]}
             />
           ))}
         </View>
-        <Text style={styles.countText}>전체 {MOCK_ARTISTS.length}명</Text>
+        <Text style={styles.countText}>전체 {artists.length}명</Text>
       </View>
 
       {/* Feature banner - 이번 주 추천 작가 */}
