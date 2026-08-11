@@ -12,6 +12,9 @@ export interface PublicSettings {
   bannerSupplyUrl: string;
   bannerMediaUrl: string;
   bannerBoothUrl: string;
+  /** 타투이스트 광고/입점 문의 배너 링크 (AdStats 프로모 배너 2종) */
+  adInquiryUrl: string;
+  partnerInquiryUrl: string;
 }
 
 /** 서버 응답 전이나 실패 시에도 문의 경로가 끊기지 않도록 하는 기본값 */
@@ -25,6 +28,9 @@ export const DEFAULT_SETTINGS: PublicSettings = {
   bannerSupplyUrl: '',
   bannerMediaUrl: '',
   bannerBoothUrl: '',
+  // 관리자 미설정 시 현행 폼(Tally)으로 폴백
+  adInquiryUrl: 'https://tally.so/r/troot-ads',
+  partnerInquiryUrl: 'https://tally.so/r/troot-ads',
 };
 
 export const fetchPublicSettings = async (): Promise<PublicSettings> => {

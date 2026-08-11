@@ -12,6 +12,7 @@ import { BackArrowIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import PromoBanner from '../../components/artistAd/PromoBanner';
+import { usePublicSettings } from '../../hooks/usePublicSettings';
 import AdCard from '../../components/artistAd/AdCard';
 import SuperUpBottomSheet, { SuperUpPlan } from '../../components/artistAd/SuperUpBottomSheet';
 import CardAdBottomSheet, { CardAdPlan } from '../../components/artistAd/CardAdBottomSheet';
@@ -24,9 +25,16 @@ import { RootStackParamList } from '../../../infrastructure/navigation/RootNavig
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type SheetKind = 'superUp' | 'cardAd';
 
+// 프로모 배너 id → 관리자에서 관리하는 문의 링크 키
+const PROMO_URL_KEY: Record<string, 'adInquiryUrl' | 'partnerInquiryUrl'> = {
+  promo1: 'adInquiryUrl',
+  promo2: 'partnerInquiryUrl',
+};
+
 const AdStatsScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
+  const settings = usePublicSettings();
   const [sheet, setSheet] = useState<SheetKind | null>(null);
   const bottomTabHeight = useBottomTabHeight();
 
@@ -118,13 +126,18 @@ const AdStatsScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Promo banners */}
-        {MOCK_PROMO_BANNERS.map((b) => (
-          <PromoBanner
-            key={b.id}
-            banner={b}
-            onPress={() => openPromoUrl(b.ctaUrl)}
-          />
-        ))}
+        {MOCK_PROMO_BANNERS.map((b) => {
+          // 관리자에서 설정한 문의 링크로 연결, 없으면 배너 기본값(Tally)로 폴백
+          const key = PROMO_URL_KEY[b.id];
+          const url = (key && settings[key]) || b.ctaUrl;
+          return (
+            <PromoBanner
+              key={b.id}
+              banner={b}
+              onPress={() => openPromoUrl(url)}
+            />
+          );
+        })}
 
         {/* Section title */}
         <Text style={styles.sectionTitle}>도안 광고 관리</Text>
