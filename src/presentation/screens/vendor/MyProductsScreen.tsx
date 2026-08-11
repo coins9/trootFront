@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, FlatList, StyleSheet, StatusBar, TouchableOpacity, Image,
-  ActivityIndicator,
+  ActivityIndicator, Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import {
 } from '../../components/icons';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import { useToast } from '../../components/common/Toast';
+import { usePublicSettings } from '../../hooks/usePublicSettings';
 import { ApiError } from '../../../data/api/client';
 import { supplyVendorApi, type MyProduct, type MyVendor } from '../../../data/api/vendor';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
@@ -41,6 +42,7 @@ const MyProductsScreen = () => {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
+  const settings = usePublicSettings();
 
   const [vendor, setVendor] = useState<MyVendor | null>(null);
   const [products, setProducts] = useState<MyProduct[]>([]);
@@ -165,7 +167,14 @@ const MyProductsScreen = () => {
           <TouchableOpacity
             style={s.primaryBtn}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('VendorApply')}
+            onPress={() => {
+              // 관리자에 왈라 입점 링크가 있으면 그리로, 없으면 앱 내부 신청으로 폴백
+              if (settings.bannerSupplyUrl) {
+                Linking.openURL(settings.bannerSupplyUrl).catch(() => {});
+              } else {
+                navigation.navigate('VendorApply');
+              }
+            }}
           >
             <Text style={s.primaryBtnText}>입점 신청하기</Text>
             <ChevronRightIcon size={16} color={COLORS.black} />

@@ -1,9 +1,10 @@
 import React, { useCallback, useState, useMemo } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  ScrollView, StatusBar,
+  ScrollView, StatusBar, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { usePublicSettings } from '../../hooks/usePublicSettings';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
@@ -71,8 +72,16 @@ const CATEGORY_SUBTITLES: Record<ShopMatchingCategory, string> = {
   '사진/영상 편집자': '타투샵 콘텐츠를 함께 만들 전문가를 찾아보세요.',
 };
 
+// 카테고리 → 관리자에서 설정한 왈라(Walla) 배너 URL 키
+const CATEGORY_WALLA_KEY: Record<ShopMatchingCategory, 'bannerBoothUrl' | 'bannerBeginnerUrl' | 'bannerMediaUrl'> = {
+  '부스 쉐어': 'bannerBoothUrl',
+  '타투 모델 구인 (비기너)': 'bannerBeginnerUrl',
+  '사진/영상 편집자': 'bannerMediaUrl',
+};
+
 const ShopMatchingScreen = () => {
   const navigation = useNavigation<Nav>();
+  const settings = usePublicSettings();
   const [category, setCategory] = useState<ShopMatchingCategory>('부스 쉐어');
   const [expertTab, setExpertTab] = useState<MediaSpecialty>('photo');
 
@@ -366,7 +375,15 @@ const ShopMatchingScreen = () => {
       <TouchableOpacity
         style={styles.fab}
         activeOpacity={0.85}
-        onPress={() => navigation.navigate('ShopWrite', { initialCategory: category })}
+        onPress={() => {
+          // 관리자에 왈라 링크가 있으면 그리로, 없으면 앱 내부 등록으로 폴백
+          const wallaUrl = settings[CATEGORY_WALLA_KEY[category]];
+          if (wallaUrl) {
+            Linking.openURL(wallaUrl).catch(() => {});
+          } else {
+            navigation.navigate('ShopWrite', { initialCategory: category });
+          }
+        }}
       >
         <PenIcon size={20} color={COLORS.black} />
         <Text style={styles.fabText}>글쓰기</Text>
