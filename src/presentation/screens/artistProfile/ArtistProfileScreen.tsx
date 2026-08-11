@@ -396,6 +396,7 @@ const ArtistProfileScreen = () => {
 
       <BookingBottomSheet
         visible={bookingVisible}
+        artistPageId={artist.id}
         artistName={artist.nickname}
         artistKakaoLink={artist.kakaoLink}
         onClose={() => setBookingVisible(false)}

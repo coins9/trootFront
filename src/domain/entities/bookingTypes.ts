@@ -56,6 +56,19 @@ export const formatBookingMessage = (
   return lines.join('\n');
 };
 
+// 'YYYY-MM-DD' + '오후 2시 30분' → ISO 문자열 (서버 scheduledAt)
+export const toScheduledAt = (dateStr: string, timeSlot: string): string => {
+  const isPM = timeSlot.startsWith('오후');
+  const hour = Number(timeSlot.match(/(\d+)\s*시/)?.[1] ?? 0);
+  const min = Number(timeSlot.match(/(\d+)\s*분/)?.[1] ?? 0);
+  let h = hour;
+  if (isPM && hour !== 12) h += 12;
+  if (!isPM && hour === 12) h = 0;
+  const hh = String(h).padStart(2, '0');
+  const mm = String(min).padStart(2, '0');
+  return new Date(`${dateStr}T${hh}:${mm}:00`).toISOString();
+};
+
 export const TIME_SLOTS = [
   '오전 10시', '오전 10시 30분', '오전 11시', '오전 11시 30분',
   '오후 12시', '오후 12시 30분', '오후 1시', '오후 1시 30분',

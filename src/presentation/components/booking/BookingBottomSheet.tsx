@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import {
   View, Text, Modal, Animated, StyleSheet, Dimensions,
   TouchableWithoutFeedback, ScrollView, KeyboardAvoidingView, Platform,
-  TouchableOpacity, Alert,
+  TouchableOpacity, Alert, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
@@ -12,7 +12,11 @@ import {
   INITIAL_BOOKING_FORM,
   isBookingFormValid,
   formatBookingMessage,
+  toScheduledAt,
 } from '../../../domain/entities/bookingTypes';
+import { reservationApi } from '../../../data/api';
+import { ApiError } from '../../../data/api/client';
+import { uploadImages } from '../../../data/api/upload';
 import DatePickerStep from './steps/DatePickerStep';
 import BodySizeStep from './steps/BodySizeStep';
 import ReferenceStep from './steps/ReferenceStep';
@@ -24,8 +28,10 @@ const SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;
 
 interface BookingBottomSheetProps {
   visible: boolean;
+  artistPageId: string;
   artistName: string;
   artistKakaoLink?: string;
+  artworkId?: string;
   designTitle?: string;
   onClose: () => void;
 }
@@ -34,14 +40,17 @@ const Separator = () => <View style={styles.separator} />;
 
 const BookingBottomSheet = memo(({
   visible,
+  artistPageId,
   artistName,
   artistKakaoLink,
+  artworkId,
   designTitle,
   onClose,
 }: BookingBottomSheetProps) => {
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const [form, setForm] = useState<BookingFormData>(INITIAL_BOOKING_FORM);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -73,30 +82,60 @@ const BookingBottomSheet = memo(({
     });
   }, [onClose, translateY]);
 
+  // 예약 요청을 서버에 남기고(대기 상태) 곧바로 작가 오픈톡으로 연결한다.
+  // 이후 작가가 오픈톡 상담 뒤 '확정'하면 예약관리에 정식 등록된다.
+  const submit = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const referenceImages = form.referenceImages.length
+        ? await uploadImages('misc', form.referenceImages.map((uri) => ({ uri })))
+        : undefined;
+
+      await reservationApi.create({
+        artistPageId,
+        artworkId,
+        scheduledAt: toScheduledAt(form.selectedDate!, form.selectedTime!),
+        bodyPart: form.bodyPart ?? undefined,
+        sizePreset: form.size ?? undefined,
+        memo: form.referenceText.trim() || undefined,
+        referenceImages,
+      });
+
+      handleClose();
+      // 접수 직후 작가 오픈톡으로 연결 (없으면 안내만)
+      setTimeout(async () => {
+        if (artistKakaoLink && (await Linking.canOpenURL(artistKakaoLink))) {
+          Linking.openURL(artistKakaoLink).catch(() => {});
+        } else {
+          Alert.alert(
+            '예약 요청이 접수되었습니다',
+            '작가가 확인 후 오픈톡으로 연락드립니다.',
+          );
+        }
+      }, 350);
+    } catch (e) {
+      Alert.alert(
+        '예약 요청 실패',
+        e instanceof ApiError ? e.userMessage : '잠시 후 다시 시도해주세요.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }, [submitting, form, artistPageId, artworkId, artistKakaoLink, handleClose]);
+
   const handleSubmit = useCallback(() => {
     const summary = formatBookingMessage(artistName, designTitle, form);
 
     Alert.alert(
       '예약 요청 확인',
-      `${summary}\n\n위 내용으로 예약을 요청하시겠어요?`,
+      `${summary}\n\n요청을 보내면 작가 오픈톡으로 연결됩니다.\n상담 후 작가가 확정하면 예약이 등록돼요.`,
       [
         { text: '취소', style: 'cancel' },
-        {
-          text: '예약하기',
-          onPress: () => {
-            // TODO: 예약 API 연동 (POST /reservations)
-            handleClose();
-            setTimeout(() => {
-              Alert.alert(
-                '예약이 접수되었습니다',
-                '작가가 예약을 확정하면 알림으로 안내드립니다.\n확정 후 오픈톡으로 연결됩니다.',
-              );
-            }, 350);
-          },
-        },
+        { text: '예약 요청', onPress: () => { void submit(); } },
       ],
     );
-  }, [artistName, designTitle, form, handleClose]);
+  }, [artistName, designTitle, form, submit]);
 
   const updateForm = useCallback(<K extends keyof BookingFormData>(
     key: K,
@@ -203,7 +242,7 @@ const BookingBottomSheet = memo(({
 
           {/* Sticky footer */}
           <BookingFooter
-            isValid={valid}
+            isValid={valid && !submitting}
             onSubmit={handleSubmit}
             bottomInset={insets.bottom}
           />

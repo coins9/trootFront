@@ -158,8 +158,10 @@ const TattooDetailScreen = () => {
 
       <BookingBottomSheet
         visible={bookingVisible}
+        artistPageId={tattoo.artist.id}
         artistName={tattoo.artist.nickname}
         artistKakaoLink={tattoo.artist.kakaoLink}
+        artworkId={tattoo.id}
         designTitle={tattoo.title}
         onClose={() => setBookingVisible(false)}
       />
