@@ -265,9 +265,9 @@ const s = StyleSheet.create({
   },
   headerTitle: { fontSize: 17, fontWeight: '600', color: COLORS.white, letterSpacing: 0.3 },
 
-  state: { paddingVertical: 60, paddingHorizontal: 32, alignItems: 'center', gap: 14 },
+  state: { flex: 1, paddingVertical: 60, paddingHorizontal: 32, alignItems: 'center', justifyContent: 'center', gap: 14 },
   stateText: { color: COLORS.gray, fontSize: 13.5, lineHeight: 21, textAlign: 'center' },
-  emptyTitle: { color: COLORS.white, fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  emptyTitle: { color: COLORS.white, fontSize: 16, fontWeight: '700', lineHeight: 22, textAlign: 'center' },
   retry: {
     paddingHorizontal: 18, paddingVertical: 9, borderRadius: 8,
     borderWidth: 1, borderColor: COLORS.gold,

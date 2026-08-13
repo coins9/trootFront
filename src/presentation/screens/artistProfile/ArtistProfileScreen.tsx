@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, Image, TouchableOpacity, ScrollView,
   StyleSheet, Dimensions, StatusBar,
@@ -13,8 +13,11 @@ import {
   CommentIcon, PersonSilhouette, TattooPlaceholderIcon,
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
-import { MOCK_TATTOOS, PORTFOLIO_IMAGES } from '../../../data/mock/mockData';
+import { usePagedApi } from '../../hooks/useApi';
+import { artistApi } from '../../../data/api';
+import { toTattoo } from '../../../data/api/mappers';
 import { Tattoo } from '../../../domain/entities/types';
+import { artistTagLabels } from '../../../domain/entities/artistTags';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
 import ReportSheet, { ReportReason } from '../../components/report/ReportSheet';
 import { useToast } from '../../components/common/Toast';
@@ -48,8 +51,17 @@ const ArtistProfileScreen = () => {
     toast('신고가 접수되었습니다. 운영팀이 검토 후 조치합니다.', { variant: 'success' });
   }, [toast]);
 
-  const artistTattoos = MOCK_TATTOOS.filter((t) => t.artistId === artist.id);
-  const portfolioItems = showAllPortfolio ? PORTFOLIO_IMAGES : PORTFOLIO_IMAGES.slice(0, 9);
+  // 포트폴리오 — 실제 작가 작품 목록
+  const { items: artworks, loadMore } = usePagedApi(
+    (cursor) => artistApi.artworks(artist.id, { cursor, limit: 30 }),
+    [artist.id],
+  );
+  const artistTattoos = useMemo(() => artworks.map((a) => toTattoo(a)), [artworks]);
+  const portfolioImages = useMemo(
+    () => artistTattoos.map((t) => t.images[0] ?? ''),
+    [artistTattoos],
+  );
+  const portfolioItems = showAllPortfolio ? portfolioImages : portfolioImages.slice(0, 9);
 
   const handleTattooPress = useCallback(
     (tattoo: Tattoo) => navigation.navigate('TattooDetail', { tattoo }),
@@ -233,6 +245,16 @@ const ArtistProfileScreen = () => {
               ))}
             </View>
 
+            {artistTagLabels(artist.tags).length > 0 && (
+              <View style={styles.tagsRow}>
+                {artistTagLabels(artist.tags).map((t) => (
+                  <View key={t} style={styles.tagChip}>
+                    <Text style={styles.tagText}>{t}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
             <View style={styles.actionsRow}>
               <TouchableOpacity
                 onPress={() => setFollowing((v) => !v)}
@@ -335,10 +357,10 @@ const ArtistProfileScreen = () => {
               {portfolioItems.map((item, idx) => renderPortfolioItem(item, idx))}
             </View>
 
-            {!showAllPortfolio && PORTFOLIO_IMAGES.length > 9 && (
+            {!showAllPortfolio && portfolioImages.length > 9 && (
               <TouchableOpacity
                 style={styles.showMoreBtn}
-                onPress={() => setShowAllPortfolio(true)}
+                onPress={() => { setShowAllPortfolio(true); loadMore(); }}
                 activeOpacity={0.85}
               >
                 <Text style={styles.showMoreText}>더 많은 작품 보기</Text>
@@ -581,6 +603,26 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 13,
     lineHeight: 18,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  tagChip: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(212,168,67,0.4)',
+    backgroundColor: 'rgba(212,168,67,0.13)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  tagText: {
+    color: COLORS.gold,
+    fontSize: 12.5,
+    fontWeight: '600',
+    lineHeight: 17,
   },
   actionsRow: {
     flexDirection: 'row',

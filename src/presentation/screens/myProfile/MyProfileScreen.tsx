@@ -14,7 +14,7 @@ import {
   CalendarIcon, HeartIcon, StoreIcon, FolderIcon,
   ListIcon, UserOutlineIcon, BellIcon, LockIcon, GlobeIcon, ChatBubbleIcon, ChevronRightIcon,
   PersonSilhouette, PaletteIcon, BarChartIcon,
-  EditPenIcon, LocationPinIcon, StarIcon, HandshakeIcon,
+  EditPenIcon, LocationPinIcon, StarIcon, HandshakeIcon, CheckCircleIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
@@ -73,6 +73,10 @@ const MyProfileScreen = () => {
 
   const goToMyShopPosts = useCallback(() => {
     navigation.navigate('MyShopPosts');
+  }, [navigation]);
+
+  const goToReservationRequests = useCallback(() => {
+    navigation.navigate('ArtistReservationRequests');
   }, [navigation]);
 
   const goToAccountInfo = useCallback(() => {
@@ -148,6 +152,12 @@ const MyProfileScreen = () => {
   /* ── 타투이스트 메뉴 (목업 그대로) ── */
   const artistMenuItems: (MenuItem & { description: string })[] = [
     {
+      Icon: CheckCircleIcon,
+      label: '예약 요청함',
+      description: '들어온 예약 요청을 확인하고 확정',
+      onPress: goToReservationRequests,
+    },
+    {
       Icon: CalendarIcon,
       label: '예약 관리',
       description: '예약 확인, 일정 관리, 노쇼 방지',
@@ -164,12 +174,6 @@ const MyProfileScreen = () => {
       label: '포트폴리오 · 리뷰 관리',
       description: '프로필 · 작품 · 리뷰를 한 화면에서 관리',
       onPress: goToArtistMyPage,
-    },
-    {
-      Icon: HandshakeIcon,
-      label: '샵&매칭 글 관리',
-      description: '부스 쉐어 · 타투 모델 · 사진/영상 글 관리',
-      onPress: goToMyShopPosts,
     },
   ];
 

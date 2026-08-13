@@ -1,4 +1,5 @@
 import { useAuthStore } from '../../presentation/store/authStore';
+import { logNet } from '../../infrastructure/debug/netLog';
 
 const API_BASE = 'https://api.tattooroot.com/api/v1';
 const TIMEOUT_MS = 15_000;
@@ -86,6 +87,8 @@ async function tryRefresh(): Promise<boolean> {
 
 async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const token = useAuthStore.getState().session?.accessToken;
+  const method = (init.method ?? 'GET').toUpperCase();
+  const started = Date.now();
 
   // RN 런타임에는 AbortSignal.timeout 이 없어 직접 타이머로 중단시킨다
   const controller = new AbortController();
@@ -104,18 +107,31 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
       signal: controller.signal,
     });
   } catch (cause) {
+    logNet({
+      method, path, status: 0, ok: false, durationMs: Date.now() - started,
+      errorCode: 'NETWORK_ERROR', reqBody: init.body, resBody: String(cause),
+    });
     throw new ApiError('NETWORK_ERROR', String(cause), 0);
   } finally {
     clearTimeout(timer);
   }
 
-  if (res.status === 204) return undefined as T;
+  if (res.status === 204) {
+    logNet({ method, path, status: 204, ok: true, durationMs: Date.now() - started, reqBody: init.body });
+    return undefined as T;
+  }
 
   const json = (await res.json().catch(() => null)) as SuccessBody<T> | ErrorBody | null;
 
   if (!res.ok || !json || json.success === false) {
     const err = (json as ErrorBody | null)?.error;
     const code = err?.code ?? 'COMMON_INTERNAL_ERROR';
+
+    logNet({
+      method, path, status: res.status, ok: false, durationMs: Date.now() - started,
+      errorCode: code, requestId: (json as ErrorBody | null)?.requestId,
+      reqBody: init.body, resBody: err?.message ?? json,
+    });
 
     // 액세스 토큰 만료 → 갱신 후 1회 재시도
     if (retry && res.status === 401 && code === 'AUTH_TOKEN_EXPIRED') {
@@ -126,6 +142,10 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
     throw new ApiError(code, err?.message ?? `HTTP ${res.status}`, res.status, err?.details);
   }
 
+  logNet({
+    method, path, status: res.status, ok: true, durationMs: Date.now() - started,
+    requestId: json.requestId, reqBody: init.body,
+  });
   return json.data;
 }
 

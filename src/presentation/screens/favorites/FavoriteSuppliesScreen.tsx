@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Image,
-  StatusBar, Dimensions, ScrollView, Linking,
+  StatusBar, Dimensions, ScrollView, Linking, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,13 +16,47 @@ import {
   TattooSupply, SupplyCategory, SUPPLY_CATEGORIES,
   formatSupplyInquiryMessage,
 } from '../../../domain/entities/supplyTypes';
-import { MOCK_FAVORITE_SUPPLIES } from '../../../data/mock/favoriteSuppliesMockData';
+import { usePagedApi } from '../../hooks/useApi';
+import {
+  favoriteApi, type FavoriteItem, type SupplyProduct, type ProductCategory,
+} from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type CategoryFilter = '전체' | SupplyCategory;
 
 const CATEGORY_FILTERS: CategoryFilter[] = ['전체', ...SUPPLY_CATEGORIES];
+
+// 백엔드 카테고리 코드 → 화면 카테고리 라벨 (필터 유지)
+const CATEGORY_MAP: Record<ProductCategory, SupplyCategory> = {
+  machine: '머신 & 장비',
+  needle: '니들 (바늘)',
+  ink: '잉크',
+  hygiene: '위생·소모품',
+  stencil: '스탠실 용품',
+  aftercare: '애프터케어',
+  furniture: '가구·인테리어',
+  etc: '위생·소모품',
+};
+
+// 찜한 용품(API) → 기존 카드 모델. 판매자 연락처는 아직 백엔드 미제공 → 비움(문의 시 안내).
+const toSupply = (f: FavoriteItem<SupplyProduct>): TattooSupply | null => (
+  f.target
+    ? {
+        id: f.target.id,
+        category: CATEGORY_MAP[f.target.category],
+        name: f.target.name,
+        subtitle: f.target.description ?? '',
+        brand: f.target.brand ?? undefined,
+        imageUri: f.target.thumbnail ?? f.target.images[0] ?? '',
+        images: f.target.images,
+        price: f.target.priceKrw,
+        seller: { id: f.target.vendorId, nickname: '판매자' },
+        isBookmarked: true,
+        popularityScore: 0,
+      }
+    : null
+);
 
 const { width: W } = Dimensions.get('window');
 const H_PAD = 16;
@@ -86,12 +120,19 @@ const FavoriteSuppliesScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const [category, setCategory] = useState<CategoryFilter>('전체');
-  const [unfavoritedIds, setUnfavoritedIds] = useState<Set<string>>(new Set());
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
 
-  const supplies = useMemo(() => MOCK_FAVORITE_SUPPLIES.map((s) => ({
-    ...s,
-    isBookmarked: !unfavoritedIds.has(s.id),
-  })), [unfavoritedIds]);
+  const {
+    items, loading, loadingMore, error, loadMore, reload,
+  } = usePagedApi(
+    (cursor) => favoriteApi.list<SupplyProduct>('supply', { cursor, limit: 20 }),
+    [],
+  );
+
+  const supplies = useMemo(
+    () => (items.map(toSupply).filter(Boolean) as TattooSupply[]).filter((s) => !removed.has(s.id)),
+    [items, removed],
+  );
 
   const filtered = useMemo(() => (
     category === '전체'
@@ -99,18 +140,19 @@ const FavoriteSuppliesScreen = () => {
       : supplies.filter((s) => s.category === category)
   ), [supplies, category]);
 
-  const handleToggle = useCallback((supply: TattooSupply) => {
-    setUnfavoritedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(supply.id)) {
+  const handleToggle = useCallback(async (supply: TattooSupply) => {
+    setRemoved((prev) => new Set(prev).add(supply.id));
+    toast(`${supply.name} 찜을 해제했습니다.`);
+    try {
+      await favoriteApi.toggle('supply', supply.id);
+    } catch {
+      setRemoved((prev) => {
+        const next = new Set(prev);
         next.delete(supply.id);
-        toast(`${supply.name} 찜을 다시 추가했습니다.`, { variant: 'success' });
-      } else {
-        next.add(supply.id);
-        toast(`${supply.name} 찜을 해제했습니다.`);
-      }
-      return next;
-    });
+        return next;
+      });
+      toast('처리에 실패했습니다.', { variant: 'error' });
+    }
   }, [toast]);
 
   const handleInquiry = useCallback(async (supply: TattooSupply) => {
@@ -194,12 +236,28 @@ const FavoriteSuppliesScreen = () => {
         columnWrapperStyle={styles.columnWrapper}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
+        refreshing={loading && supplies.length > 0}
+        onRefresh={reload}
+        ListFooterComponent={
+          loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null
+        }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              해당 카테고리에 찜한 용품이 없습니다.
-            </Text>
-          </View>
+          loading ? (
+            <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>
+                {error ?? (category === '전체' ? '찜한 용품이 없습니다.' : '해당 카테고리에 찜한 용품이 없습니다.')}
+              </Text>
+              {error && (
+                <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
+                  <Text style={styles.retryBtnText}>다시 시도</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )
         }
       />
     </SafeAreaView>
@@ -357,10 +415,17 @@ const styles = StyleSheet.create({
   empty: {
     paddingVertical: 80,
     alignItems: 'center',
+    gap: 14,
   },
   emptyText: {
     color: COLORS.gray,
     fontSize: 13,
     lineHeight: 19,
+    textAlign: 'center',
   },
+  retryBtn: {
+    paddingHorizontal: 18, paddingVertical: 9, borderRadius: 8,
+    borderWidth: 1, borderColor: COLORS.gold,
+  },
+  retryBtnText: { color: COLORS.gold, fontSize: 13, fontWeight: '600', lineHeight: 18 },
 });

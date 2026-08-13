@@ -8,6 +8,7 @@ import { COLORS } from './src/presentation/theme/colors';
 import SplashScreen from './src/presentation/screens/splash/SplashScreen';
 import RootNavigator from './src/infrastructure/navigation/RootNavigator';
 import { ToastProvider } from './src/presentation/components/common/Toast';
+import NetDebugOverlay from './src/presentation/components/debug/NetDebugOverlay';
 import { useLanguageStore } from './src/presentation/store/languageStore';
 import { useAuthStore } from './src/presentation/store/authStore';
 import { initSocialAuth } from './src/data/auth/socialAuth';
@@ -71,6 +72,7 @@ const App = () => {
             <RootNavigator />
           </ToastProvider>
         </NavigationContainer>
+        <NetDebugOverlay />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

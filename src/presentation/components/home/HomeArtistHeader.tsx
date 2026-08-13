@@ -1,11 +1,12 @@
 import React, { memo, useCallback, useRef, useState } from 'react';
 import {
   View, Text, FlatList, StyleSheet, Dimensions, TouchableOpacity,
-  NativeScrollEvent, NativeSyntheticEvent, Image,
+  NativeScrollEvent, NativeSyntheticEvent, Image, Linking,
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import ArtistCard from './ArtistCard';
 import { useApi } from '../../hooks/useApi';
+import { usePublicSettings } from '../../hooks/usePublicSettings';
 import { artistApi } from '../../../data/api';
 import { toArtist } from '../../../data/api/mappers';
 import { Artist } from '../../../domain/entities/types';
@@ -28,6 +29,18 @@ const HomeArtistHeader = memo(({ onArtistPress, onBannerPress }: Props) => {
   const { data } = useApi(async () => (await artistApi.selectedMasters()).map(toArtist), []);
   const artists = data ?? [];
   const activeRef = useRef(0);
+
+  // 루트 배너 — 관리자 설정(API)에서 내려온 값, 없으면 기본 문구
+  const settings = usePublicSettings();
+  const bannerTitle = settings.homeBannerTitle || '이번 주 추천 작가';
+  const bannerSub = settings.homeBannerSubtitle || '지금 인기 아티스트와 상담해보세요';
+  const handleBanner = useCallback(() => {
+    if (settings.homeBannerUrl) {
+      Linking.openURL(settings.homeBannerUrl).catch(() => {});
+    } else {
+      onBannerPress?.();
+    }
+  }, [settings.homeBannerUrl, onBannerPress]);
 
   const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / (ARTIST_CARD_WIDTH + ARTIST_GAP));
@@ -75,14 +88,14 @@ const HomeArtistHeader = memo(({ onArtistPress, onBannerPress }: Props) => {
 
       {/* Feature banner - 이번 주 추천 작가 */}
       <TouchableOpacity
-        onPress={onBannerPress}
+        onPress={handleBanner}
         activeOpacity={0.9}
         style={styles.banner}
       >
         <View style={styles.bannerLeft}>
           <Text style={styles.bannerLabel}>루트 배너</Text>
-          <Text style={styles.bannerTitle}>이번 주 추천 작가</Text>
-          <Text style={styles.bannerSub}>지금 인기 아티스트와 상담해보세요</Text>
+          <Text style={styles.bannerTitle} numberOfLines={1}>{bannerTitle}</Text>
+          <Text style={styles.bannerSub} numberOfLines={1}>{bannerSub}</Text>
           <View style={styles.bannerCtaRow}>
             <Text style={styles.bannerCta}>바로 보기</Text>
             <ArrowRightIcon size={14} color={COLORS.gold} strokeWidth={2} />

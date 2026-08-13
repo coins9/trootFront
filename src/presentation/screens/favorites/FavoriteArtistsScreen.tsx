@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Image,
-  StatusBar, Dimensions,
+  StatusBar, Dimensions, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -13,7 +13,9 @@ import {
   PersonSilhouette, TattooPlaceholderIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
-import { MOCK_ARTISTS, PORTFOLIO_IMAGES } from '../../../data/mock/mockData';
+import { usePagedApi } from '../../hooks/useApi';
+import { favoriteApi, type FavoriteItem, type ArtistPage } from '../../../data/api';
+import { toArtist } from '../../../data/api/mappers';
 import { Artist } from '../../../domain/entities/types';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
@@ -26,8 +28,8 @@ const GALLERY_GAP = 6;
 const GALLERY_ITEM_SIZE =
   (W - CARD_H_PAD * 2 - CARD_INNER_PAD * 2 - GALLERY_GAP * 2) / 3;
 
-// 초기 찜 아티스트: 앞 4명 (Home mock에 있는)
-const INITIAL_FAVORITE_IDS = ['a1', 'a2', 'a3', 'a4'];
+// 갤러리 자리(백엔드 작품 썸네일 연동 전까지 placeholder 3칸 유지)
+const EMPTY_WORKS = ['', '', ''];
 
 interface FavoriteCardProps {
   artist: Artist;
@@ -110,36 +112,38 @@ FavoriteCard.displayName = 'FavoriteCard';
 const FavoriteArtistsScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
-  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(
-    () => new Set(INITIAL_FAVORITE_IDS),
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+
+  const {
+    items, loading, loadingMore, error, loadMore, reload,
+  } = usePagedApi(
+    (cursor) => favoriteApi.list<ArtistPage>('artist', { cursor, limit: 20 }),
+    [],
   );
 
-  const favoriteArtists = MOCK_ARTISTS.filter((a) => favoriteIds.has(a.id));
+  const favoriteArtists = (items
+    .map((f: FavoriteItem<ArtistPage>) => (f.target ? toArtist(f.target) : null))
+    .filter(Boolean) as Artist[])
+    .filter((a) => !removed.has(a.id));
 
-  const handleToggle = useCallback((artist: Artist) => {
-    setFavoriteIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(artist.id)) {
+  const handleToggle = useCallback(async (artist: Artist) => {
+    setRemoved((prev) => new Set(prev).add(artist.id));
+    toast(`${artist.nickname} 찜을 해제했습니다.`);
+    try {
+      await favoriteApi.toggle('artist', artist.id);
+    } catch {
+      setRemoved((prev) => {
+        const next = new Set(prev);
         next.delete(artist.id);
-        toast(`${artist.nickname} 찜을 해제했습니다.`);
-      } else {
-        next.add(artist.id);
-        toast(`${artist.nickname}을(를) 찜했습니다.`, { variant: 'success' });
-      }
-      return next;
-    });
+        return next;
+      });
+      toast('처리에 실패했습니다.', { variant: 'error' });
+    }
   }, [toast]);
 
   const handleVisit = useCallback((artist: Artist) => {
     navigation.navigate('ArtistProfile', { artist });
   }, [navigation]);
-
-  const getWorksForArtist = useCallback((artistId: string): string[] => {
-    // artistId 해시로 3장씩 다르게 배정 (mock)
-    const hash = artistId.charCodeAt(artistId.length - 1) || 0;
-    const start = hash % Math.max(PORTFOLIO_IMAGES.length - 2, 1);
-    return PORTFOLIO_IMAGES.slice(start, start + 3);
-  }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -166,20 +170,34 @@ const FavoriteArtistsScreen = () => {
         renderItem={({ item }) => (
           <FavoriteCard
             artist={item}
-            works={getWorksForArtist(item.id)}
-            isFavorite={favoriteIds.has(item.id)}
+            works={EMPTY_WORKS}
+            isFavorite
             onToggleFavorite={() => handleToggle(item)}
             onVisitProfile={() => handleVisit(item)}
           />
         )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
+        refreshing={loading && favoriteArtists.length > 0}
+        onRefresh={reload}
+        ListFooterComponent={
+          loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null
+        }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              아직 찜한 타투이스트가 없습니다.
-            </Text>
-          </View>
+          loading ? (
+            <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>{error ?? '아직 찜한 타투이스트가 없습니다.'}</Text>
+              {error && (
+                <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
+                  <Text style={styles.retryBtnText}>다시 시도</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )
         }
       />
     </SafeAreaView>
@@ -344,10 +362,17 @@ const styles = StyleSheet.create({
   empty: {
     paddingVertical: 80,
     alignItems: 'center',
+    gap: 14,
   },
   emptyText: {
     color: COLORS.gray,
     fontSize: 13,
     lineHeight: 19,
+    textAlign: 'center',
   },
+  retryBtn: {
+    paddingHorizontal: 18, paddingVertical: 9, borderRadius: 8,
+    borderWidth: 1, borderColor: COLORS.gold,
+  },
+  retryBtnText: { color: COLORS.gold, fontSize: 13, fontWeight: '600', lineHeight: 18 },
 });

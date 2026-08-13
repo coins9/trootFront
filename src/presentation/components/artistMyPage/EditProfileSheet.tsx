@@ -9,6 +9,7 @@ import {
   XIcon, LocationPinIcon, CameraSolidIcon, PersonSilhouette,
 } from '../icons';
 import { ArtistSelfProfile } from '../../../domain/entities/artistMyPageTypes';
+import { ARTIST_TAGS } from '../../../domain/entities/artistTags';
 
 interface Props {
   visible: boolean;
@@ -26,12 +27,18 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   const [nickname, setNickname] = useState(profile.nickname);
   const [location, setLocation] = useState(profile.location);
   const [intro, setIntro] = useState(profile.intro);
+  const [tags, setTags] = useState<string[]>(profile.tags ?? []);
+
+  const toggleTag = useCallback((code: string) => {
+    setTags((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
+  }, []);
 
   useEffect(() => {
     if (visible) {
       setNickname(profile.nickname);
       setLocation(profile.location);
       setIntro(profile.intro);
+      setTags(profile.tags ?? []);
     }
     Animated.timing(translate, {
       toValue: visible ? 0 : SH,
@@ -45,8 +52,9 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       nickname: nickname.trim() || profile.nickname,
       location: location.trim() || profile.location,
       intro: intro.trim() || profile.intro,
+      tags,
     });
-  }, [nickname, location, intro, profile, onSave]);
+  }, [nickname, location, intro, tags, profile, onSave]);
 
   if (!visible) return null;
 
@@ -146,6 +154,26 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                     <Text style={styles.counter}>{intro.length}/{INTRO_MAX}</Text>
                   </View>
                 </View>
+
+                {/* Tags */}
+                <View style={styles.field}>
+                  <Text style={styles.label}>편의 · 특성 태그</Text>
+                  <View style={styles.tagWrap}>
+                    {ARTIST_TAGS.map((t) => {
+                      const on = tags.includes(t.code);
+                      return (
+                        <TouchableOpacity
+                          key={t.code}
+                          onPress={() => toggleTag(t.code)}
+                          activeOpacity={0.75}
+                          style={[styles.tagChip, on && styles.tagChipOn]}
+                        >
+                          <Text style={[styles.tagChipText, on && styles.tagChipTextOn]}>{t.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
               </ScrollView>
 
               <TouchableOpacity
@@ -241,6 +269,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 16,
+  },
+  tagWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  tagChip: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.chipBorder,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  tagChipOn: {
+    borderColor: 'rgba(212,168,67,0.5)',
+    backgroundColor: 'rgba(212,168,67,0.13)',
+  },
+  tagChipText: {
+    color: COLORS.gray,
+    fontSize: 12.5,
+    lineHeight: 17,
+  },
+  tagChipTextOn: {
+    color: COLORS.gold,
+    fontWeight: '600',
   },
   inputRow: {
     flexDirection: 'row',

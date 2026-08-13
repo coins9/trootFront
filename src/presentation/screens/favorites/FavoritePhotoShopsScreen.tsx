@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Image,
-  StatusBar, Dimensions, Linking,
+  StatusBar, Dimensions, Linking, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,9 +14,11 @@ import {
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import {
-  MOCK_FAVORITE_PHOTO_SHOPS, PHOTO_SHOP_CATEGORIES,
+  PHOTO_SHOP_CATEGORIES,
   FavoritePhotoShop, PhotoShopCategory,
 } from '../../../data/mock/favoritePhotoShopsMockData';
+import { usePagedApi } from '../../hooks/useApi';
+import { favoriteApi, type FavoriteItem, type ShopPost } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -31,6 +33,24 @@ const CATEGORY_ICON: Record<PhotoShopCategory, React.ComponentType<{ size?: numb
   '사진 촬영': CameraSolidIcon,
   '영상/숏폼': VideoFilmIcon,
   '보정 전문': ImageMountainIcon,
+};
+
+// 찜한 사진/영상 글(API) → 기존 카드 모델. 평점/후기는 백엔드 미제공 → 0, 갤러리는 이미지로 채움.
+const toShop = (f: FavoriteItem<ShopPost>): FavoritePhotoShop | null => {
+  if (!f.target) return null;
+  const imgs = f.target.images ?? [];
+  return {
+    id: f.target.id,
+    name: f.target.title,
+    category: '사진 촬영',
+    rating: 0,
+    reviewCount: 0,
+    estimatedPrice: f.target.priceKrw ?? 0,
+    logoUri: imgs[0] ?? '',
+    works: [imgs[0] ?? '', imgs[1] ?? '', imgs[2] ?? ''],
+    kakaoLink: f.target.contact ?? undefined,
+    isFavorite: true,
+  };
 };
 
 interface ShopCardProps {
@@ -106,30 +126,35 @@ const FavoritePhotoShopsScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const [category, setCategory] = useState<PhotoShopCategory>('사진 촬영');
-  const [unfavoritedIds, setUnfavoritedIds] = useState<Set<string>>(new Set());
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
 
-  const shops = useMemo(() => MOCK_FAVORITE_PHOTO_SHOPS.map((s) => ({
-    ...s,
-    isFavorite: !unfavoritedIds.has(s.id),
-  })), [unfavoritedIds]);
-
-  const filtered = useMemo(
-    () => shops.filter((s) => s.category === category),
-    [shops, category],
+  const {
+    items, loading, loadingMore, error, loadMore, reload,
+  } = usePagedApi(
+    (cursor) => favoriteApi.list<ShopPost>('shop_post', { cursor, limit: 20 }),
+    [],
   );
 
-  const handleToggle = useCallback((shop: FavoritePhotoShop) => {
-    setUnfavoritedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(shop.id)) {
+  const shops = useMemo(
+    () => (items.map(toShop).filter(Boolean) as FavoritePhotoShop[]).filter((s) => !removed.has(s.id)),
+    [items, removed],
+  );
+  // 세부 카테고리(사진/영상/보정)는 백엔드 분류가 없어 전체 노출 (칩 UI 유지)
+  const filtered = shops;
+
+  const handleToggle = useCallback(async (shop: FavoritePhotoShop) => {
+    setRemoved((prev) => new Set(prev).add(shop.id));
+    toast(`${shop.name} 찜을 해제했습니다.`);
+    try {
+      await favoriteApi.toggle('shop_post', shop.id);
+    } catch {
+      setRemoved((prev) => {
+        const next = new Set(prev);
         next.delete(shop.id);
-        toast(`${shop.name} 찜을 다시 추가했습니다.`, { variant: 'success' });
-      } else {
-        next.add(shop.id);
-        toast(`${shop.name} 찜을 해제했습니다.`);
-      }
-      return next;
-    });
+        return next;
+      });
+      toast('처리에 실패했습니다.', { variant: 'error' });
+    }
   }, [toast]);
 
   const handleInquiry = useCallback(async (shop: FavoritePhotoShop) => {
@@ -192,12 +217,26 @@ const FavoritePhotoShopsScreen = () => {
         )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
+        refreshing={loading && shops.length > 0}
+        onRefresh={reload}
+        ListFooterComponent={
+          loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null
+        }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              해당 카테고리에 찜한 스튜디오가 없습니다.
-            </Text>
-          </View>
+          loading ? (
+            <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>{error ?? '찜한 스튜디오가 없습니다.'}</Text>
+              {error && (
+                <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
+                  <Text style={styles.retryBtnText}>다시 시도</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )
         }
       />
     </SafeAreaView>
@@ -390,10 +429,17 @@ const styles = StyleSheet.create({
   empty: {
     paddingVertical: 80,
     alignItems: 'center',
+    gap: 14,
   },
   emptyText: {
     color: COLORS.gray,
     fontSize: 13,
     lineHeight: 19,
+    textAlign: 'center',
   },
+  retryBtn: {
+    paddingHorizontal: 18, paddingVertical: 9, borderRadius: 8,
+    borderWidth: 1, borderColor: COLORS.gold,
+  },
+  retryBtnText: { color: COLORS.gold, fontSize: 13, fontWeight: '600', lineHeight: 18 },
 });

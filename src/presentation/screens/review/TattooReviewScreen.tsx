@@ -17,9 +17,11 @@ import { useToast } from '../../components/common/Toast';
 import {
   WritableReview, WrittenReview, RATING_LABELS,
 } from '../../../domain/entities/reviewTypes';
+import { useApi, usePagedApi } from '../../hooks/useApi';
 import {
-  MOCK_WRITABLE_REVIEWS, MOCK_WRITTEN_REVIEWS,
-} from '../../../data/mock/reviewMockData';
+  reservationApi, reviewApi,
+  type ReviewableItem, type ReviewWithArtist,
+} from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;

@@ -36,6 +36,7 @@ import MyProductsScreen from '../../presentation/screens/vendor/MyProductsScreen
 import VendorApplyScreen from '../../presentation/screens/vendor/VendorApplyScreen';
 import ProductFormScreen from '../../presentation/screens/vendor/ProductFormScreen';
 import AdManageScreen from '../../presentation/screens/ad/AdManageScreen';
+import ArtistReservationRequestsScreen from '../../presentation/screens/artistReservation/ArtistReservationRequestsScreen';
 import { useAuthStore } from '../../presentation/store/authStore';
 
 export type AdManageParams = {
@@ -76,6 +77,7 @@ export type RootStackParamList = {
   VendorApply: undefined;
   ProductForm: { productId?: string } | undefined;
   AdManage: AdManageParams;
+  ArtistReservationRequests: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -238,6 +240,11 @@ const RootNavigator = () => {
     <Stack.Screen
       name="AdManage"
       component={AdManageScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="ArtistReservationRequests"
+      component={ArtistReservationRequestsScreen}
       options={{ animation: 'slide_from_right' }}
     />
   </Stack.Navigator>

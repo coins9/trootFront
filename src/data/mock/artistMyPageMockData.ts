@@ -13,6 +13,7 @@ export const MOCK_ARTIST_SELF: ArtistSelfProfile = {
   reviewCount: 342,
   likes: 1200,
   bookedCount: 58,
+  tags: ['same_day', 'parking', 'female_artist'],
 };
 
 export const MOCK_ARTIST_ARTWORKS: ArtistArtwork[] = [

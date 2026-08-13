@@ -9,6 +9,8 @@ export interface ArtistSelfProfile {
   reviewCount: number;
   likes: number;
   bookedCount: number;
+  /** 편의/특성 태그 코드 (same_day, open_24h, parking, female_artist, male_artist) */
+  tags: string[];
 }
 
 export type ArtworkMediaType = 'image';

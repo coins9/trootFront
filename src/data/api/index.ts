@@ -98,6 +98,28 @@ export interface Reservation {
   updatedAt: string;
 }
 
+/** 백엔드 원본 상태값(영문 enum) — 확정/필터에 그대로 사용 */
+export type BackendReservationStatus =
+  | 'requested' | 'confirmed' | 'deposit_paid' | 'completed' | 'cancelled' | 'no_show';
+
+/** 타투이스트 예약함 뷰 — 누가/언제/무엇을 요청했는지 (고객 정보 포함) */
+export interface ArtistReservationView {
+  id: string;
+  status: BackendReservationStatus;
+  scheduledAt: string;
+  durationMinutes: number;
+  bodyPart: string | null;
+  sizePreset: string | null;
+  memo: string | null;
+  referenceImages: string[];
+  estimatedPriceKrw: number | null;
+  depositKrw: number;
+  depositStatus: 'none' | 'pending' | 'paid' | 'refunded';
+  artworkId: string | null;
+  createdAt: string;
+  customer: { id: string; nickname: string | null; profileImage: string | null } | null;
+}
+
 export const reservationApi = {
   create: (body: {
     artistPageId: string; scheduledAt: string; artworkId?: string;
@@ -108,10 +130,17 @@ export const reservationApi = {
   mine: (p: { cursor?: string; limit?: number } = {}) =>
     api.get<CursorPage<Reservation>>(`/app/reservations/me${qs(p)}`),
 
-  reviewable: () => api.get<Reservation[]>('/app/reservations/me/reviewable'),
+  reviewable: () => api.get<ReviewableItem[]>('/app/reservations/me/reviewable'),
 
-  forArtist: (p: { status?: ReservationStatus; cursor?: string; limit?: number } = {}) =>
-    api.get<CursorPage<Reservation>>(`/app/reservations/artist${qs(p)}`),
+  forArtist: (p: { status?: BackendReservationStatus; cursor?: string; limit?: number } = {}) =>
+    api.get<CursorPage<ArtistReservationView>>(`/app/reservations/artist${qs(p)}`),
+
+  /** 타투이스트: 예약 요청 확정 (requested → confirmed) */
+  confirmByArtist: (id: string) =>
+    api.patch<ArtistReservationView>(`/app/reservations/${id}/status`, { status: 'confirmed' }),
+  /** 타투이스트: 예약 요청 거절/취소 */
+  rejectByArtist: (id: string, reason?: string) =>
+    api.patch<ArtistReservationView>(`/app/reservations/${id}/status`, { status: 'cancelled', reason }),
 
   schedule: (from: string, to: string) =>
     api.get<Reservation[]>(`/app/reservations/artist/schedule${qs({ from, to })}`),
@@ -134,6 +163,15 @@ export const reservationApi = {
 };
 
 // ── 리뷰 ──────────────────────────────────────────────────
+/** 카드 렌더용 작가 요약 (백엔드 조인) */
+export interface ArtistMini {
+  id: string;
+  pageName: string;
+  profileImage: string | null;
+  regionSido: string | null;
+  regionSigungu: string | null;
+}
+
 export interface Review {
   id: string;
   reservationId: string;
@@ -152,6 +190,20 @@ export interface Review {
   createdAt: string;
 }
 
+export type ReviewWithArtist = Review & { artist: ArtistMini | null };
+
+/** 리뷰 작성 가능한 완료 예약 (작가 조인) */
+export interface ReviewableItem {
+  id: string;
+  artistPageId: string;
+  artworkId: string | null;
+  scheduledAt: string;
+  bodyPart: string | null;
+  sizePreset: string | null;
+  updatedAt: string;
+  artist: ArtistMini | null;
+}
+
 export const reviewApi = {
   create: (body: {
     reservationId: string; painScore: number; kindnessScore: number;
@@ -159,7 +211,7 @@ export const reviewApi = {
   }) => api.post<Review>('/app/reviews', body),
 
   mine: (p: { cursor?: string; limit?: number } = {}) =>
-    api.get<CursorPage<Review>>(`/app/reviews/me${qs(p)}`),
+    api.get<CursorPage<ReviewWithArtist>>(`/app/reviews/me${qs(p)}`),
 
   byArtist: (artistPageId: string, p: { cursor?: string; limit?: number } = {}) =>
     api.get<CursorPage<Review>>(`/app/reviews/artists/${artistPageId}${qs(p)}`),
@@ -232,9 +284,20 @@ export interface Favorite {
   createdAt: string;
 }
 
+/** 찜 + 대상 실데이터 (백엔드가 타입에 맞는 엔티티를 조인해 내려줌) */
+export interface FavoriteItem<T = Artwork | ArtistPage | SupplyProduct | ShopPost> {
+  id: string;
+  type: FavoriteType;
+  targetId: string;
+  createdAt: string;
+  target: T | null;
+}
+
 export const favoriteApi = {
-  list: (type: FavoriteType, p: { cursor?: string; limit?: number } = {}) =>
-    api.get<CursorPage<Favorite>>(`/app/favorites${qs({ type, ...p })}`),
+  list: <T = Artwork | ArtistPage | SupplyProduct | ShopPost>(
+    type: FavoriteType,
+    p: { cursor?: string; limit?: number } = {},
+  ) => api.get<CursorPage<FavoriteItem<T>>>(`/app/favorites${qs({ type, ...p })}`),
 
   toggle: (type: FavoriteType, targetId: string) =>
     api.post<{ favorited: boolean }>('/app/favorites/toggle', { type, targetId }),

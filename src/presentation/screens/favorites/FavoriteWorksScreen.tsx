@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Image,
-  StatusBar, Dimensions,
+  StatusBar, Dimensions, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -13,12 +13,29 @@ import {
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import {
-  MOCK_FAVORITE_WORKS, FAVORITE_WORK_CATEGORIES,
+  FAVORITE_WORK_CATEGORIES,
   FavoriteWork, FavoriteWorkCategory,
 } from '../../../data/mock/favoriteWorksMockData';
+import { usePagedApi } from '../../hooks/useApi';
+import { favoriteApi, type FavoriteItem, type Artwork } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+// 찜한 작품(API) → 기존 카드 모델. 백엔드에 없는 필드는 안전한 기본값.
+const toWork = (f: FavoriteItem<Artwork>): FavoriteWork | null => (
+  f.target
+    ? {
+        id: f.target.id,
+        imageUri: f.target.thumbnail ?? f.target.images[0] ?? '',
+        artistNickname: f.target.artist?.pageName ?? '',
+        price: f.target.priceKrw ?? 0,
+        isFavorite: true,
+        isSoldOut: false,
+        category: '내 첫 타투',
+      }
+    : null
+);
 
 const { width: W } = Dimensions.get('window');
 const H_PAD = 16;
@@ -72,31 +89,35 @@ const FavoriteWorksScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const [category, setCategory] = useState<FavoriteWorkCategory>('전체');
-  const [unfavoritedIds, setUnfavoritedIds] = useState<Set<string>>(new Set());
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
 
-  const works = useMemo(() => MOCK_FAVORITE_WORKS.map((w) => ({
-    ...w,
-    isFavorite: !unfavoritedIds.has(w.id),
-  })), [unfavoritedIds]);
+  const {
+    items, loading, loadingMore, error, loadMore, reload,
+  } = usePagedApi(
+    (cursor) => favoriteApi.list<Artwork>('artwork', { cursor, limit: 20 }),
+    [],
+  );
 
-  const filtered = useMemo(() => (
-    category === '전체'
-      ? works
-      : works.filter((w) => w.category === category)
-  ), [works, category]);
+  const works = useMemo(
+    () => (items.map(toWork).filter(Boolean) as FavoriteWork[]).filter((w) => !removed.has(w.id)),
+    [items, removed],
+  );
+  // 찜 폴더 분류는 백엔드 데이터가 없어 전체를 노출 (칩 UI 는 유지)
+  const filtered = works;
 
-  const handleToggle = useCallback((work: FavoriteWork) => {
-    setUnfavoritedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(work.id)) {
+  const handleToggle = useCallback(async (work: FavoriteWork) => {
+    setRemoved((prev) => new Set(prev).add(work.id));
+    toast('찜을 해제했습니다.');
+    try {
+      await favoriteApi.toggle('artwork', work.id);
+    } catch {
+      setRemoved((prev) => {
+        const next = new Set(prev);
         next.delete(work.id);
-        toast('찜 목록에 추가되었습니다.', { variant: 'success' });
-      } else {
-        next.add(work.id);
-        toast('찜을 해제했습니다.');
-      }
-      return next;
-    });
+        return next;
+      });
+      toast('처리에 실패했습니다.', { variant: 'error' });
+    }
   }, [toast]);
 
   return (
@@ -146,10 +167,26 @@ const FavoriteWorksScreen = () => {
         columnWrapperStyle={styles.columnWrapper}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
+        refreshing={loading && works.length > 0}
+        onRefresh={reload}
+        ListFooterComponent={
+          loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null
+        }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>찜한 작품이 없습니다.</Text>
-          </View>
+          loading ? (
+            <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>{error ?? '찜한 작품이 없습니다.'}</Text>
+              {error && (
+                <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
+                  <Text style={styles.retryBtnText}>다시 시도</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )
         }
       />
     </SafeAreaView>
@@ -319,10 +356,17 @@ const styles = StyleSheet.create({
   empty: {
     paddingVertical: 80,
     alignItems: 'center',
+    gap: 14,
   },
   emptyText: {
     color: COLORS.gray,
     fontSize: 13,
     lineHeight: 19,
+    textAlign: 'center',
   },
+  retryBtn: {
+    paddingHorizontal: 18, paddingVertical: 9, borderRadius: 8,
+    borderWidth: 1, borderColor: COLORS.gold,
+  },
+  retryBtnText: { color: COLORS.gold, fontSize: 13, fontWeight: '600', lineHeight: 18 },
 });

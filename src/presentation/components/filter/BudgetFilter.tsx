@@ -5,9 +5,10 @@ import {
 import { COLORS } from '../../theme/colors';
 import DualRangeSlider from './DualRangeSlider';
 
-const MAX_PRICE = 500000;
+// 최대 1천만원, 최상단은 '무제한(그 이상)' 의미
+const MAX_PRICE = 10000000;
 const MIN_PRICE = 0;
-const STEP = 10000;
+const STEP = 100000;
 
 interface BudgetFilterProps {
   budgetMin: number;
@@ -15,7 +16,9 @@ interface BudgetFilterProps {
   onChangeBudget: (min: number, max: number) => void;
 }
 
-const formatWon = (value: number) => `${value.toLocaleString()}원`;
+// 최대치(1천만)는 상한이 아니라 '그 이상' 이므로 무제한으로 표기
+const formatWon = (value: number) =>
+  value >= MAX_PRICE ? '무제한' : `${value.toLocaleString()}원`;
 
 const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilterProps) => {
   const [localMin, setLocalMin] = useState(budgetMin);
@@ -60,7 +63,7 @@ const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilte
 
       <View style={styles.rangeLabels}>
         <Text style={styles.rangeLabel}>0원</Text>
-        <Text style={styles.rangeLabel}>500,000원+</Text>
+        <Text style={styles.rangeLabel}>1,000만원+ (무제한)</Text>
       </View>
 
       <View style={styles.inputRow}>
@@ -84,7 +87,7 @@ const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilte
           <View style={styles.inputBox}>
             <TextInput
               style={styles.input}
-              value={localMax.toLocaleString()}
+              value={localMax >= MAX_PRICE ? '무제한' : localMax.toLocaleString()}
               onChangeText={handleMaxInput}
               keyboardType="numeric"
               selectTextOnFocus

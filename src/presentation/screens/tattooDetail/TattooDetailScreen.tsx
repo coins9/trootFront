@@ -14,6 +14,7 @@ import {
 import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
+import { artistTagLabels } from '../../../domain/entities/artistTags';
 
 const { width: W, height: H } = Dimensions.get('window');
 const IMAGE_HEIGHT = H * 0.5;
@@ -140,6 +141,11 @@ const TattooDetailScreen = () => {
                   {tattoo.artist.rating} (리뷰 {tattoo.artist.reviewCount})
                 </Text>
               </View>
+              {artistTagLabels(tattoo.artist.tags).length > 0 && (
+                <Text style={styles.artistTags} numberOfLines={1}>
+                  {artistTagLabels(tattoo.artist.tags).join(' · ')}
+                </Text>
+              )}
             </View>
           </View>
           <ChevronRightIcon size={20} color={COLORS.gray} />
@@ -314,6 +320,12 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 13,
     lineHeight: 18,
+  },
+  artistTags: {
+    color: COLORS.gold,
+    fontSize: 11.5,
+    lineHeight: 16,
+    marginTop: 3,
   },
   stickyFooter: {
     position: 'absolute',
