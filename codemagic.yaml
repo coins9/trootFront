@@ -118,12 +118,18 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
+      groups:
+        - firebase_credentials
       node: 22
       xcode: 26
       cocoapods: default
     scripts:
       - name: 패키지 설치
         script: npm install --legacy-peer-deps
+
+      - name: Firebase 설정 파일 복사
+        script: |
+          cp "$GOOGLE_SERVICE_INFO_PLIST" ios/TRootApp/GoogleService-Info.plist
 
       - name: CocoaPods 설치
         script: |
@@ -211,6 +217,7 @@ workflows:
     environment:
       groups:
         - app_credentials
+        - firebase_credentials
       node: 22
       xcode: 26
       cocoapods: default
@@ -220,6 +227,10 @@ workflows:
     scripts:
       - name: 패키지 설치
         script: npm install --legacy-peer-deps
+
+      - name: Firebase 설정 파일 복사
+        script: |
+          cp "$GOOGLE_SERVICE_INFO_PLIST" ios/TRootApp/GoogleService-Info.plist
 
       - name: CocoaPods 설치
         script: |

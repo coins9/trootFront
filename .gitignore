@@ -13,6 +13,10 @@ ios_key
 ios_key.pub
 distribution.key
 
+# Firebase 설정 파일 (Codemagic 환경변수로 주입, git 제외)
+google-services.json
+GoogleService-Info.plist
+
 # OSX
 #
 .DS_Store
