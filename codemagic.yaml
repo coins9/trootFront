@@ -134,9 +134,6 @@ workflows:
       - name: CocoaPods 설치
         script: |
           cd ios
-          # 기존 팟 파일과 락 파일을 싹 밀어버리고 강제로 새로 받습니다.
-          rm -rf Pods
-          rm -f Podfile.lock
           pod install --repo-update
 
       - name: JS 번들 사전 생성
@@ -228,16 +225,20 @@ workflows:
         BUNDLE_ID: "com.troot.app"
         TEAM_ID: "H2YL36R6Y7"
     scripts:
-      - name: 패키지 설치
-        script: npm install --legacy-peer-deps
+      - name: 패키지 설치 (강제 초기화)
+        script: |
+          rm -rf node_modules
+          npm install --legacy-peer-deps
 
       - name: Firebase 설정 파일 복사
         script: |
           echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/TRootApp/GoogleService-Info.plist
 
-      - name: CocoaPods 설치
+      - name: CocoaPods 설치 (강제 초기화)
         script: |
           cd ios
+          rm -rf Pods
+          rm -f Podfile.lock
           pod install --repo-update
 
       - name: 인증서·프로파일 설치
