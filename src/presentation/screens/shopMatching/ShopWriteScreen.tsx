@@ -18,6 +18,8 @@ import {
   ShareRegion, ShareLighting, ShareBedCount,
   SHARE_REGION_OPTIONS,
 } from '../../../domain/entities/shopTypes';
+import { shopApi, ShopCategory } from '../../../data/api';
+import BilingualSection from '../../components/common/BilingualSection';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteP = RouteProp<RootStackParamList, 'ShopWrite'>;
@@ -72,18 +74,20 @@ const SectionLabel = ({ label, required }: { label: string; required?: boolean }
  * ───────────────────────────────────────────────────── */
 interface BoothForm {
   title: string;
+  titleEn: string;
   region: ShareRegion | '';
   pricePerDay: string;
   bedCount: ShareBedCount | '';
   lighting: ShareLighting | '';
   maxOccupancy: string;
   description: string;
+  descriptionEn: string;
   contact: string;
 }
 
 const EMPTY_BOOTH: BoothForm = {
-  title: '', region: '', pricePerDay: '', bedCount: '',
-  lighting: '', maxOccupancy: '', description: '', contact: '',
+  title: '', titleEn: '', region: '', pricePerDay: '', bedCount: '',
+  lighting: '', maxOccupancy: '', description: '', descriptionEn: '', contact: '',
 };
 
 const BoothShareForm = ({ form, setForm }: {
@@ -166,6 +170,17 @@ const BoothShareForm = ({ form, setForm }: {
         value={form.contact}
         onChangeText={v => setForm(p => ({ ...p, contact: v }))}
       />
+
+      <BilingualSection
+        titleEn={form.titleEn}
+        onChangeTitleEn={v => setForm(p => ({ ...p, titleEn: v }))}
+        titlePlaceholder="e.g. Gangnam Tattoo Studio – Booth Share"
+        titleMaxLength={40}
+        descEn={form.descriptionEn}
+        onChangeDescEn={v => setForm(p => ({ ...p, descriptionEn: v }))}
+        descPlaceholder="Space features, amenities, rules, etc."
+        descMaxLength={500}
+      />
     </>
   );
 };
@@ -175,16 +190,19 @@ const BoothShareForm = ({ form, setForm }: {
  * ───────────────────────────────────────────────────── */
 interface ModelForm {
   title: string;
+  titleEn: string;
   region: string;
   styles: string[];
   materialFee: string;
   workPeriod: string;
   description: string;
+  descriptionEn: string;
   contact: string;
 }
 
 const EMPTY_MODEL: ModelForm = {
-  title: '', region: '', styles: [], materialFee: '', workPeriod: '', description: '', contact: '',
+  title: '', titleEn: '', region: '', styles: [], materialFee: '', workPeriod: '',
+  description: '', descriptionEn: '', contact: '',
 };
 
 const ModelRecruitForm = ({ form, setForm }: {
@@ -268,6 +286,17 @@ const ModelRecruitForm = ({ form, setForm }: {
         value={form.contact}
         onChangeText={v => setForm(p => ({ ...p, contact: v }))}
       />
+
+      <BilingualSection
+        titleEn={form.titleEn}
+        onChangeTitleEn={v => setForm(p => ({ ...p, titleEn: v }))}
+        titlePlaceholder="e.g. Looking for a mini tattoo model"
+        titleMaxLength={40}
+        descEn={form.descriptionEn}
+        onChangeDescEn={v => setForm(p => ({ ...p, descriptionEn: v }))}
+        descPlaceholder="Body part, size, requirements, etc."
+        descMaxLength={500}
+      />
     </>
   );
 };
@@ -284,13 +313,14 @@ interface MediaForm {
   priceMin: string;
   priceMax: string;
   description: string;
+  descriptionEn: string;
   instagramUrl: string;
   contact: string;
 }
 
 const EMPTY_MEDIA: MediaForm = {
   specialty: '', nickname: '', region: '', experience: '',
-  workKinds: [], priceMin: '', priceMax: '', description: '',
+  workKinds: [], priceMin: '', priceMax: '', description: '', descriptionEn: '',
   instagramUrl: '', contact: '',
 };
 
@@ -406,6 +436,13 @@ const MediaExpertForm = ({ form, setForm }: {
         value={form.contact}
         onChangeText={v => setForm(p => ({ ...p, contact: v }))}
       />
+
+      <BilingualSection
+        descEn={form.descriptionEn}
+        onChangeDescEn={v => setForm(p => ({ ...p, descriptionEn: v }))}
+        descPlaceholder="Introduce your work style, equipment, and portfolio in English."
+        descMaxLength={500}
+      />
     </>
   );
 };
@@ -470,6 +507,7 @@ const ShopWriteScreen = () => {
   const [boothForm, setBoothForm] = useState<BoothForm>(EMPTY_BOOTH);
   const [modelForm, setModelForm] = useState<ModelForm>(EMPTY_MODEL);
   const [mediaForm, setMediaForm] = useState<MediaForm>(EMPTY_MEDIA);
+  const [submitting, setSubmitting] = useState(false);
 
   const { pickAndUpload, uploading } = useImageUpload({
     scope: 'shop',
@@ -497,14 +535,86 @@ const ShopWriteScreen = () => {
     return !!(mediaForm.specialty && mediaForm.nickname.trim() && mediaForm.region && mediaForm.experience && mediaForm.workKinds.length > 0 && mediaForm.description.trim() && mediaForm.contact.trim());
   }, [category, boothForm, modelForm, mediaForm]);
 
-  const handleSubmit = useCallback(() => {
+  const categoryToApi: Record<ShopMatchingCategory, ShopCategory> = {
+    '부스 쉐어': 'booth_share',
+    '타투 모델 구인 (비기너)': 'model_recruit',
+    '사진/영상 편집자': 'media_expert',
+  };
+
+  const buildBody = useCallback(() => {
+    if (category === '부스 쉐어') {
+      return {
+        category: 'booth_share' as ShopCategory,
+        title: boothForm.title.trim(),
+        titleEn: boothForm.titleEn.trim() || null,
+        description: boothForm.description.trim(),
+        descriptionEn: boothForm.descriptionEn.trim() || null,
+        region: boothForm.region || null,
+        images,
+        contact: boothForm.contact.trim() || null,
+        priceKrw: boothForm.pricePerDay ? Number(boothForm.pricePerDay) : null,
+        attributes: {
+          bedCount: boothForm.bedCount,
+          lighting: boothForm.lighting || null,
+          maxOccupancy: boothForm.maxOccupancy ? Number(boothForm.maxOccupancy) : null,
+        },
+      };
+    }
+    if (category === '타투 모델 구인 (비기너)') {
+      return {
+        category: 'model_recruit' as ShopCategory,
+        title: modelForm.title.trim(),
+        titleEn: modelForm.titleEn.trim() || null,
+        description: modelForm.description.trim(),
+        descriptionEn: modelForm.descriptionEn.trim() || null,
+        region: modelForm.region || null,
+        images,
+        contact: modelForm.contact.trim() || null,
+        priceKrw: modelForm.materialFee ? Number(modelForm.materialFee) : null,
+        attributes: {
+          styles: modelForm.styles,
+          workPeriod: modelForm.workPeriod.trim(),
+        },
+      };
+    }
+    return {
+      category: 'media_expert' as ShopCategory,
+      title: `[${mediaForm.specialty}] ${mediaForm.nickname.trim()}`,
+      description: mediaForm.description.trim(),
+      descriptionEn: mediaForm.descriptionEn.trim() || null,
+      region: mediaForm.region || null,
+      images,
+      contact: mediaForm.contact.trim() || null,
+      priceKrw: mediaForm.priceMin ? Number(mediaForm.priceMin) : null,
+      attributes: {
+        specialty: mediaForm.specialty,
+        nickname: mediaForm.nickname.trim(),
+        experience: mediaForm.experience,
+        workKinds: mediaForm.workKinds,
+        priceMin: mediaForm.priceMin ? Number(mediaForm.priceMin) : null,
+        priceMax: mediaForm.priceMax ? Number(mediaForm.priceMax) : null,
+        instagramUrl: mediaForm.instagramUrl.trim() || null,
+      },
+    };
+  }, [category, boothForm, modelForm, mediaForm, images]);
+
+  const handleSubmit = useCallback(async () => {
     if (!isValid()) {
       toast('필수 항목을 모두 입력해주세요', { variant: 'error' });
       return;
     }
-    toast('글이 등록되었습니다', { variant: 'success' });
-    navigation.goBack();
-  }, [isValid, toast, navigation]);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await shopApi.create(buildBody());
+      toast('글이 등록되었습니다', { variant: 'success' });
+      navigation.goBack();
+    } catch {
+      toast('등록에 실패했습니다. 다시 시도해주세요.', { variant: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [isValid, submitting, buildBody, toast, navigation]);
 
   const handleCategoryChange = useCallback((cat: ShopMatchingCategory) => {
     setCategory(cat);
@@ -527,8 +637,13 @@ const ShopWriteScreen = () => {
           onPress={handleSubmit}
           style={[s.submitBtn, isValid() && s.submitBtnActive]}
           activeOpacity={0.8}
+          disabled={submitting}
         >
-          <Text style={[s.submitText, isValid() && s.submitTextActive]}>등록</Text>
+          {submitting ? (
+            <ActivityIndicator size="small" color={COLORS.black} />
+          ) : (
+            <Text style={[s.submitText, isValid() && s.submitTextActive]}>등록</Text>
+          )}
         </TouchableOpacity>
       </View>
 

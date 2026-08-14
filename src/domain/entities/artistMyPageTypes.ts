@@ -20,6 +20,7 @@ export interface ArtistArtwork {
   type: ArtworkMediaType;
   thumbnailUri: string;
   title: string;
+  titleEn?: string;
   genre: string;
   bodyPart: string;
   subjects: string[];
@@ -27,6 +28,7 @@ export interface ArtistArtwork {
   priceFrom: number;
   duration: string;
   description: string;
+  descriptionEn?: string;
   isPromoted?: boolean;
   isDraft?: boolean;
   likes: number;

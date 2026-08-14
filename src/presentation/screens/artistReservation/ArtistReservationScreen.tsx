@@ -19,15 +19,15 @@ import {
   BookingStatus,
   WEEKDAY_KO, addDays, startOfMonth, startOfWeek, toISODate, isSameDate,
   formatMonth,
-  PersonalTimelineItem, MonthlyCellSummary,
+  PersonalTimelineItem, MonthlyCellSummary, MonthlyCellEvent,
 } from '../../../domain/entities/artistScheduleTypes';
 import {
-  getPersonalTimelineForDate,
-  getMonthlySummary,
   getShopBookingsForRange,
   getMultiDayEvents,
   MOCK_ARTIST_COLUMNS,
 } from '../../../data/mock/artistScheduleMockData';
+import { useApi } from '../../hooks/useApi';
+import { reservationApi } from '../../../data/api';
 import { MultiDayEvent } from '../../../domain/entities/artistScheduleTypes';
 import ReservationDetailModal, {
   ReservationDetail,
@@ -62,6 +62,27 @@ const H_PAD = 16;
 const HOUR_START = 0;
 const HOUR_END = 23;
 const HOUR_H = 40;
+
+const toBookingStatus = (s: string): BookingStatus => {
+  switch (s) {
+    case 'requested':    return '대기';
+    case 'confirmed':    return '확정';
+    case 'deposit_paid': return '확정';
+    case 'completed':    return '완료';
+    case 'no_show':      return '노쇼';
+    default:             return '취소';
+  }
+};
+
+const statusToTone = (s: BookingStatus): MonthlyCellEvent['tone'] => {
+  switch (s) {
+    case '대기': return 'blue';
+    case '확정': return 'gold';
+    case '완료': return 'purple';
+    case '노쇼': return 'red';
+    default:     return 'gold';
+  }
+};
 
 const formatHalfHour = (h: number) => {
   const hh = Math.floor(h);
@@ -217,131 +238,124 @@ const DateHeader = React.memo(({
 DateHeader.displayName = 'DateHeader';
 
 /* ============================================================
-   Timeline View
+   Event Row (iOS Calendar 스타일 — 시간별 & 캘린더 day panel 공유)
+   ============================================================ */
+const kindBarColor = (kind: PersonalTimelineItem['kind']) => {
+  switch (kind) {
+    case 'procedure':  return COLORS.gold;
+    case 'consulting': return '#4E8CFF';
+    case 'retouch':    return '#8C6EC8';
+    case 'meeting':    return '#5AAF78';
+  }
+};
+
+interface EventRowProps {
+  item: PersonalTimelineItem;
+  statusOverride: Record<string, BookingStatus>;
+  onPress: () => void;
+}
+const EventRow = React.memo(({ item, statusOverride, onPress }: EventRowProps) => {
+  const currentStatus = statusOverride[item.id] ?? item.status;
+  const isNoShow = currentStatus === '노쇼';
+  const isDone   = currentStatus === '완료';
+  const isPending = currentStatus === '대기';
+  const barColor = isNoShow ? COLORS.danger : kindBarColor(item.kind);
+  const endHour  = item.startHour + item.durationH;
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={[styles.evRow, (isNoShow || isDone) && styles.evRowDimmed]}
+    >
+      {/* Left: times */}
+      <View style={styles.evTimes}>
+        <Text style={[styles.evTimeTop, isNoShow && { color: COLORS.danger }]}>
+          {formatHalfHour(item.startHour)}
+        </Text>
+        <Text style={styles.evTimeBot}>
+          {formatHalfHour(endHour)}
+        </Text>
+      </View>
+
+      {/* Colored bar */}
+      <View style={[styles.evBar, { backgroundColor: barColor }]} />
+
+      {/* Body */}
+      <View style={styles.evBody}>
+        <Text style={styles.evTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.evSub} numberOfLines={1}>{item.subtitle}</Text>
+        {item.depositAmount ? (
+          <Text style={[
+            styles.evDeposit,
+            item.depositStatus === 'pending' && { color: COLORS.danger },
+          ]}>
+            {item.depositStatus === 'paid'
+              ? `${item.depositAmount.toLocaleString()}원 입금 완료`
+              : `예약금 ${item.depositAmount.toLocaleString()}원 대기`}
+          </Text>
+        ) : null}
+      </View>
+
+      {/* Status chip */}
+      <View style={[
+        styles.evChip,
+        isPending  && styles.evChipPending,
+        isNoShow   && styles.evChipDanger,
+        isDone     && styles.evChipDone,
+      ]}>
+        <Text style={[
+          styles.evChipText,
+          isPending  && styles.evChipTextPending,
+          isNoShow   && styles.evChipTextDanger,
+          isDone     && styles.evChipTextDone,
+        ]}>
+          {currentStatus}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+});
+EventRow.displayName = 'EventRow';
+
+/* ============================================================
+   Timeline View (list style)
    ============================================================ */
 interface TimelineProps {
+  dateLabel: string;
+  lunarLabel?: string;
   items: PersonalTimelineItem[];
   statusOverride: Record<string, BookingStatus>;
   onOpenDetail: (item: PersonalTimelineItem) => void;
 }
 const TimelineView = React.memo(({
-  items, statusOverride, onOpenDetail,
-}: TimelineProps) => {
-  const totalHours = HOUR_END - HOUR_START + 1;
-  const totalH = totalHours * HOUR_H;
-  const hourLabels = useMemo(
-    () => Array.from({ length: totalHours }, (_, i) => HOUR_START + i),
-    [totalHours],
-  );
-
-  return (
-    <View style={styles.timelineCard}>
-      <View style={[styles.timelineBody, { height: totalH }]}>
-        <View style={styles.timelineAxis}>
-          {hourLabels.map((h) => (
-            <View key={h} style={[styles.timelineHourRow, { height: HOUR_H }]}>
-              <Text style={styles.timelineHourText}>{String(h).padStart(2, '0')}:00</Text>
-            </View>
-          ))}
-        </View>
-        <View style={styles.timelineTrack}>
-          {hourLabels.map((h) => (
-            <View key={h} style={[styles.timelineGrid, { top: (h - HOUR_START) * HOUR_H }]} />
-          ))}
-
-          {items.map((it) => {
-            const top = (it.startHour - HOUR_START) * HOUR_H;
-            const height = it.durationH * HOUR_H - 4;
-            const isProcedure = it.kind === 'procedure';
-            const currentStatus = statusOverride[it.id] ?? it.status;
-            const isPending = currentStatus === '대기';
-            const isNoShow = currentStatus === '노쇼';
-            const isDone = currentStatus === '완료';
-            const Icon = kindIcon(it.kind);
-
-            const isTall = height >= 96;     // 2h+ : deposit chip 노출 가능
-            const isCompact = height < 60;   // 1h 이하: 서브텍스트/칩 축약
-
-            return (
-              <TouchableOpacity
-                key={it.id}
-                onPress={() => onOpenDetail(it)}
-                activeOpacity={0.85}
-                style={[
-                  styles.timelineBlock,
-                  isProcedure && styles.timelineBlockGold,
-                  isNoShow && styles.timelineBlockDanger,
-                  isDone && styles.timelineBlockDone,
-                  isCompact && styles.timelineBlockCompact,
-                  { top: top + 2, height },
-                ]}
-              >
-                <View style={styles.timelineBlockLeft}>
-                  <Icon
-                    size={15}
-                    color={isNoShow ? COLORS.danger : COLORS.gold}
-                    strokeWidth={1.7}
-                  />
-                  <Text style={[
-                    styles.timelineTime,
-                    isNoShow && { color: COLORS.danger },
-                  ]}>
-                    {formatHalfHour(it.startHour)}
-                  </Text>
-                </View>
-                <View style={styles.timelineBlockBody}>
-                  <Text style={styles.timelineTitle} numberOfLines={1}>
-                    {it.title}
-                  </Text>
-                  {!isCompact && (
-                    <Text style={styles.timelineSubtitle} numberOfLines={1}>
-                      {it.subtitle}
-                    </Text>
-                  )}
-                  {isTall && it.depositAmount ? (
-                    <View style={styles.depositChip}>
-                      <WonIcon
-                        size={10}
-                        color={it.depositStatus === 'paid' ? COLORS.gold : COLORS.danger}
-                        strokeWidth={1.7}
-                      />
-                      <Text style={[
-                        styles.depositChipText,
-                        it.depositStatus === 'pending' && { color: COLORS.danger },
-                      ]}>
-                        {it.depositStatus === 'paid'
-                          ? `${it.depositAmount.toLocaleString()}원 입금`
-                          : `${it.depositAmount.toLocaleString()}원 대기`}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-
-                <View style={styles.timelineBlockRight}>
-                  <View style={[
-                    styles.statusChip,
-                    isPending && styles.statusChipPending,
-                    isNoShow && styles.statusChipDanger,
-                    isDone && styles.statusChipDone,
-                  ]}>
-                    <Text style={[
-                      styles.statusChipText,
-                      isPending && styles.statusChipTextPending,
-                      isNoShow && styles.statusChipTextDanger,
-                      isDone && styles.statusChipTextDone,
-                    ]}>
-                      {currentStatus}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
+  dateLabel, lunarLabel, items, statusOverride, onOpenDetail,
+}: TimelineProps) => (
+  <View style={styles.evCard}>
+    {/* Date header */}
+    <View style={styles.evDateHeader}>
+      <Text style={styles.evDateTitle}>{dateLabel}</Text>
+      {lunarLabel ? <Text style={styles.evDateSub}>{lunarLabel}</Text> : null}
     </View>
-  );
-});
+
+    {items.length === 0 ? (
+      <View style={styles.evEmpty}>
+        <Text style={styles.evEmptyText}>이날 예약이 없습니다.</Text>
+      </View>
+    ) : (
+      <View style={styles.evList}>
+        {items.map((it) => (
+          <EventRow
+            key={it.id}
+            item={it}
+            statusOverride={statusOverride}
+            onPress={() => onOpenDetail(it)}
+          />
+        ))}
+      </View>
+    )}
+  </View>
+));
 TimelineView.displayName = 'TimelineView';
 
 /* ============================================================
@@ -565,25 +579,90 @@ const ArtistReservationScreen = () => {
   const [detail, setDetail] = useState<ReservationDetail | null>(null);
 
   const monthStart = useMemo(() => startOfMonth(selectedDate), [selectedDate]);
-  const todayISO = useMemo(() => toISODate(today), [today]);
   const isSelectedToday = isSameDate(selectedDate, today);
 
+  // 이번 달 예약 일정 fetch
+  const fromDate = useMemo(() => toISODate(monthStart), [monthStart]);
+  const toDate = useMemo(() => {
+    const d = new Date(monthStart);
+    d.setMonth(d.getMonth() + 1, 0);
+    return toISODate(d);
+  }, [monthStart]);
+
+  const { data: rawSchedule } = useApi(
+    () => reservationApi.schedule(fromDate, toDate),
+    [fromDate, toDate],
+  );
+
+  // Reservation[] → 날짜별 PersonalTimelineItem 맵
+  const scheduleByDate = useMemo<Record<string, PersonalTimelineItem[]>>(() => {
+    if (!rawSchedule) return {};
+    const map: Record<string, PersonalTimelineItem[]> = {};
+    for (const r of rawSchedule) {
+      if (r.status === 'cancelled') continue;
+      const d = new Date(r.scheduledAt);
+      const iso = toISODate(d);
+      const startHour = d.getHours() + d.getMinutes() / 60;
+      const item: PersonalTimelineItem = {
+        id: r.id,
+        startHour,
+        durationH: r.durationMinutes / 60,
+        title: r.bodyPart ?? r.sizePreset ?? '시술',
+        subtitle: r.memo ?? 'App 예약',
+        status: toBookingStatus(r.status),
+        kind: r.artworkId ? 'procedure' : 'consulting',
+        bodyPart: r.bodyPart ?? undefined,
+        memo: r.memo ?? undefined,
+        isAppLinked: true,
+        depositStatus: r.depositStatus === 'refunded' ? 'paid' : r.depositStatus,
+        depositAmount: r.depositKrw > 0 ? r.depositKrw : undefined,
+      };
+      if (!map[iso]) map[iso] = [];
+      map[iso].push(item);
+    }
+    return map;
+  }, [rawSchedule]);
+
   const items = useMemo(() => {
-    const base = getPersonalTimelineForDate(selectedDate);
     const iso = toISODate(selectedDate);
+    const apiBase = scheduleByDate[iso] ?? [];
     const extras = customItems[iso] ?? [];
-    // 편집된 아이템(같은 id)은 extras가 우선
     const editedIds = new Set(extras.map((e) => e.id));
-    const merged = [
-      ...base.filter((b) => !editedIds.has(b.id)),
+    return [
+      ...apiBase.filter((b) => !editedIds.has(b.id)),
       ...extras,
     ].sort((a, b) => a.startHour - b.startHour);
-    return merged;
-  }, [selectedDate, customItems]);
-  const monthlyMap = useMemo(
-    () => getMonthlySummary(monthStart, todayISO),
-    [monthStart, todayISO],
-  );
+  }, [selectedDate, scheduleByDate, customItems]);
+
+  const monthlyMap = useMemo<Record<string, MonthlyCellSummary>>(() => {
+    const map: Record<string, MonthlyCellSummary> = {};
+    for (const [iso, dayItems] of Object.entries(scheduleByDate)) {
+      map[iso] = {
+        events: dayItems.slice(0, 3).map((it) => ({
+          time: formatHalfHour(it.startHour),
+          label: it.title,
+          tone: statusToTone(it.status),
+        })),
+        hasEvent: dayItems.length > 0,
+      };
+    }
+    // customItems도 dot 표시
+    for (const [iso, extras] of Object.entries(customItems)) {
+      if (extras.length === 0) continue;
+      if (!map[iso]) {
+        map[iso] = {
+          events: extras.slice(0, 3).map((it) => ({
+            time: formatHalfHour(it.startHour),
+            label: it.title,
+            tone: statusToTone(it.status),
+          })),
+          hasEvent: true,
+        };
+      }
+    }
+    return map;
+  }, [scheduleByDate, customItems]);
+
   const multiEvents = useMemo(
     () => getMultiDayEvents(monthStart),
     [monthStart],
@@ -737,14 +816,11 @@ const ArtistReservationScreen = () => {
     toast(`${code} 코드로 샵 합류 요청이 전송되었습니다.`, { variant: 'success' });
   }, [toast]);
 
-  /* Calendar cell tap → 시간별 뷰로 전환 */
+  /* Calendar cell tap → 날짜만 변경, 뷰 유지 */
   const handleCalendarSelect = useCallback((d: Date) => {
+    easeLayoutAnim();
     setSelectedDate(d);
-    if (!isSameDate(d, selectedDate)) {
-      easeLayoutAnim();
-      setView('timeline');
-    }
-  }, [selectedDate]);
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -917,37 +993,31 @@ const ArtistReservationScreen = () => {
         />
 
         {view === 'timeline' && (
-          items.length === 0 ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyText}>
-                {formatDateLabel(selectedDate)}에는 예약이 없습니다.
-              </Text>
-              <TouchableOpacity
-                onPress={goToday}
-                activeOpacity={0.85}
-                style={styles.emptyBtn}
-              >
-                <Text style={styles.emptyBtnText}>오늘로 이동</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
+          <TimelineView
+            dateLabel={formatDateLabel(selectedDate)}
+            items={items}
+            statusOverride={statusOverride}
+            onOpenDetail={openDetail}
+          />
+        )}
+
+        {view === 'calendar' && (
+          <>
+            <CalendarView
+              monthStart={monthStart}
+              selectedDate={selectedDate}
+              today={today}
+              onSelect={handleCalendarSelect}
+              summaryMap={monthlyMap}
+              multiEvents={multiEvents}
+            />
             <TimelineView
+              dateLabel={formatDateLabel(selectedDate)}
               items={items}
               statusOverride={statusOverride}
               onOpenDetail={openDetail}
             />
-          )
-        )}
-
-        {view === 'calendar' && (
-          <CalendarView
-            monthStart={monthStart}
-            selectedDate={selectedDate}
-            today={today}
-            onSelect={handleCalendarSelect}
-            summaryMap={monthlyMap}
-            multiEvents={multiEvents}
-          />
+          </>
         )}
           </>
         )}
@@ -1596,6 +1666,137 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     lineHeight: 12,
+  },
+
+  /* iOS Calendar-style Event List */
+  evCard: {
+    marginHorizontal: H_PAD,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    overflow: 'hidden',
+    marginBottom: 18,
+  },
+  evDateHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    gap: 2,
+  },
+  evDateTitle: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 21,
+  },
+  evDateSub: {
+    color: COLORS.gray,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  evList: {
+    gap: 0,
+  },
+  evEmpty: {
+    paddingVertical: 36,
+    alignItems: 'center',
+  },
+  evEmptyText: {
+    color: COLORS.gray,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  evRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  evRowDimmed: {
+    opacity: 0.6,
+  },
+  evTimes: {
+    width: 42,
+    alignItems: 'flex-end',
+    gap: 3,
+  },
+  evTimeTop: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 14,
+  },
+  evTimeBot: {
+    color: COLORS.gray,
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  evBar: {
+    width: 3,
+    alignSelf: 'stretch',
+    borderRadius: 2,
+    minHeight: 32,
+  },
+  evBody: {
+    flex: 1,
+    gap: 2,
+  },
+  evTitle: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 17,
+  },
+  evSub: {
+    color: COLORS.gray,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  evDeposit: {
+    color: COLORS.gold,
+    fontSize: 10,
+    fontWeight: '600',
+    lineHeight: 14,
+    marginTop: 2,
+  },
+  evChip: {
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  evChipPending: {
+    borderColor: COLORS.gray,
+  },
+  evChipDanger: {
+    borderColor: COLORS.danger,
+    backgroundColor: 'rgba(232,85,85,0.15)',
+  },
+  evChipDone: {
+    borderColor: COLORS.gray3,
+    backgroundColor: COLORS.elevated,
+  },
+  evChipText: {
+    color: COLORS.gold,
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 14,
+  },
+  evChipTextPending: {
+    color: COLORS.gray,
+  },
+  evChipTextDanger: {
+    color: COLORS.danger,
+  },
+  evChipTextDone: {
+    color: COLORS.gray,
   },
 
   /* Empty */

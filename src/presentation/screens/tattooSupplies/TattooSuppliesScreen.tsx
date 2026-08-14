@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
+import SearchBar from '../../components/common/SearchBar';
 import SupplyCard from '../../components/supplies/SupplyCard';
 import { ChevronDownIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
@@ -16,6 +17,7 @@ import {
   TattooSupply,
 } from '../../../domain/entities/supplyTypes';
 import { usePagedApi } from '../../hooks/useApi';
+import { useDebounce } from '../../hooks/useDebounce';
 import {
   supplyApi, favoriteApi, type SupplyProduct, type ProductCategory,
 } from '../../../data/api';
@@ -62,6 +64,9 @@ const TattooSuppliesScreen = () => {
   const [category, setCategory] = useState<SupplyCategory>('머신 & 장비');
   const [sort, setSort] = useState<SupplySort>('인기순');
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [keyword, setKeyword] = useState('');
+  const debouncedKeyword = useDebounce(keyword, 400);
 
   const {
     items, loading, loadingMore, error, loadMore, reload,
@@ -69,11 +74,18 @@ const TattooSuppliesScreen = () => {
     (cursor) => supplyApi.list({
       category: CODE_BY_CATEGORY[category],
       sort: SORT_BY_LABEL[sort],
+      keyword: debouncedKeyword || undefined,
       cursor,
       limit: 20,
     }),
-    [category, sort],
+    [category, sort, debouncedKeyword],
   );
+
+  const handleSearchPress = useCallback(() => setSearchVisible(true), []);
+  const handleSearchCancel = useCallback(() => {
+    setSearchVisible(false);
+    setKeyword('');
+  }, []);
 
   const filtered = useMemo(() => items.map(toSupply), [items]);
 
@@ -165,7 +177,15 @@ const TattooSuppliesScreen = () => {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      <LogoHeader onSearchPress={handleSearchPress} />
+      {searchVisible && (
+        <SearchBar
+          value={keyword}
+          onChangeText={setKeyword}
+          onCancel={handleSearchCancel}
+          placeholder="타투용품 검색"
+        />
+      )}
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}

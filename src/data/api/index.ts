@@ -29,7 +29,9 @@ export interface Artwork {
   artist?: ArtistPage;
   type: 'tattoo' | 'design';
   title: string;
+  titleEn: string | null;
   description: string | null;
+  descriptionEn: string | null;
   images: string[];
   thumbnail: string | null;
   genres: string[];
@@ -56,7 +58,7 @@ export const artistApi = {
   artworks: (id: string, p: { cursor?: string; limit?: number } = {}) =>
     api.get<CursorPage<Artwork>>(`/app/artists/${id}/artworks${qs(p)}`),
 
-  feed: (p: { cursor?: string; limit?: number; sort?: 'recent' | 'popular' } = {}) =>
+  feed: (p: { cursor?: string; limit?: number; sort?: 'recent' | 'popular'; keyword?: string } = {}) =>
     api.get<CursorPage<Artwork>>(`/app/artists/feed${qs(p)}`),
 
   // 타투이스트 본인
@@ -102,6 +104,27 @@ export interface Reservation {
 export type BackendReservationStatus =
   | 'requested' | 'confirmed' | 'deposit_paid' | 'completed' | 'cancelled' | 'no_show';
 
+/** 고객 예약 목록 뷰 — 어떤 타투이스트에게/언제/무슨 시술인지 (작가 정보 포함) */
+export interface CustomerReservationView {
+  id: string;
+  status: BackendReservationStatus;
+  scheduledAt: string;
+  durationMinutes: number;
+  bodyPart: string | null;
+  sizePreset: string | null;
+  depositKrw: number;
+  depositStatus: 'none' | 'pending' | 'paid' | 'refunded';
+  estimatedPriceKrw: number | null;
+  createdAt: string;
+  artist: {
+    id: string;
+    pageName: string;
+    profileImage: string | null;
+    regionSido: string | null;
+    regionSigungu: string | null;
+  } | null;
+}
+
 /** 타투이스트 예약함 뷰 — 누가/언제/무엇을 요청했는지 (고객 정보 포함) */
 export interface ArtistReservationView {
   id: string;
@@ -128,11 +151,11 @@ export const reservationApi = {
   }) => api.post<Reservation>('/app/reservations', body),
 
   mine: (p: { cursor?: string; limit?: number } = {}) =>
-    api.get<CursorPage<Reservation>>(`/app/reservations/me${qs(p)}`),
+    api.get<CursorPage<CustomerReservationView>>(`/app/reservations/me${qs(p)}`),
 
   reviewable: () => api.get<ReviewableItem[]>('/app/reservations/me/reviewable'),
 
-  forArtist: (p: { status?: BackendReservationStatus; cursor?: string; limit?: number } = {}) =>
+  forArtist: (p: { status?: BackendReservationStatus; depositStatus?: 'pending' | 'paid' | 'refunded'; cursor?: string; limit?: number } = {}) =>
     api.get<CursorPage<ArtistReservationView>>(`/app/reservations/artist${qs(p)}`),
 
   /** 타투이스트: 예약 요청 확정 (requested → confirmed) */
@@ -191,6 +214,8 @@ export interface Review {
 }
 
 export type ReviewWithArtist = Review & { artist: ArtistMini | null };
+/** 타투이스트가 자신의 페이지에서 보는 리뷰 — 고객 닉네임 조인 */
+export type ReviewByArtist = Review & { customerNickname: string | null };
 
 /** 리뷰 작성 가능한 완료 예약 (작가 조인) */
 export interface ReviewableItem {
@@ -214,7 +239,7 @@ export const reviewApi = {
     api.get<CursorPage<ReviewWithArtist>>(`/app/reviews/me${qs(p)}`),
 
   byArtist: (artistPageId: string, p: { cursor?: string; limit?: number } = {}) =>
-    api.get<CursorPage<Review>>(`/app/reviews/artists/${artistPageId}${qs(p)}`),
+    api.get<CursorPage<ReviewByArtist>>(`/app/reviews/artists/${artistPageId}${qs(p)}`),
 
   summary: (artistPageId: string) =>
     api.get<{ pain: number; kindness: number; hygiene: number; satisfaction: number; count: number }>(
@@ -235,7 +260,9 @@ export interface ShopPost {
   authorId: string;
   category: ShopCategory;
   title: string;
+  titleEn: string | null;
   description: string;
+  descriptionEn: string | null;
   region: string | null;
   images: string[];
   attributes: Record<string, unknown>;
@@ -249,7 +276,7 @@ export interface ShopPost {
 }
 
 export const shopApi = {
-  list: (p: { category: ShopCategory; region?: string; cursor?: string; limit?: number }) =>
+  list: (p: { category: ShopCategory; region?: string; keyword?: string; cursor?: string; limit?: number }) =>
     api.get<CursorPage<ShopPost>>(`/app/shop-posts${qs(p)}`),
 
   detail: (id: string) => api.get<ShopPost>(`/app/shop-posts/${id}`),
@@ -426,5 +453,7 @@ export const userApi = {
 
   updateNickname: (nickname: string) => api.patch('/app/users/me/nickname', { nickname }),
   updateLanguage: (language: string) => api.patch('/app/users/me/language', { language }),
+  updateFcmToken: (fcmToken: string, platform: 'ios' | 'android') =>
+    api.patch('/app/users/me/fcm-token', { fcmToken, platform }),
   switchRole: (role: 'USER' | 'TATTOOIST') => api.patch('/app/users/me/role', { role }),
 };

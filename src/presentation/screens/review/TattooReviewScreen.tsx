@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, FlatList, StyleSheet, TouchableOpacity,
   Image, StatusBar, Dimensions,
@@ -26,6 +26,54 @@ import { RootStackParamList } from '../../../infrastructure/navigation/RootNavig
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type TabKey = 'writable' | 'written';
+
+/* ---- Mappers ---- */
+function toWritable(item: ReviewableItem): WritableReview {
+  const scheduled = new Date(item.scheduledAt);
+  const completedAt = new Date(item.updatedAt);
+  const daysLeft = Math.max(0, 14 - Math.floor((Date.now() - completedAt.getTime()) / 86_400_000));
+  const regionParts = [item.artist?.regionSido, item.artist?.regionSigungu].filter(Boolean);
+  return {
+    id: item.id,
+    artist: {
+      id: item.artist?.id ?? item.artistPageId,
+      nickname: item.artist?.pageName ?? '',
+      handle: item.artist?.pageName ? `@${item.artist.pageName}` : '',
+      location: regionParts.join(' ') || '지역 미설정',
+      avatarUri: item.artist?.profileImage ?? '',
+    },
+    procedureDate: scheduled.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+    procedureTime: scheduled.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+    bodyPart: item.bodyPart ?? '',
+    style: item.sizePreset ?? '',
+    daysLeft,
+    rewardPoint: 3000,
+  };
+}
+
+function toWritten(r: ReviewWithArtist): WrittenReview {
+  const regionParts = [r.artist?.regionSido, r.artist?.regionSigungu].filter(Boolean);
+  return {
+    id: r.id,
+    artist: {
+      id: r.artist?.id ?? r.artistPageId,
+      nickname: r.artist?.pageName ?? '',
+      handle: r.artist?.pageName ? `@${r.artist.pageName}` : '',
+      location: regionParts.join(' ') || '지역 미설정',
+      avatarUri: r.artist?.profileImage ?? '',
+    },
+    writtenDate: new Date(r.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+    photos: [...r.images, ...r.healedImages],
+    ratings: {
+      pain: r.painScore,
+      kindness: r.kindnessScore,
+      hygiene: r.hygieneScore,
+      satisfaction: r.satisfactionScore,
+    },
+    text: r.body,
+    canAddHealedPhoto: r.healedImages.length === 0,
+  };
+}
 
 const { width: W } = Dimensions.get('window');
 const H_PAD = 16;
@@ -214,8 +262,12 @@ const TattooReviewScreen = () => {
   const { toast } = useToast();
   const [tab, setTab] = useState<TabKey>('writable');
 
-  const writable = MOCK_WRITABLE_REVIEWS;
-  const written = MOCK_WRITTEN_REVIEWS;
+  const { data: writableRaw, loading: writableLoading } = useApi(() => reservationApi.reviewable(), []);
+  const { items: writtenRaw, loading: writtenLoading, loadingMore: writtenMore, loadMore: loadMoreWritten } =
+    usePagedApi((cursor) => reviewApi.mine({ cursor }), []);
+
+  const writable = useMemo(() => (writableRaw ?? []).map(toWritable), [writableRaw]);
+  const written = useMemo(() => writtenRaw.map(toWritten), [writtenRaw]);
 
   const handleWrite = useCallback((review: WritableReview) => {
     navigation.navigate('ReviewWrite', { review });
@@ -279,6 +331,14 @@ const TattooReviewScreen = () => {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={({ nativeEvent }) => {
+          if (tab !== 'written') return;
+          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+          if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 200) {
+            loadMoreWritten();
+          }
+        }}
+        scrollEventThrottle={400}
       >
         {tab === 'writable' ? (
           <>
@@ -286,7 +346,11 @@ const TattooReviewScreen = () => {
               시술 후 14일 이내에 리뷰를 작성하면,{'\n'}
               <Text style={styles.leadHighlight}>T:ROOT 포인트 3,000P</Text>를 드려요.
             </Text>
-            {writable.length === 0 ? (
+            {writableLoading ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>불러오는 중...</Text>
+              </View>
+            ) : writable.length === 0 ? (
               <View style={styles.empty}>
                 <Text style={styles.emptyText}>작성 가능한 리뷰가 없습니다.</Text>
               </View>
@@ -301,18 +365,29 @@ const TattooReviewScreen = () => {
             )}
           </>
         ) : (
-          written.length === 0 ? (
+          writtenLoading ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>불러오는 중...</Text>
+            </View>
+          ) : written.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>아직 작성한 리뷰가 없습니다.</Text>
             </View>
           ) : (
-            written.map((r) => (
-              <WrittenCard
-                key={r.id}
-                review={r}
-                onAddHealed={() => handleAddHealed(r)}
-              />
-            ))
+            <>
+              {written.map((r) => (
+                <WrittenCard
+                  key={r.id}
+                  review={r}
+                  onAddHealed={() => handleAddHealed(r)}
+                />
+              ))}
+              {writtenMore && (
+                <View style={styles.empty}>
+                  <Text style={styles.emptyText}>불러오는 중...</Text>
+                </View>
+              )}
+            </>
           )
         )}
       </ScrollView>

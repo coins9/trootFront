@@ -12,11 +12,43 @@ import {
   WonIcon, BackArrowIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
-import { MOCK_RESERVATIONS } from '../../../data/mock/reservationMockData';
 import {
-  Reservation, ReservationTab, isOngoing,
+  Reservation, ReservationTab, ReservationStatus, isOngoing,
 } from '../../../domain/entities/reservationTypes';
+import { usePagedApi } from '../../hooks/useApi';
+import { reservationApi, type CustomerReservationView } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+
+const STATUS_MAP: Record<string, ReservationStatus> = {
+  requested: '예약 대기중',
+  confirmed: '확정',
+  deposit_paid: '확정',
+  completed: '완료',
+  cancelled: '취소됨',
+  no_show: '취소됨',
+};
+
+let _seq = 1;
+function toReservation(v: CustomerReservationView): Reservation {
+  const regionParts = [v.artist?.regionSido, v.artist?.regionSigungu].filter(Boolean);
+  const dt = new Date(v.scheduledAt);
+  return {
+    id: v.id,
+    reservationNumber: `R-${(_seq++).toString().padStart(4, '0')}`,
+    status: STATUS_MAP[v.status] ?? '예약 대기중',
+    artist: {
+      id: v.artist?.id ?? '',
+      nickname: v.artist?.pageName ?? '',
+      profileImage: v.artist?.profileImage ?? '',
+      location: regionParts.join(' ') || '지역 미설정',
+    },
+    dateTime: `${dt.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} ${dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`,
+    bodyPart: v.bodyPart ?? '',
+    genre: v.sizePreset ?? '',
+    totalPrice: v.estimatedPriceKrw ?? 0,
+    createdAt: v.createdAt,
+  };
+}
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -27,11 +59,16 @@ const ReservationManageScreen = () => {
   const { toast } = useToast();
   const [tab, setTab] = useState<ReservationTab>('진행 중인 예약');
 
+  const { items: raw, loading, loadingMore, loadMore } =
+    usePagedApi((cursor) => reservationApi.mine({ cursor }), []);
+
+  const all = useMemo(() => raw.map(toReservation), [raw]);
+
   const filtered = useMemo(() => (
     tab === '진행 중인 예약'
-      ? MOCK_RESERVATIONS.filter((r) => isOngoing(r.status))
-      : MOCK_RESERVATIONS.filter((r) => !isOngoing(r.status))
-  ), [tab]);
+      ? all.filter((r) => isOngoing(r.status))
+      : all.filter((r) => !isOngoing(r.status))
+  ), [all, tab]);
 
   const handleOpenChat = useCallback(async (r: Reservation) => {
     if (r.artist.kakaoLink) {
@@ -174,15 +211,24 @@ const ReservationManageScreen = () => {
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyText}>
-              {isOngoingTab
-                ? '진행 중인 예약이 없습니다.'
-                : '지난 예약 내역이 없습니다.'}
+              {loading
+                ? '불러오는 중...'
+                : isOngoingTab
+                  ? '진행 중인 예약이 없습니다.'
+                  : '지난 예약 내역이 없습니다.'}
             </Text>
           </View>
         }
+        ListFooterComponent={loadingMore ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>불러오는 중...</Text>
+          </View>
+        ) : null}
       />
     </SafeAreaView>
   );

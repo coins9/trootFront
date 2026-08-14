@@ -8,23 +8,26 @@ import {
   HomeTabIcon, StarTabIcon, MatchingIcon, ShoppingBagIcon, PersonIcon,
 } from '../icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+import { TranslationKey } from '../../../infrastructure/i18n';
 
 type TabKey = 'HomeTab' | 'RootsPickTab' | 'ShopMatchingTab' | 'TattooSuppliesTab' | 'ProfileTab';
 
 interface TabItem {
   key: TabKey;
-  label: string;
+  tKey: TranslationKey;
   Icon: React.ComponentType<{ size?: number; color?: string; active?: boolean }>;
 }
 
 const ITEMS: TabItem[] = [
-  { key: 'HomeTab',          label: 'Home',        Icon: HomeTabIcon },
-  { key: 'RootsPickTab',     label: "Root's Pick", Icon: StarTabIcon },
-  { key: 'ShopMatchingTab',  label: '샵 & 매칭',   Icon: MatchingIcon },
-  { key: 'TattooSuppliesTab', label: '타투용품',    Icon: ShoppingBagIcon },
-  { key: 'ProfileTab',       label: '프로필',      Icon: PersonIcon },
+  { key: 'HomeTab',           tKey: 'tabs.home',         Icon: HomeTabIcon },
+  { key: 'RootsPickTab',      tKey: 'tabs.rootsPick',    Icon: StarTabIcon },
+  { key: 'ShopMatchingTab',   tKey: 'tabs.shopMatching', Icon: MatchingIcon },
+  { key: 'TattooSuppliesTab', tKey: 'tabs.supplies',     Icon: ShoppingBagIcon },
+  { key: 'ProfileTab',        tKey: 'tabs.profile',      Icon: PersonIcon },
 ];
 
 interface Props {
@@ -34,11 +37,10 @@ interface Props {
 const AppBottomTabBar = memo(({ activeTab = 'ProfileTab' }: Props) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+  const { t } = useTranslation();
 
   const handlePress = useCallback((key: TabKey) => () => {
-    // Root Stack → Main (Tab) → 지정 탭으로 이동. 스택은 최상단으로 pop.
     navigation.navigate('Main');
-    // 잠깐 지연 후 tab 전환 (nested navigator)
     setTimeout(() => {
       (navigation as any).navigate('Main', { screen: key });
     }, 0);
@@ -61,7 +63,7 @@ const AppBottomTabBar = memo(({ activeTab = 'ProfileTab' }: Props) => {
           >
             <it.Icon size={22} color={color} active={isActive} />
             <Text style={[styles.label, { color }]} numberOfLines={1}>
-              {it.label}
+              {t(it.tKey)}
             </Text>
           </TouchableOpacity>
         );

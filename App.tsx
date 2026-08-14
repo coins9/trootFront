@@ -13,6 +13,7 @@ import { useLanguageStore } from './src/presentation/store/languageStore';
 import { useAuthStore } from './src/presentation/store/authStore';
 import { initSocialAuth } from './src/data/auth/socialAuth';
 import { ENV } from './src/infrastructure/config/env';
+import { notificationService } from './src/infrastructure/notifications/notificationService';
 
 enableScreens();
 
@@ -33,6 +34,13 @@ const App = () => {
     hydrateLanguage();
     hydrateAuth();
   }, [hydrateLanguage, hydrateAuth]);
+
+  // 인증 복원 완료 후 FCM 초기화
+  useEffect(() => {
+    if (isAuthReady) {
+      notificationService.initialize();
+    }
+  }, [isAuthReady]);
 
   const handleSplashFinish = useCallback(() => setSplashDone(true), []);
 

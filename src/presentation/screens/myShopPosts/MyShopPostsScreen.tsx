@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar,
+  View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,8 @@ import { useToast } from '../../components/common/Toast';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { ShopMatchingCategory } from '../../../domain/entities/shopTypes';
+import { usePagedApi } from '../../hooks/useApi';
+import { shopApi, ShopPost, ShopCategory } from '../../../data/api';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -51,41 +53,23 @@ const FILTER_TABS: { key: 'all' | ShopMatchingCategory; label: string }[] = [
   { key: '사진/영상 편집자', label: '사진/영상' },
 ];
 
-const MOCK_POSTS: MyShopPost[] = [
-  {
-    id: 'p1',
-    category: '부스 쉐어',
-    title: '강남 프리미엄 타투 부스 쉐어 (베드 2대)',
-    region: '서울 · 강남/서초',
-    status: '모집중',
-    createdAt: '2026-08-05',
-    likeCount: 24,
-    commentCount: 8,
-    viewCount: 312,
-  },
-  {
-    id: 'p2',
-    category: '타투 모델 구인 (비기너)',
-    title: '미니타투 무료 모델 구합니다 (라인워크)',
-    region: '서울 · 홍대/합정/망원',
-    status: '모집중',
-    createdAt: '2026-08-03',
-    likeCount: 51,
-    commentCount: 17,
-    viewCount: 604,
-  },
-  {
-    id: 'p3',
-    category: '사진/영상 편집자',
-    title: '타투 작업 영상 편집해드립니다',
-    region: '경기/인천',
-    status: '마감',
-    createdAt: '2026-07-28',
-    likeCount: 12,
-    commentCount: 3,
-    viewCount: 189,
-  },
-];
+const API_TO_CATEGORY: Record<ShopCategory, ShopMatchingCategory> = {
+  booth_share: '부스 쉐어',
+  model_recruit: '타투 모델 구인 (비기너)',
+  media_expert: '사진/영상 편집자',
+};
+
+const toMyPost = (p: ShopPost): MyShopPost => ({
+  id: p.id,
+  category: API_TO_CATEGORY[p.category],
+  title: p.title,
+  region: p.region ?? '',
+  status: p.status === 'open' ? '모집중' : '마감',
+  createdAt: p.createdAt.slice(0, 10),
+  likeCount: p.likeCount,
+  commentCount: p.applicationCount,
+  viewCount: p.viewCount,
+});
 
 const StatusBadge = ({ status }: { status: PostStatus }) => (
   <View style={[s.statusBadge, status === '마감' && s.statusBadgeClosed]}>
@@ -174,9 +158,18 @@ const MyShopPostsScreen = () => {
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
 
-  const [posts, setPosts] = useState<MyShopPost[]>(MOCK_POSTS);
   const [filter, setFilter] = useState<'all' | ShopMatchingCategory>('all');
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
+
+  const {
+    items: rawItems,
+    loading,
+    loadingMore,
+    loadMore,
+    setItems,
+  } = usePagedApi((cursor) => shopApi.mine({ cursor }), []);
+
+  const posts = useMemo(() => rawItems.map(toMyPost), [rawItems]);
 
   const filtered = useMemo(
     () => (filter === 'all' ? posts : posts.filter(p => p.category === filter)),
@@ -187,19 +180,24 @@ const MyShopPostsScreen = () => {
     navigation.navigate('ShopWrite', { initialCategory: post.category });
   }, [navigation]);
 
-  const handleToggleStatus = useCallback((post: MyShopPost) => {
-    setPosts(prev =>
-      prev.map(p =>
-        p.id === post.id
-          ? { ...p, status: p.status === '모집중' ? '마감' : '모집중' }
-          : p,
-      ),
+  const handleToggleStatus = useCallback(async (post: MyShopPost) => {
+    const nextStatus = post.status === '모집중' ? 'closed' : 'open';
+    setItems(prev =>
+      prev.map(p => p.id === post.id ? { ...p, status: nextStatus } : p),
     );
-    toast(
-      post.status === '모집중' ? '모집을 마감했습니다' : '다시 모집을 시작합니다',
-      { variant: 'success' },
-    );
-  }, [toast]);
+    try {
+      await shopApi.setStatus(post.id, nextStatus);
+      toast(
+        nextStatus === 'closed' ? '모집을 마감했습니다' : '다시 모집을 시작합니다',
+        { variant: 'success' },
+      );
+    } catch {
+      setItems(prev =>
+        prev.map(p => p.id === post.id ? { ...p, status: nextStatus === 'closed' ? 'open' : 'closed' } : p),
+      );
+      toast('상태 변경에 실패했습니다.', { variant: 'error' });
+    }
+  }, [setItems, toast]);
 
   const handleDelete = useCallback((post: MyShopPost) => {
     setConfirm({
@@ -208,13 +206,18 @@ const MyShopPostsScreen = () => {
       cancelLabel: '취소',
       confirmLabel: '삭제',
       variant: 'danger',
-      onConfirm: () => {
-        setPosts(prev => prev.filter(p => p.id !== post.id));
+      onConfirm: async () => {
         setConfirm(null);
-        toast('글이 삭제되었습니다', { variant: 'success' });
+        setItems(prev => prev.filter(p => p.id !== post.id));
+        try {
+          await shopApi.remove(post.id);
+          toast('글이 삭제되었습니다', { variant: 'success' });
+        } catch {
+          toast('삭제에 실패했습니다.', { variant: 'error' });
+        }
       },
     });
-  }, [toast]);
+  }, [setItems, toast]);
 
   const handleAd = useCallback((post: MyShopPost) => {
     navigation.navigate('AdManage', {
@@ -269,20 +272,31 @@ const MyShopPostsScreen = () => {
         renderItem={renderItem}
         contentContainerStyle={[s.listContent, { paddingBottom: 16 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={
+          loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ marginVertical: 16 }} /> : null
+        }
         ListEmptyComponent={
-          <View style={s.empty}>
-            <PenIcon size={40} color={COLORS.gray3} />
-            <Text style={s.emptyTitle}>작성한 글이 없습니다</Text>
-            <Text style={s.emptyDesc}>샵&매칭에서 첫 글을 작성해보세요</Text>
-            <TouchableOpacity
-              style={s.emptyBtn}
-              onPress={() => navigation.navigate('ShopWrite')}
-              activeOpacity={0.85}
-            >
-              <PenIcon size={16} color={COLORS.black} />
-              <Text style={s.emptyBtnText}>글쓰기</Text>
-            </TouchableOpacity>
-          </View>
+          loading ? (
+            <View style={s.empty}>
+              <ActivityIndicator color={COLORS.gold} size="large" />
+            </View>
+          ) : (
+            <View style={s.empty}>
+              <PenIcon size={40} color={COLORS.gray3} />
+              <Text style={s.emptyTitle}>작성한 글이 없습니다</Text>
+              <Text style={s.emptyDesc}>샵&매칭에서 첫 글을 작성해보세요</Text>
+              <TouchableOpacity
+                style={s.emptyBtn}
+                onPress={() => navigation.navigate('ShopWrite')}
+                activeOpacity={0.85}
+              >
+                <PenIcon size={16} color={COLORS.black} />
+                <Text style={s.emptyBtnText}>글쓰기</Text>
+              </TouchableOpacity>
+            </View>
+          )
         }
       />
 

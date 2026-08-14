@@ -13,6 +13,7 @@ import { ArtistArtwork } from '../../../domain/entities/artistMyPageTypes';
 import {
   GENRES, BODY_PARTS, SUBJECTS, MOODS,
 } from '../../../data/mock/mockData';
+import BilingualSection from '../common/BilingualSection';
 
 interface Props {
   visible: boolean;
@@ -31,6 +32,7 @@ const emptyForm = (): ArtistArtwork => ({
   type: 'image',
   thumbnailUri: '',
   title: '',
+  titleEn: '',
   genre: GENRES[0],
   bodyPart: flatBodyParts[0],
   subjects: [],
@@ -38,6 +40,7 @@ const emptyForm = (): ArtistArtwork => ({
   priceFrom: 100000,
   duration: '2시간',
   description: '',
+  descriptionEn: '',
   likes: 0,
   views: 0,
 });
@@ -281,6 +284,18 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                     {form.description.length}/{DESC_MAX}
                   </Text>
                 </View>
+
+                {/* Bilingual (English) */}
+                <BilingualSection
+                  titleEn={form.titleEn ?? ''}
+                  onChangeTitleEn={(v) => setSingle('titleEn', v)}
+                  titlePlaceholder="e.g. Blackwork Angel"
+                  titleMaxLength={30}
+                  descEn={form.descriptionEn ?? ''}
+                  onChangeDescEn={(v) => setSingle('descriptionEn', v)}
+                  descPlaceholder="Size, sessions, concept, etc."
+                  descMaxLength={DESC_MAX}
+                />
               </ScrollView>
 
               <TouchableOpacity

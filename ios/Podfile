@@ -21,6 +21,8 @@ target 'TRootApp' do
   # static 라이브러리 링크 시 모듈맵이 필요하다. 해당 팟만 modular header 생성.
   pod 'GoogleUtilities', :modular_headers => true
   pod 'RecaptchaInterop', :modular_headers => true
+  pod 'Firebase/Core', :modular_headers => true
+  pod 'Firebase/Messaging', :modular_headers => true
 
   use_react_native!(
     :path => config[:reactNativePath],

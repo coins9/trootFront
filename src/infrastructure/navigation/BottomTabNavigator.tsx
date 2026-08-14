@@ -6,6 +6,7 @@ import { COLORS } from '../../presentation/theme/colors';
 import {
   HomeTabIcon, StarTabIcon, MatchingIcon, ShoppingBagIcon, PersonIcon,
 } from '../../presentation/components/icons';
+import { useTranslation } from '../../presentation/store/languageStore';
 import HomeScreen from '../../presentation/screens/home/HomeScreen';
 import RootsPickScreen from '../../presentation/screens/rootsPick/RootsPickScreen';
 import ShopMatchingScreen from '../../presentation/screens/shopMatching/ShopMatchingScreen';
@@ -22,23 +23,24 @@ type TabParamList = {
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
-const TAB_ITEMS = [
-  { name: 'HomeTab' as const, label: 'Home', Icon: HomeTabIcon },
-  { name: 'RootsPickTab' as const, label: "Root's Pick", Icon: StarTabIcon },
-  { name: 'ShopMatchingTab' as const, label: '샵 & 매칭', Icon: MatchingIcon },
-  { name: 'TattooSuppliesTab' as const, label: '타투용품', Icon: ShoppingBagIcon },
-  { name: 'ProfileTab' as const, label: '프로필', Icon: PersonIcon },
+const TAB_ICONS = [
+  { name: 'HomeTab' as const, Icon: HomeTabIcon, tKey: 'tabs.home' as const },
+  { name: 'RootsPickTab' as const, Icon: StarTabIcon, tKey: 'tabs.rootsPick' as const },
+  { name: 'ShopMatchingTab' as const, Icon: MatchingIcon, tKey: 'tabs.shopMatching' as const },
+  { name: 'TattooSuppliesTab' as const, Icon: ShoppingBagIcon, tKey: 'tabs.supplies' as const },
+  { name: 'ProfileTab' as const, Icon: PersonIcon, tKey: 'tabs.profile' as const },
 ];
 
 const CustomTabBar = ({ state, navigation }: any) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const bottomPad = Math.max(insets.bottom, 8);
 
   return (
     <View style={[styles.tabBar, { paddingBottom: bottomPad }]}>
       {state.routes.map((route: any, index: number) => {
         const isFocused = state.index === index;
-        const tabItem = TAB_ITEMS[index];
+        const tabItem = TAB_ICONS[index];
 
         const onPress = () => {
           const event = navigation.emit({
@@ -62,7 +64,7 @@ const CustomTabBar = ({ state, navigation }: any) => {
           >
             <tabItem.Icon size={22} color={color} active={isFocused} />
             <Text style={[styles.tabLabel, { color }]} numberOfLines={1}>
-              {tabItem.label}
+              {t(tabItem.tKey)}
             </Text>
           </TouchableOpacity>
         );

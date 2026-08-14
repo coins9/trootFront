@@ -31,10 +31,33 @@ import {
 import { useToast } from '../../components/common/Toast';
 import LogoHeader from '../../components/common/LogoHeader';
 import { DepositItem, DepositStatus } from '../../../domain/entities/depositTypes';
-import {
-  MOCK_PENDING_DEPOSITS, MOCK_CONFIRMED_DEPOSITS,
-} from '../../../data/mock/depositMockData';
+import { useApi, usePagedApi } from '../../hooks/useApi';
+import { reservationApi, type ArtistReservationView } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+
+function toDepositItem(v: ArtistReservationView): DepositItem {
+  const dt = new Date(v.scheduledAt);
+  const requestedAt = new Date(v.createdAt);
+  const dueAt = new Date(requestedAt.getTime() + 3 * 86_400_000);
+  return {
+    id: v.id,
+    reservationNumber: `R-${v.id.slice(0, 8).toUpperCase()}`,
+    customer: {
+      id: v.customer?.id ?? '',
+      nickname: v.customer?.nickname ?? '(이름 없음)',
+      handle: '',
+      avatarUri: v.customer?.profileImage ?? '',
+    },
+    procedureDateLabel: dt.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }),
+    procedureTimeLabel: dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+    style: v.sizePreset ?? '',
+    bodyPart: v.bodyPart ?? '',
+    depositAmount: v.depositKrw,
+    requestedAt: requestedAt.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }),
+    dueAt: dueAt.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }),
+    status: 'pending' as DepositStatus,
+  };
+}
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type TabKey = 'pending' | 'confirmed';
@@ -184,19 +207,20 @@ const DepositManagementScreen = () => {
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabKey>('pending');
-  const [pending, setPending] = useState<DepositItem[]>(MOCK_PENDING_DEPOSITS);
-  const [confirmed, setConfirmed] = useState<DepositItem[]>(MOCK_CONFIRMED_DEPOSITS);
+  const { items: pendingRaw, loading: pendingLoading, loadMore: loadMorePending, setItems: setPendingRaw } =
+    usePagedApi((cursor) => reservationApi.forArtist({ depositStatus: 'pending', cursor }), []);
+  const { items: confirmedRaw, loading: confirmedLoading, loadMore: loadMoreConfirmed, setItems: setConfirmedRaw } =
+    usePagedApi((cursor) => reservationApi.forArtist({ depositStatus: 'paid', cursor }), []);
+  const { data: summary } = useApi(() => reservationApi.depositSummary(), []);
 
-  const pendingSum = useMemo(
-    () => pending.reduce((acc, d) => acc + d.depositAmount, 0),
-    [pending],
-  );
-  const confirmedSum = useMemo(
-    () => confirmed.reduce((acc, d) => acc + d.depositAmount, 0),
-    [confirmed],
-  );
+  const pending = useMemo(() => pendingRaw.map(toDepositItem), [pendingRaw]);
+  const confirmed = useMemo(() => confirmedRaw.map((v) => ({ ...toDepositItem(v), status: 'confirmed' as DepositStatus })), [confirmedRaw]);
+
+  const pendingSum = summary?.pending.sum ?? 0;
+  const confirmedSum = summary?.paid.sum ?? 0;
 
   const list = activeTab === 'pending' ? pending : confirmed;
+  const listLoading = activeTab === 'pending' ? pendingLoading : confirmedLoading;
 
   const handleGuide = useCallback(() => {
     toast('예약금 관리 가이드 — 준비 중입니다');
@@ -215,20 +239,21 @@ const DepositManagementScreen = () => {
         {
           text: '확인',
           style: 'default',
-          onPress: () => {
+          onPress: async () => {
             easeLayoutAnim();
-            setPending((prev) => prev.filter((d) => d.id !== item.id));
-            setConfirmed((prev) => [
-              { ...item, status: 'confirmed', confirmedAt: '방금 전' },
-              ...prev,
-            ]);
-            toast(`${item.customer.nickname} 예약금이 확정되었습니다.`, { variant: 'success' });
+            setPendingRaw((prev) => prev.filter((d) => d.id !== item.id));
+            try {
+              await reservationApi.confirmDeposit(item.id);
+              toast(`${item.customer.nickname} 예약금이 확정되었습니다.`, { variant: 'success' });
+            } catch {
+              toast('처리 중 오류가 발생했습니다.', { variant: 'error' });
+            }
           },
         },
       ],
       { cancelable: true },
     );
-  }, [toast]);
+  }, [toast, setPendingRaw]);
 
   const handleCancelPending = useCallback((item: DepositItem) => () => {
     Alert.alert(
@@ -239,16 +264,21 @@ const DepositManagementScreen = () => {
         {
           text: '취소 확정',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             easeLayoutAnim();
-            setPending((prev) => prev.filter((d) => d.id !== item.id));
-            toast(`${item.customer.nickname} 예약이 미입금 취소되었습니다.`, { variant: 'error' });
+            setPendingRaw((prev) => prev.filter((d) => d.id !== item.id));
+            try {
+              await reservationApi.rejectByArtist(item.id, '미입금');
+              toast(`${item.customer.nickname} 예약이 미입금 취소되었습니다.`, { variant: 'error' });
+            } catch {
+              toast('처리 중 오류가 발생했습니다.', { variant: 'error' });
+            }
           },
         },
       ],
       { cancelable: true },
     );
-  }, [toast]);
+  }, [toast, setPendingRaw]);
 
   const handleCancelConfirmed = useCallback((item: DepositItem) => () => {
     Alert.alert(
@@ -259,16 +289,21 @@ const DepositManagementScreen = () => {
         {
           text: '취소하기',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             easeLayoutAnim();
-            setConfirmed((prev) => prev.filter((d) => d.id !== item.id));
-            toast(`${item.customer.nickname} 예약이 취소되었습니다.`, { variant: 'error' });
+            setConfirmedRaw((prev) => prev.filter((d) => d.id !== item.id));
+            try {
+              await reservationApi.rejectByArtist(item.id, '예약 취소');
+              toast(`${item.customer.nickname} 예약이 취소되었습니다.`, { variant: 'error' });
+            } catch {
+              toast('처리 중 오류가 발생했습니다.', { variant: 'error' });
+            }
           },
         },
       ],
       { cancelable: true },
     );
-  }, [toast]);
+  }, [toast, setConfirmedRaw]);
 
   const handleSummaryTap = useCallback(() => {
     toast('예약금 합계 상세 — 준비 중입니다');
@@ -315,7 +350,7 @@ const DepositManagementScreen = () => {
           style={styles.tabBtn}
         >
           <Text style={[styles.tabText, activeTab === 'pending' && styles.tabTextActive]}>
-            입금 대기 ({pending.length})
+            입금 대기 ({summary?.pending.count ?? pending.length})
           </Text>
           {activeTab === 'pending' && <View style={styles.tabUnderline} />}
         </TouchableOpacity>
@@ -328,7 +363,7 @@ const DepositManagementScreen = () => {
           style={styles.tabBtn}
         >
           <Text style={[styles.tabText, activeTab === 'confirmed' && styles.tabTextActive]}>
-            확정 완료 ({confirmed.length})
+            확정 완료 ({summary?.paid.count ?? confirmed.length})
           </Text>
           {activeTab === 'confirmed' && <View style={styles.tabUnderline} />}
         </TouchableOpacity>
@@ -338,6 +373,14 @@ const DepositManagementScreen = () => {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={({ nativeEvent }) => {
+          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+          if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 200) {
+            if (activeTab === 'pending') loadMorePending();
+            else loadMoreConfirmed();
+          }
+        }}
+        scrollEventThrottle={400}
       >
         {/* Info banner */}
         <View style={styles.infoBanner}>
@@ -347,7 +390,11 @@ const DepositManagementScreen = () => {
           </Text>
         </View>
 
-        {list.length === 0 ? (
+        {listLoading ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>불러오는 중...</Text>
+          </View>
+        ) : list.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>
               {activeTab === 'pending' ? '입금 대기 중인 예약이 없습니다.' : '확정 완료된 예약이 없습니다.'}
@@ -391,7 +438,9 @@ const DepositManagementScreen = () => {
         <View style={styles.summaryColRight}>
           <Text style={styles.summaryLabel}>건수</Text>
           <Text style={styles.summaryAmount}>
-            {(activeTab === 'pending' ? pending.length : confirmed.length)}건
+            {(activeTab === 'pending'
+              ? (summary?.pending.count ?? pending.length)
+              : (summary?.paid.count ?? confirmed.length))}건
           </Text>
         </View>
         <ChevronRightIcon size={18} color={COLORS.gray} />

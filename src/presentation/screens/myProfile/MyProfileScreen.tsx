@@ -30,10 +30,10 @@ interface MenuItem {
 /** 프로필에서 전환 가능한 활동 모드 */
 type ProfileMode = 'user' | 'artist' | 'vendor';
 
-const MODE_TABS: { key: ProfileMode; label: string }[] = [
-  { key: 'user', label: '일반 손님' },
-  { key: 'artist', label: '타투이스트' },
-  { key: 'vendor', label: '용품 판매자' },
+const MODE_TAB_KEYS: { key: ProfileMode; tKey: 'profile.modeUser' | 'profile.modeArtist' | 'profile.modeVendor' }[] = [
+  { key: 'user', tKey: 'profile.modeUser' },
+  { key: 'artist', tKey: 'profile.modeArtist' },
+  { key: 'vendor', tKey: 'profile.modeVendor' },
 ];
 
 const MyProfileScreen = () => {
@@ -123,55 +123,56 @@ const MyProfileScreen = () => {
   const changeMode = useCallback((next: ProfileMode) => () => {
     setMode((prev) => {
       if (prev === next) return prev;
-      const label = MODE_TABS.find((m) => m.key === next)?.label ?? '';
+      const tKey = MODE_TAB_KEYS.find((m) => m.key === next)?.tKey;
+      const label = tKey ? t(tKey) : '';
       toast(`${label} 모드로 전환되었습니다`, { variant: 'success' });
       return next;
     });
-  }, [toast]);
+  }, [t, toast]);
 
   /* ── 이용자 메뉴 ── */
   const userReservationItems: MenuItem[] = [
-    { Icon: CalendarIcon, label: '예약 관리', badge: '예약 확인 대기', onPress: goToReservationManage },
-    { Icon: HeartIcon, label: '찜한 타투이스트', onPress: goToFavoriteArtists },
-    { Icon: PaletteIcon, label: '찜한 작품', onPress: goToFavoriteWorks },
-    { Icon: StoreIcon, label: '찜한 사진/동영상샵', onPress: goToFavoritePhotoShops },
-    { Icon: FolderIcon, label: '찜한 타투용품', onPress: goToFavoriteSupplies },
+    { Icon: CalendarIcon, label: t('profile.bookingManage'), badge: '예약 확인 대기', onPress: goToReservationManage },
+    { Icon: HeartIcon, label: t('profile.favArtists'), onPress: goToFavoriteArtists },
+    { Icon: PaletteIcon, label: t('profile.favWorks'), onPress: goToFavoriteWorks },
+    { Icon: StoreIcon, label: t('profile.favPhotoShops'), onPress: goToFavoritePhotoShops },
+    { Icon: FolderIcon, label: t('profile.favSupplies'), onPress: goToFavoriteSupplies },
   ];
   const userPostItems: MenuItem[] = [
-    { Icon: ListIcon, label: '타투 리뷰', onPress: goToTattooReview },
-    { Icon: HandshakeIcon, label: '샵&매칭 글 관리', onPress: goToMyShopPosts },
+    { Icon: ListIcon, label: t('profile.tattooReview'), onPress: goToTattooReview },
+    { Icon: HandshakeIcon, label: t('profile.shopPosts'), onPress: goToMyShopPosts },
   ];
   const userSettingItems: MenuItem[] = [
-    { Icon: UserOutlineIcon, label: '계정 정보', onPress: goToAccountInfo },
-    { Icon: BellIcon, label: '알림 설정', onPress: goToNotificationSettings },
-    { Icon: LockIcon, label: '개인정보 및 보안', onPress: goToPrivacySecurity },
+    { Icon: UserOutlineIcon, label: t('settings.accountInfo'), onPress: goToAccountInfo },
+    { Icon: BellIcon, label: t('settings.notification'), onPress: goToNotificationSettings },
+    { Icon: LockIcon, label: t('settings.privacySecurity'), onPress: goToPrivacySecurity },
     { Icon: GlobeIcon, label: t('settings.language'), onPress: goToLanguage },
-    { Icon: ChatBubbleIcon, label: '문의하기', onPress: goToSupport },
+    { Icon: ChatBubbleIcon, label: t('profile.support'), onPress: goToSupport },
   ];
 
-  /* ── 타투이스트 메뉴 (목업 그대로) ── */
+  /* ── 타투이스트 메뉴 ── */
   const artistMenuItems: (MenuItem & { description: string })[] = [
     {
       Icon: CheckCircleIcon,
-      label: '예약 요청함',
+      label: t('profile.reservationRequests'),
       description: '들어온 예약 요청을 확인하고 확정',
       onPress: goToReservationRequests,
     },
     {
       Icon: CalendarIcon,
-      label: '예약 관리',
+      label: t('profile.bookingManage'),
       description: '예약 확인, 일정 관리, 노쇼 방지',
       onPress: goToArtistReservation,
     },
     {
       Icon: BarChartIcon,
-      label: '광고 및 통계',
+      label: t('profile.adStats'),
       description: '광고 관리 및 통계 확인',
       onPress: goToArtistAdStats,
     },
     {
       Icon: EditPenIcon,
-      label: '포트폴리오 · 리뷰 관리',
+      label: t('profile.portfolioReview'),
       description: '프로필 · 작품 · 리뷰를 한 화면에서 관리',
       onPress: goToArtistMyPage,
     },
@@ -181,19 +182,19 @@ const MyProfileScreen = () => {
   const vendorMenuItems: (MenuItem & { description: string })[] = [
     {
       Icon: FolderIcon,
-      label: '타투용품 등록하기',
+      label: t('profile.addProduct'),
       description: '새 상품을 등록하고 판매를 시작하세요',
       onPress: goToProductForm,
     },
     {
       Icon: StoreIcon,
-      label: '판매 상품 관리',
+      label: t('profile.manageProducts'),
       description: '등록한 상품 수정 · 재고 · 판매 상태 관리',
       onPress: goToMyProducts,
     },
     {
       Icon: BarChartIcon,
-      label: '판매자 정보 · 정산',
+      label: t('profile.sellerInfo'),
       description: '입점 상태와 수수료 · 정산 내역 확인',
       onPress: goToMyProducts,
     },
@@ -290,7 +291,7 @@ const MyProfileScreen = () => {
 
         {/* 활동 모드 전환 — 손님 · 타투이스트 · 용품 판매자 */}
         <View style={styles.modeTabs}>
-          {MODE_TABS.map((tab) => {
+          {MODE_TAB_KEYS.map((tab) => {
             const active = mode === tab.key;
             return (
               <TouchableOpacity
@@ -300,7 +301,7 @@ const MyProfileScreen = () => {
                 style={[styles.modeTab, active && styles.modeTabActive]}
               >
                 <Text style={[styles.modeTabText, active && styles.modeTabTextActive]}>
-                  {tab.label}
+                  {t(tab.tKey)}
                 </Text>
               </TouchableOpacity>
             );
@@ -324,9 +325,9 @@ const MyProfileScreen = () => {
 
         {mode === 'user' && (
           <>
-            {renderCompactSection('내 예약 및 관심 관리', userReservationItems)}
-            {renderCompactSection('내가 쓴 글', userPostItems)}
-            {renderCompactSection('설정', userSettingItems)}
+            {renderCompactSection(t('profile.myReservations'), userReservationItems)}
+            {renderCompactSection(t('profile.myPosts'), userPostItems)}
+            {renderCompactSection(t('settings.title'), userSettingItems)}
           </>
         )}
 

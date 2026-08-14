@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
+import SearchBar from '../../components/common/SearchBar';
 import HomeArtistHeader from '../../components/home/HomeArtistHeader';
 import TattooCard from '../../components/home/TattooCard';
 import FilterBar from '../../components/home/FilterBar';
@@ -14,6 +15,7 @@ import ActiveFilterRow from '../../components/home/ActiveFilterRow';
 import FilterBottomSheet from '../../components/filter/FilterBottomSheet';
 import FullFilterModal from '../../components/filter/FullFilterModal';
 import { usePagedApi } from '../../hooks/useApi';
+import { useDebounce } from '../../hooks/useDebounce';
 import { artistApi, favoriteApi } from '../../../data/api';
 import { toTattoo } from '../../../data/api/mappers';
 import { FilterType, Tattoo, Artist } from '../../../domain/entities/types';
@@ -31,13 +33,29 @@ const HomeScreen = () => {
   const [bottomSheetType, setBottomSheetType] = useState<FilterType | null>(null);
   const [fullFilterVisible, setFullFilterVisible] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [keyword, setKeyword] = useState('');
+  const debouncedKeyword = useDebounce(keyword, 400);
 
   const {
     items: artworks, loading, loadingMore, error, loadMore, reload,
   } = usePagedApi(
-    (cursor) => artistApi.feed({ cursor, limit: PAGE_SIZE }),
-    [],
+    (cursor) => artistApi.feed({
+      cursor,
+      limit: PAGE_SIZE,
+      keyword: debouncedKeyword || undefined,
+    }),
+    [debouncedKeyword],
   );
+
+  const handleSearchPress = useCallback(() => {
+    setSearchVisible(true);
+  }, []);
+
+  const handleSearchCancel = useCallback(() => {
+    setSearchVisible(false);
+    setKeyword('');
+  }, []);
 
   // 찜 여부는 목록 렌더링 후 한 번에 조회해 카드마다 요청하지 않는다
   const syncFavorites = useCallback(async (ids: string[]) => {
@@ -141,7 +159,15 @@ const HomeScreen = () => {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      <LogoHeader onSearchPress={handleSearchPress} />
+      {searchVisible && (
+        <SearchBar
+          value={keyword}
+          onChangeText={setKeyword}
+          onCancel={handleSearchCancel}
+          placeholder="작품, 타투이스트 검색"
+        />
+      )}
       <FlatList
         data={feed}
         keyExtractor={(item) => item.key}

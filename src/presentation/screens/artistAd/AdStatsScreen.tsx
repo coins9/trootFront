@@ -16,11 +16,36 @@ import { usePublicSettings } from '../../hooks/usePublicSettings';
 import AdCard from '../../components/artistAd/AdCard';
 import SuperUpBottomSheet, { SuperUpPlan } from '../../components/artistAd/SuperUpBottomSheet';
 import CardAdBottomSheet, { CardAdPlan } from '../../components/artistAd/CardAdBottomSheet';
-import {
-  MOCK_PROMO_BANNERS, MOCK_ARTIST_ADS,
-} from '../../../data/mock/artistAdMockData';
-import { ArtistAdItem } from '../../../domain/entities/artistAdTypes';
+import { useMemo } from 'react';
+import { MOCK_PROMO_BANNERS } from '../../../data/mock/artistAdMockData';
+import { ArtistAdItem, ArtistAdStatus } from '../../../domain/entities/artistAdTypes';
+import { useApi, usePagedApi } from '../../hooks/useApi';
+import { artistApi, adApi, type Artwork, type AdCampaign } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+
+const FMT_DATE = (d: string | null) =>
+  d ? new Date(d).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '-';
+
+function toAdItem(artwork: Artwork, campaign?: AdCampaign): ArtistAdItem {
+  const status: ArtistAdStatus = campaign
+    ? campaign.type === 'superup' ? 'super_up'
+      : campaign.type === 'cardad' ? 'card'
+      : 'up'
+    : 'idle';
+  return {
+    id: campaign?.id ?? artwork.id,
+    title: artwork.title || '(제목 없음)',
+    thumbnailUri: artwork.thumbnail ?? (artwork.images[0] ?? ''),
+    status,
+    statusLabel: campaign ? `${campaign.planLabel} 진행 중` : '광고 없음',
+    periodStart: FMT_DATE(campaign?.startedAt ?? null),
+    periodEnd: FMT_DATE(campaign?.expiresAt ?? null),
+    impressions: { current: campaign?.impressions ?? 0, goal: 0, unit: '회' },
+    clicks: { current: campaign?.clicks ?? 0, goal: 0, unit: '건' },
+    inquiries: { current: 0, goal: 0, unit: '건' },
+    trend: [],
+  };
+}
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type SheetKind = 'superUp' | 'cardAd';
@@ -37,6 +62,14 @@ const AdStatsScreen = () => {
   const settings = usePublicSettings();
   const [sheet, setSheet] = useState<SheetKind | null>(null);
   const bottomTabHeight = useBottomTabHeight();
+
+  const { items: artworks } = usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
+  const { data: campaigns } = useApi(() => adApi.mine(), []);
+
+  const adItems = useMemo(() => {
+    const campaignMap = new Map((campaigns ?? []).map((c) => [c.targetId, c]));
+    return artworks.map((aw) => toAdItem(aw, campaignMap.get(aw.id) ?? undefined));
+  }, [artworks, campaigns]);
 
   const openBottomSheet = useCallback((kind: SheetKind) => {
     // NOTE: superUp → 슈퍼UP 횟수권 결제 바텀시트가 올라옵니다.
@@ -142,16 +175,20 @@ const AdStatsScreen = () => {
         {/* Section title */}
         <Text style={styles.sectionTitle}>도안 광고 관리</Text>
 
-        {MOCK_ARTIST_ADS.map((ad) => (
-          <AdCard
-            key={ad.id}
-            ad={ad}
-            onOpenDetail={handleOpenDetail(ad)}
-            onUp={handleUp(ad)}
-            onSuperUp={handleSuperUp(ad)}
-            onCardAd={handleCardAd(ad)}
-          />
-        ))}
+        {adItems.length === 0 ? (
+          <Text style={styles.emptyText}>등록한 도안이 없습니다.</Text>
+        ) : (
+          adItems.map((ad) => (
+            <AdCard
+              key={ad.id}
+              ad={ad}
+              onOpenDetail={handleOpenDetail(ad)}
+              onUp={handleUp(ad)}
+              onSuperUp={handleSuperUp(ad)}
+              onCardAd={handleCardAd(ad)}
+            />
+          ))
+        )}
       </ScrollView>
 
       <AppBottomTabBar activeTab="ProfileTab" />
@@ -208,5 +245,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 12,
     paddingHorizontal: 2,
+  },
+  emptyText: {
+    color: COLORS.gray,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    paddingVertical: 40,
   },
 });

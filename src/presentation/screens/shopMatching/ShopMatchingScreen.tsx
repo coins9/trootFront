@@ -19,9 +19,6 @@ import {
   StarIcon, CalendarIcon, FilterSlidersIcon,
 } from '../../components/icons';
 import {
-  MOCK_TATTOO_SHARE_SHOPS, MOCK_BEGINNER_MODEL_RECRUITS, MOCK_MEDIA_EXPERTS,
-} from '../../../data/mock/shopMockData';
-import {
   TattooShareShop, ShopMatchingCategory, BeginnerModelRecruit, MediaExpert,
   MediaSpecialty,
   ShareFilterState, INITIAL_SHARE_FILTER,
@@ -30,9 +27,112 @@ import {
   ShareRegion, ShareLighting, ShareBedCount, ShareOccupancy, ShareSort,
   matchRegion, matchLighting, matchBedCount, matchOccupancy, applyShareSort,
 } from '../../../domain/entities/shopTypes';
+import { usePagedApi } from '../../hooks/useApi';
+import { useDebounce } from '../../hooks/useDebounce';
+import { shopApi, ShopPost } from '../../../data/api';
+import SearchBar from '../../components/common/SearchBar';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type ShareFilterKind = 'region' | 'lighting' | 'bed' | 'occupancy' | 'sort';
+
+/* ── ShopPost → 도메인 타입 매퍼 ── */
+const parseBedCount = (v: unknown): number => {
+  if (typeof v === 'number') return v;
+  if (v === '1대') return 1;
+  if (v === '2대') return 2;
+  if (v === '3대') return 3;
+  if (v === '4대 이상') return 4;
+  return parseInt(String(v ?? '1'), 10) || 1;
+};
+
+const toShareShop = (p: ShopPost): TattooShareShop => {
+  const a = p.attributes as Record<string, unknown>;
+  return {
+    id: p.id,
+    isNew: false,
+    title: p.title,
+    pricePerDay: p.priceKrw ?? 0,
+    address: p.region ?? '',
+    district: typeof p.region === 'string' ? (p.region.split(' · ')[1] ?? p.region) : '',
+    areaPyeong: 0,
+    bedCount: parseBedCount(a.bedCount),
+    lighting: typeof a.lighting === 'string' ? a.lighting : '',
+    hasPrivateRoom: false,
+    maxOccupancy: typeof a.maxOccupancy === 'number' ? a.maxOccupancy : 4,
+    currentOccupancy: 0,
+    requiredOccupancy: 0,
+    images: p.images,
+    description: p.description,
+    rules: [],
+    host: {
+      id: p.authorId,
+      nickname: '타투이스트',
+      role: '호스트',
+      profileImage: '',
+      kakaoLink: p.contact ?? undefined,
+    },
+    likeCount: p.likeCount,
+    commentCount: p.applicationCount,
+    isBookmarked: false,
+  };
+};
+
+const toModelRecruit = (p: ShopPost): BeginnerModelRecruit => {
+  const a = p.attributes as Record<string, unknown>;
+  return {
+    id: p.id,
+    isNew: false,
+    title: p.title,
+    materialFee: p.priceKrw ?? 0,
+    location: p.region ?? '',
+    workPeriod: typeof a.workPeriod === 'string' ? a.workPeriod : '',
+    tags: Array.isArray(a.styles) ? (a.styles as string[]) : [],
+    images: p.images,
+    description: p.description,
+    cautions: [],
+    artist: {
+      id: p.authorId,
+      nickname: '타투이스트',
+      experience: '비기너',
+      profileImage: '',
+      kakaoLink: p.contact ?? undefined,
+    },
+    likeCount: p.likeCount,
+    commentCount: p.applicationCount,
+    isBookmarked: false,
+  };
+};
+
+const toMediaExpert = (p: ShopPost): MediaExpert => {
+  const a = p.attributes as Record<string, unknown>;
+  const specialty = a.specialty === '영상' ? 'video' : 'photo';
+  const workKinds = Array.isArray(a.workKinds) ? (a.workKinds as string[]) : [];
+  return {
+    id: p.id,
+    specialty,
+    nickname: typeof a.nickname === 'string' ? a.nickname : p.title,
+    isVerified: false,
+    experience: typeof a.experience === 'string' ? a.experience : '',
+    experienceYears: 0,
+    location: p.region ?? '',
+    profileImage: '',
+    tags: workKinds,
+    priceMin: typeof a.priceMin === 'number' ? a.priceMin : (p.priceKrw ?? 0),
+    priceMax: typeof a.priceMax === 'number' ? a.priceMax : (p.priceKrw ?? 0),
+    priceItems: [],
+    description: p.description,
+    descriptionBullets: [],
+    portfolio: p.images.map(uri => ({ uri, isVideo: false })),
+    instagramUrl: typeof a.instagramUrl === 'string' && a.instagramUrl ? a.instagramUrl : undefined,
+    satisfactionRating: 0,
+    reviewCount: 0,
+    totalWorks: 0,
+    avgResponseTime: '-',
+    primaryKind: '사진 촬영',
+    kakaoLink: p.contact ?? undefined,
+    isBookmarked: false,
+  };
+};
 
 const CATEGORIES: ShopMatchingCategory[] = [
   '부스 쉐어', '타투 모델 구인 (비기너)', '사진/영상 편집자',
@@ -84,10 +184,37 @@ const ShopMatchingScreen = () => {
   const settings = usePublicSettings();
   const [category, setCategory] = useState<ShopMatchingCategory>('부스 쉐어');
   const [expertTab, setExpertTab] = useState<MediaSpecialty>('photo');
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [keyword, setKeyword] = useState('');
+  const debouncedKeyword = useDebounce(keyword, 400);
+
+  const handleSearchPress = useCallback(() => setSearchVisible(true), []);
+  const handleSearchCancel = useCallback(() => {
+    setSearchVisible(false);
+    setKeyword('');
+  }, []);
 
   /* ── Share filter state ── */
   const [shareFilter, setShareFilter] = useState<ShareFilterState>(INITIAL_SHARE_FILTER);
   const [activeFilterSheet, setActiveFilterSheet] = useState<ShareFilterKind | null>(null);
+
+  /* ── API 데이터 ── */
+  const { items: rawBooth } = usePagedApi(
+    (cursor) => shopApi.list({ category: 'booth_share', keyword: debouncedKeyword || undefined, cursor }),
+    [debouncedKeyword],
+  );
+  const { items: rawModel } = usePagedApi(
+    (cursor) => shopApi.list({ category: 'model_recruit', keyword: debouncedKeyword || undefined, cursor }),
+    [debouncedKeyword],
+  );
+  const { items: rawMedia } = usePagedApi(
+    (cursor) => shopApi.list({ category: 'media_expert', keyword: debouncedKeyword || undefined, cursor }),
+    [debouncedKeyword],
+  );
+
+  const boothPosts = useMemo(() => rawBooth.map(toShareShop), [rawBooth]);
+  const modelPosts = useMemo(() => rawModel.map(toModelRecruit), [rawModel]);
+  const mediaPosts = useMemo(() => rawMedia.map(toMediaExpert), [rawMedia]);
 
   const handleShopPress = useCallback((shop: TattooShareShop) => {
     navigation.navigate('TattooShareDetail', { shop });
@@ -129,20 +256,20 @@ const ShopMatchingScreen = () => {
   const isEditorCategory = category === '사진/영상 편집자';
 
   const filteredExperts = useMemo(
-    () => MOCK_MEDIA_EXPERTS.filter((e) => e.specialty === expertTab),
-    [expertTab],
+    () => mediaPosts.filter((e) => e.specialty === expertTab),
+    [mediaPosts, expertTab],
   );
 
   /* ── 부스 쉐어 필터·정렬 적용 ── */
   const filteredShops = useMemo(() => {
-    const list = MOCK_TATTOO_SHARE_SHOPS.filter((s) =>
+    const list = boothPosts.filter((s) =>
       matchRegion(s.address, shareFilter.region)
       && matchLighting(s.lighting, shareFilter.lighting)
       && matchBedCount(s.bedCount, shareFilter.bedCount)
       && matchOccupancy(s.maxOccupancy, shareFilter.occupancy),
     );
     return applyShareSort(list, shareFilter.sort);
-  }, [shareFilter]);
+  }, [boothPosts, shareFilter]);
 
   const shareFilterButtons = useMemo(() => [
     {
@@ -336,10 +463,18 @@ const ShopMatchingScreen = () => {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      <LogoHeader onSearchPress={handleSearchPress} />
+      {searchVisible && (
+        <SearchBar
+          value={keyword}
+          onChangeText={setKeyword}
+          onCancel={handleSearchCancel}
+          placeholder="부스, 모델, 편집자 검색"
+        />
+      )}
       {isBeginnerCategory ? (
         <FlatList
-          data={MOCK_BEGINNER_MODEL_RECRUITS}
+          data={modelPosts}
           keyExtractor={(item) => item.id}
           renderItem={renderBeginnerItem}
           ListHeaderComponent={Header}

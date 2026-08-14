@@ -21,12 +21,67 @@ import ReviewManageModal from '../../components/artistMyPage/ReviewManageModal';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import {
-  MOCK_ARTIST_SELF, MOCK_ARTIST_ARTWORKS, MOCK_ARTIST_REVIEWS,
-} from '../../../data/mock/artistMyPageMockData';
-import {
   ArtistSelfProfile, ArtistArtwork, ArtistReviewItem, ArtistReviewReply,
 } from '../../../domain/entities/artistMyPageTypes';
+import { useApi, usePagedApi } from '../../hooks/useApi';
+import {
+  artistApi, reviewApi,
+  type ArtistPage, type Artwork, type ReviewByArtist,
+} from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+
+/* ---- Mappers ---- */
+function toSelfProfile(p: ArtistPage): ArtistSelfProfile {
+  const regionParts = [p.regionSido, p.regionSigungu].filter(Boolean);
+  return {
+    id: p.id,
+    nickname: p.pageName,
+    handle: `@${p.handle}`,
+    location: regionParts.join(' ') || '지역 미설정',
+    intro: p.bio ?? '',
+    avatarUri: p.profileImage ?? '',
+    rating: parseFloat(p.rating) || 0,
+    reviewCount: p.reviewCount,
+    likes: p.followerCount,
+    bookedCount: 0,
+    tags: (p as any).tags ?? [],
+  };
+}
+
+function toArtwork(a: Artwork): ArtistArtwork {
+  return {
+    id: a.id,
+    type: 'image',
+    thumbnailUri: a.thumbnail ?? (a.images[0] ?? ''),
+    title: a.title,
+    genre: a.genres[0] ?? '',
+    bodyPart: a.bodyPart ?? '',
+    subjects: a.genres,
+    moods: [],
+    priceFrom: a.priceKrw ?? 0,
+    duration: '',
+    description: a.description ?? '',
+    isPromoted: a.isPromoted,
+    likes: a.likeCount,
+    views: a.viewCount,
+  };
+}
+
+function toReviewItem(r: ReviewByArtist): ArtistReviewItem {
+  const avg = (r.painScore + r.kindnessScore + r.hygieneScore + r.satisfactionScore) / 4;
+  return {
+    id: r.id,
+    customer: r.customerNickname ?? '(닉네임 없음)',
+    rating: Math.round(avg),
+    artworkId: '',
+    artworkTitle: r.bodyPart ?? '',
+    content: r.body,
+    imageUris: r.images,
+    createdAt: new Date(r.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+    reply: r.reply ? { content: r.reply, answeredAt: '' } : undefined,
+    isAnswered: r.reply !== null,
+  };
+}
 
 if (
   Platform.OS === 'android' &&
@@ -56,9 +111,28 @@ const ArtistMyPageScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
 
-  const [profile, setProfile] = useState<ArtistSelfProfile>(MOCK_ARTIST_SELF);
-  const [artworks, setArtworks] = useState<ArtistArtwork[]>(MOCK_ARTIST_ARTWORKS);
-  const [reviews, setReviews] = useState<ArtistReviewItem[]>(MOCK_ARTIST_REVIEWS);
+  const { data: apiProfile, reload: reloadProfile } = useApi(() => artistApi.me(), []);
+  const { items: apiArtworks, setItems: setApiArtworks, reload: reloadArtworks } =
+    usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
+  const artistPageId = apiProfile?.id ?? '';
+  const { items: apiReviews, setItems: setApiReviews } =
+    usePagedApi(
+      (cursor) => reviewApi.byArtist(artistPageId, { cursor }),
+      [artistPageId],
+    );
+
+  const profileBase = useMemo(
+    () => apiProfile ? toSelfProfile(apiProfile) : null,
+    [apiProfile],
+  );
+  const [profileOverride, setProfileOverride] = useState<Partial<ArtistSelfProfile>>({});
+  const profile: ArtistSelfProfile = profileBase
+    ? { ...profileBase, ...profileOverride }
+    : { id: '', nickname: '', handle: '', location: '', intro: '', avatarUri: '',
+        rating: 0, reviewCount: 0, likes: 0, bookedCount: 0, tags: [] };
+
+  const artworks = useMemo(() => apiArtworks.map(toArtwork), [apiArtworks]);
+  const reviews = useMemo(() => apiReviews.map(toReviewItem), [apiReviews]);
 
   const [tab, setTab] = useState<TabKey>('artworks');
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -94,11 +168,24 @@ const ArtistMyPageScreen = () => {
   );
 
   /* ==== Profile ==== */
-  const handleSaveProfile = useCallback((next: Partial<ArtistSelfProfile>) => {
-    setProfile((prev) => ({ ...prev, ...next }));
+  const handleSaveProfile = useCallback(async (next: Partial<ArtistSelfProfile>) => {
+    try {
+      await artistApi.updateMe({
+        pageName: next.nickname,
+        bio: next.intro,
+        regionSido: next.location?.split(' ')[0],
+        regionSigungu: next.location?.split(' ')[1],
+        tags: next.tags,
+      } as any);
+      setProfileOverride((prev) => ({ ...prev, ...next }));
+      reloadProfile();
+    } catch {
+      // 실패해도 로컬 오버라이드 적용
+      setProfileOverride((prev) => ({ ...prev, ...next }));
+    }
     setEditProfileOpen(false);
     toast('프로필이 저장되었습니다.', { variant: 'success' });
-  }, [toast]);
+  }, [toast, reloadProfile]);
 
   /* ==== Artwork ==== */
   const handleOpenArtworkForm = useCallback((aw: ArtistArtwork | null) => {
@@ -110,37 +197,64 @@ const ArtistMyPageScreen = () => {
     setArtworkFormOpen(false);
     setArtworkFormEditing(null);
   }, []);
-  const handleSubmitArtwork = useCallback((next: ArtistArtwork) => {
-    easeLayoutAnim();
-    setArtworks((prev) => {
-      const exists = prev.some((a) => a.id === next.id);
-      return exists
-        ? prev.map((a) => (a.id === next.id ? next : a))
-        : [next, ...prev];
-    });
+  const handleSubmitArtwork = useCallback(async (next: ArtistArtwork) => {
+    try {
+      const body = {
+        title: next.title,
+        titleEn: next.titleEn?.trim() || null,
+        description: next.description,
+        descriptionEn: next.descriptionEn?.trim() || null,
+        genres: next.subjects,
+        bodyPart: next.bodyPart,
+        priceKrw: next.priceFrom || null,
+        images: next.thumbnailUri ? [next.thumbnailUri] : [],
+        thumbnail: next.thumbnailUri || null,
+      };
+      if (artworkFormEditing) {
+        await artistApi.updateArtwork(next.id, body);
+      } else {
+        await artistApi.createArtwork(body);
+      }
+      easeLayoutAnim();
+      reloadArtworks();
+    } catch {
+      toast('저장 중 오류가 발생했습니다.', { variant: 'error' });
+    }
     setArtworkFormOpen(false);
     setArtworkFormEditing(null);
     toast(
       artworkFormEditing ? '작품이 수정되었습니다.' : '새 작품이 등록되었습니다.',
       { variant: 'success' },
     );
-  }, [artworkFormEditing, toast]);
-  const handleDeleteArtwork = useCallback((id: string) => {
-    easeLayoutAnim();
-    setArtworks((prev) => prev.filter((a) => a.id !== id));
+  }, [artworkFormEditing, toast, reloadArtworks]);
+  const handleDeleteArtwork = useCallback(async (id: string) => {
+    try {
+      await artistApi.deleteArtwork(id);
+      easeLayoutAnim();
+      setApiArtworks((prev) => prev.filter((a) => a.id !== id));
+    } catch {
+      toast('삭제 중 오류가 발생했습니다.', { variant: 'error' });
+      return;
+    }
     setArtworkDetail(null);
     toast('작품이 삭제되었습니다.', { variant: 'error' });
-  }, [toast]);
+  }, [toast, setApiArtworks]);
 
   /* ==== Review ==== */
-  const handleSubmitReply = useCallback((id: string, reply: ArtistReviewReply) => {
-    easeLayoutAnim();
-    setReviews((prev) => prev.map((r) => (
-      r.id === id ? { ...r, isAnswered: true, reply } : r
-    )));
+  const handleSubmitReply = useCallback(async (id: string, reply: ArtistReviewReply) => {
+    try {
+      await reviewApi.reply(id, reply.content);
+      easeLayoutAnim();
+      setApiReviews((prev) => prev.map((r) => (
+        r.id === id ? { ...r, reply: reply.content, repliedAt: new Date().toISOString() } : r
+      )));
+    } catch {
+      toast('답글 등록에 실패했습니다.', { variant: 'error' });
+      return;
+    }
     setReviewOpen(null);
     toast('답글이 등록되었습니다.', { variant: 'success' });
-  }, [toast]);
+  }, [toast, setApiReviews]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
