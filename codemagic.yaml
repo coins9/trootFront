@@ -129,7 +129,7 @@ workflows:
 
       - name: Firebase 설정 파일 복사
         script: |
-          cp "$GOOGLE_SERVICE_INFO_PLIST" ios/TRootApp/GoogleService-Info.plist
+          echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/TRootApp/GoogleService-Info.plist
 
       - name: CocoaPods 설치
         script: |
@@ -230,7 +230,7 @@ workflows:
 
       - name: Firebase 설정 파일 복사
         script: |
-          cp "$GOOGLE_SERVICE_INFO_PLIST" ios/TRootApp/GoogleService-Info.plist
+          echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/TRootApp/GoogleService-Info.plist
 
       - name: CocoaPods 설치
         script: |
