@@ -20,7 +20,7 @@ interface Props {
 }
 
 const ScreenBanner = memo(({
-  imageUrl, title, subtitle, ctaLabel = '바로 보기', linkUrl, onPress,
+  imageUrl, title, subtitle, ctaLabel, linkUrl, onPress,
 }: Props) => {
   if (!imageUrl && !title) return null;
 

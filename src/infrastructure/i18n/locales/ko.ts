@@ -122,6 +122,9 @@ export const ko = {
     searchPlaceholder: '작품, 타투이스트 검색',
     empty: '아직 등록된 작품이 없습니다.',
     totalArtists: '전체 {{count}}명',
+    bannerTitle: '이번 주 추천 작가',
+    bannerSubtitle: '지금 인기 아티스트와 상담해보세요',
+    bannerCta: '바로 보기',
   },
 
   shop: {
@@ -397,7 +400,14 @@ export const ko = {
 
   account: {
     title: '계정 정보',
+    nicknameLabel: '닉네임',
     nicknamePlaceholder: '닉네임을 입력하세요',
+    nicknameMin: '닉네임은 최소 {{min}}자 이상 입력해주세요.',
+    profilePhotoHint: '프로필 사진을 탭하여 변경할 수 있습니다',
+    socialConnected: '{{provider}}로 로그인 중',
+    emailLabel: '이메일',
+    sectionSettings: '기타 설정',
+    saveBtn: '수정 완료',
     saved: '계정 정보가 저장되었습니다.',
   },
 

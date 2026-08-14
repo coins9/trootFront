@@ -125,6 +125,9 @@ export const en: TranslationSchema = {
     searchPlaceholder: 'Search artworks, artists',
     empty: 'No artworks yet.',
     totalArtists: '{{count}} artists',
+    bannerTitle: "This Week's Featured Artists",
+    bannerSubtitle: 'Consult with top tattoo artists right now',
+    bannerCta: 'View now',
   },
 
   shop: {
@@ -400,7 +403,14 @@ export const en: TranslationSchema = {
 
   account: {
     title: 'Account',
+    nicknameLabel: 'Nickname',
     nicknamePlaceholder: 'Enter your nickname',
+    nicknameMin: 'Nickname must be at least {{min}} characters.',
+    profilePhotoHint: 'Tap your profile photo to change it',
+    socialConnected: 'Signed in with {{provider}}',
+    emailLabel: 'Email',
+    sectionSettings: 'Settings',
+    saveBtn: 'Save changes',
     saved: 'Account updated.',
   },
 

@@ -33,8 +33,8 @@ const HomeArtistHeader = memo(({ onArtistPress, onBannerPress }: Props) => {
   const activeRef = useRef(0);
 
   const settings = usePublicSettings();
-  const bannerTitle = settings.homeBannerTitle || '이번 주 추천 작가';
-  const bannerSub = settings.homeBannerSubtitle || '지금 인기 아티스트와 상담해보세요';
+  const bannerTitle = settings.homeBannerTitle || t('home.bannerTitle');
+  const bannerSub = settings.homeBannerSubtitle || t('home.bannerSubtitle');
   const handleBanner = useCallback(() => {
     onBannerPress?.();
   }, [onBannerPress]);
@@ -87,6 +87,7 @@ const HomeArtistHeader = memo(({ onArtistPress, onBannerPress }: Props) => {
         imageUrl={settings.homeBannerImage || undefined}
         title={bannerTitle}
         subtitle={bannerSub}
+        ctaLabel={t('home.bannerCta')}
         linkUrl={settings.homeBannerUrl || undefined}
         onPress={handleBanner}
       />

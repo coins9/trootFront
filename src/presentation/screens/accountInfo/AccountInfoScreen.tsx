@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  Image, StatusBar, KeyboardAvoidingView, Platform, Keyboard,
+  StatusBar, KeyboardAvoidingView, Platform, Keyboard, Alert, Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -10,22 +10,24 @@ import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import {
   BackArrowIcon, CameraSolidIcon, CheckCircleIcon, CheckIcon,
-  ChatBubbleIcon, PhoneIcon, MailIcon, LockIcon,
   BellIcon, ShieldCheckIcon, ChevronRightIcon, PersonSilhouette,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import { useAuthStore } from '../../store/authStore';
+import { useTranslation } from '../../store/languageStore';
+import { userApi } from '../../../data/api';
+import { PROVIDER_LABEL_KEY } from '../../../domain/entities/authTypes';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const BIO_MAX = 50;
 const NICKNAME_MAX = 20;
 const NICKNAME_MIN = 2;
 
 interface LinkRowProps {
   Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
   label: string;
-  value: string;
+  value?: string;
   valueColor?: string;
   showCheck?: boolean;
   showChevron?: boolean;
@@ -47,12 +49,14 @@ const LinkRow = React.memo(({
     </View>
     <Text style={styles.linkLabel}>{label}</Text>
     <View style={styles.linkRight}>
-      <Text
-        style={[styles.linkValue, valueColor ? { color: valueColor } : null]}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
+      {value ? (
+        <Text
+          style={[styles.linkValue, valueColor ? { color: valueColor } : null]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+      ) : null}
       {showCheck && <CheckIcon size={16} color={COLORS.gold} strokeWidth={2.2} />}
       {showChevron && <ChevronRightIcon size={16} color={COLORS.gray} />}
     </View>
@@ -64,39 +68,56 @@ const AccountInfoScreen = () => {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
-  const [avatarUri, setAvatarUri] = useState<string>('');
-  const [nickname, setNickname] = useState<string>('root_user');
-  const [bio, setBio] = useState<string>('타투를 사랑하는 사람, 나만의 감성을 찾아가는 중');
+  const session = useAuthStore(s => s.session);
+  const logout = useAuthStore(s => s.logout);
+  const user = session?.user;
+
+  const [nickname, setNickname] = useState(user?.nickname ?? '');
+  const [saving, setSaving] = useState(false);
   const [nicknameFocused, setNicknameFocused] = useState(false);
 
   const nicknameValid = useMemo(
     () => nickname.trim().length >= NICKNAME_MIN,
     [nickname],
   );
-  const nicknameBorderColor = nicknameValid || nicknameFocused
-    ? COLORS.gold
-    : COLORS.border;
+  const nicknameBorderColor = nicknameValid || nicknameFocused ? COLORS.gold : COLORS.border;
 
-  const handleAvatarPress = useCallback(() => {
-    toast('프로필 사진 변경 — 준비 중입니다');
-  }, [toast]);
-
-  const handleBioChange = useCallback((next: string) => {
-    if (next.length <= BIO_MAX) setBio(next);
-  }, []);
+  const providerLabel = user?.provider ? t(PROVIDER_LABEL_KEY[user.provider] as any) : '';
 
   const handleNicknameChange = useCallback((next: string) => {
     if (next.length <= NICKNAME_MAX) setNickname(next);
   }, []);
 
-  const handleLinkKakao = useCallback(() => {
-    toast('카카오 연동 — 준비 중입니다');
-  }, [toast]);
+  const handleSave = useCallback(async () => {
+    if (!nicknameValid) {
+      toast(t('account.nicknameMin').replace('{{min}}', String(NICKNAME_MIN)), { variant: 'error' });
+      return;
+    }
+    Keyboard.dismiss();
+    setSaving(true);
+    try {
+      await userApi.updateNickname(nickname.trim());
+      toast(t('account.saved'), { variant: 'success' });
+      setTimeout(() => navigation.goBack(), 100);
+    } catch {
+      toast(t('common.error'), { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  }, [nicknameValid, nickname, t, toast, navigation]);
 
-  const handleChangePassword = useCallback(() => {
-    toast('비밀번호 변경 — 준비 중입니다');
-  }, [toast]);
+  const handleLogout = useCallback(() => {
+    Alert.alert(
+      t('auth.logout'),
+      t('auth.logoutConfirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('auth.logout'), style: 'destructive', onPress: () => logout() },
+      ],
+    );
+  }, [t, logout]);
 
   const handleNotifSettings = useCallback(() => {
     navigation.navigate('NotificationSettings');
@@ -105,22 +126,6 @@ const AccountInfoScreen = () => {
   const handlePrivacy = useCallback(() => {
     navigation.navigate('PrivacySecurity');
   }, [navigation]);
-
-  const handleLogout = useCallback(() => {
-    toast('로그아웃 — 준비 중입니다');
-  }, [toast]);
-
-  const handleSubmit = useCallback(() => {
-    if (!nicknameValid) {
-      toast(`닉네임은 최소 ${NICKNAME_MIN}자 이상 입력해주세요.`, { variant: 'error' });
-      return;
-    }
-    Keyboard.dismiss();
-    setTimeout(() => {
-      toast('계정 정보가 저장되었습니다.', { variant: 'success' });
-      navigation.goBack();
-    }, 100);
-  }, [nicknameValid, toast, navigation]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -135,7 +140,7 @@ const AccountInfoScreen = () => {
         >
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>계정 정보</Text>
+        <Text style={styles.title}>{t('account.title')}</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -149,17 +154,12 @@ const AccountInfoScreen = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Avatar block ── */}
+          {/* Avatar */}
           <View style={styles.avatarBlock}>
-            <TouchableOpacity
-              onPress={handleAvatarPress}
-              activeOpacity={0.85}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.avatarWrap}
-            >
+            <View style={styles.avatarWrap}>
               <View style={styles.avatarCircle}>
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
+                {user?.profileImage ? (
+                  <Image source={{ uri: user.profileImage }} style={styles.avatarImg} />
                 ) : (
                   <PersonSilhouette size={110} color="#3a3a3a" />
                 )}
@@ -167,22 +167,20 @@ const AccountInfoScreen = () => {
               <View style={styles.avatarBadge} pointerEvents="none">
                 <CameraSolidIcon size={18} color={COLORS.black} strokeWidth={1.9} />
               </View>
-            </TouchableOpacity>
-            <Text style={styles.avatarHelper}>
-              프로필 사진을 탭하여 변경할 수 있습니다.
-            </Text>
+            </View>
+            <Text style={styles.avatarHelper}>{t('account.profilePhotoHint')}</Text>
           </View>
 
-          {/* ── 닉네임 ── */}
+          {/* 닉네임 */}
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>닉네임</Text>
+            <Text style={styles.fieldLabel}>{t('account.nicknameLabel')}</Text>
             <View style={[styles.inputRow, { borderColor: nicknameBorderColor }]}>
               <TextInput
                 value={nickname}
                 onChangeText={handleNicknameChange}
                 onFocus={() => setNicknameFocused(true)}
                 onBlur={() => setNicknameFocused(false)}
-                placeholder="닉네임을 입력하세요"
+                placeholder={t('account.nicknamePlaceholder')}
                 placeholderTextColor={COLORS.gray}
                 style={styles.textInput}
                 maxLength={NICKNAME_MAX}
@@ -196,73 +194,36 @@ const AccountInfoScreen = () => {
             </View>
           </View>
 
-          {/* ── 한 줄 소개 ── */}
-          <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>한 줄 소개</Text>
-            <View style={styles.bioWrap}>
-              <TextInput
-                value={bio}
-                onChangeText={handleBioChange}
-                placeholder="자신을 한 줄로 소개해보세요"
-                placeholderTextColor={COLORS.gray}
-                multiline
-                maxLength={BIO_MAX}
-                style={styles.bioInput}
-                textAlignVertical="top"
-              />
-              <Text style={styles.bioCounter}>
-                {bio.length}/{BIO_MAX}
-              </Text>
-            </View>
-          </View>
-
-          {/* ── 연동 정보 ── */}
-          <Text style={styles.sectionTitle}>연동 정보</Text>
+          {/* 소셜 연동 정보 */}
           <View style={styles.card}>
             <LinkRow
-              Icon={ChatBubbleIcon}
-              label="카카오 계정 연동"
-              value="연동 없음"
-              valueColor={COLORS.gold}
-              showChevron
-              onPress={handleLinkKakao}
-            />
-            <LinkRow
-              Icon={PhoneIcon}
-              label="휴대폰 번호"
-              value="010-1234-5678"
+              Icon={ShieldCheckIcon}
+              label={t('account.socialConnected').replace('{{provider}}', providerLabel)}
               showCheck
+              isLast={!user?.email}
             />
-            <LinkRow
-              Icon={MailIcon}
-              label="이메일 주소"
-              value="root_user@example.com"
-              showCheck
-            />
-            <LinkRow
-              Icon={LockIcon}
-              label="비밀번호"
-              value="********"
-              showChevron
-              isLast
-              onPress={handleChangePassword}
-            />
+            {user?.email ? (
+              <LinkRow
+                Icon={BellIcon}
+                label={t('account.emailLabel')}
+                value={user.email}
+                isLast
+              />
+            ) : null}
           </View>
 
-          {/* ── 기타 설정 ── */}
-          <Text style={styles.sectionTitle}>기타 설정</Text>
+          {/* 기타 설정 */}
+          <Text style={styles.sectionTitle}>{t('account.sectionSettings')}</Text>
           <View style={styles.card}>
             <LinkRow
               Icon={BellIcon}
-              label="알림 설정"
-              value=""
+              label={t('notification.title')}
               showChevron
               onPress={handleNotifSettings}
             />
             <LinkRow
               Icon={ShieldCheckIcon}
-              label="개인정보 및 보안"
-              value=""
+              label={t('privacy.title')}
               showChevron
               isLast
               onPress={handlePrivacy}
@@ -275,18 +236,18 @@ const AccountInfoScreen = () => {
             hitSlop={{ top: 10, bottom: 10, left: 20, right: 20 }}
             style={styles.logoutBtn}
           >
-            <Text style={styles.logoutText}>로그아웃</Text>
+            <Text style={styles.logoutText}>{t('auth.logout')}</Text>
           </TouchableOpacity>
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
           <TouchableOpacity
-            onPress={handleSubmit}
+            onPress={handleSave}
             activeOpacity={0.85}
-            style={[styles.submitBtn, !nicknameValid && styles.submitBtnDisabled]}
-            disabled={!nicknameValid}
+            style={[styles.submitBtn, (!nicknameValid || saving) && styles.submitBtnDisabled]}
+            disabled={!nicknameValid || saving}
           >
-            <Text style={styles.submitText}>수정 완료</Text>
+            <Text style={styles.submitText}>{t('account.saveBtn')}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -329,7 +290,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 
-  /* Avatar */
   avatarBlock: {
     alignItems: 'center',
     paddingTop: 12,
@@ -372,7 +332,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  /* Fields */
   fieldBlock: {
     marginBottom: 20,
   },
@@ -402,32 +361,6 @@ const styles = StyleSheet.create({
     padding: 0,
   },
 
-  bioWrap: {
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 10,
-    minHeight: 96,
-  },
-  bioInput: {
-    color: COLORS.white,
-    fontSize: 13,
-    lineHeight: 19,
-    padding: 0,
-    minHeight: 44,
-  },
-  bioCounter: {
-    color: COLORS.gray,
-    fontSize: 12,
-    lineHeight: 17,
-    textAlign: 'right',
-    marginTop: 6,
-  },
-
-  /* Section card */
   sectionTitle: {
     color: COLORS.white,
     fontSize: 15,
@@ -464,7 +397,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 20,
-    flexShrink: 0,
+    flexShrink: 1,
   },
   linkRight: {
     flex: 1,
@@ -481,7 +414,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  /* Logout */
   logoutBtn: {
     alignSelf: 'center',
     paddingVertical: 8,
@@ -496,7 +428,6 @@ const styles = StyleSheet.create({
     textDecorationColor: COLORS.gray,
   },
 
-  /* Footer submit */
   footer: {
     paddingHorizontal: 20,
     paddingTop: 10,
