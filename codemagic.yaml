@@ -119,7 +119,7 @@ workflows:
     max_build_duration: 60
     environment:
       groups:
-        - firebase_credentials
+        - app_credentials
       node: 22
       xcode: 26
       cocoapods: default
@@ -217,7 +217,7 @@ workflows:
     environment:
       groups:
         - app_credentials
-        - firebase_credentials
+        - app_credentials
       node: 22
       xcode: 26
       cocoapods: default
