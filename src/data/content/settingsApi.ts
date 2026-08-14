@@ -19,6 +19,17 @@ export interface PublicSettings {
   homeBannerTitle: string;
   homeBannerSubtitle: string;
   homeBannerUrl: string;
+  homeBannerImage: string;
+  /** 샵&매칭 탭별 배너 이미지 */
+  shopBoothBannerImage: string;
+  shopBoothBannerUrl: string;
+  shopModelBannerImage: string;
+  shopModelBannerUrl: string;
+  shopMediaBannerImage: string;
+  shopMediaBannerUrl: string;
+  /** 용품샵 배너 */
+  suppliesBannerImage: string;
+  suppliesBannerUrl: string;
 }
 
 /** 서버 응답 전이나 실패 시에도 문의 경로가 끊기지 않도록 하는 기본값 */
@@ -38,6 +49,15 @@ export const DEFAULT_SETTINGS: PublicSettings = {
   homeBannerTitle: '',
   homeBannerSubtitle: '',
   homeBannerUrl: '',
+  homeBannerImage: '',
+  shopBoothBannerImage: '',
+  shopBoothBannerUrl: '',
+  shopModelBannerImage: '',
+  shopModelBannerUrl: '',
+  shopMediaBannerImage: '',
+  shopMediaBannerUrl: '',
+  suppliesBannerImage: '',
+  suppliesBannerUrl: '',
 };
 
 export const fetchPublicSettings = async (): Promise<PublicSettings> => {

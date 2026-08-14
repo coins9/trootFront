@@ -16,10 +16,11 @@ import { RootStackParamList } from '../../../infrastructure/navigation/RootNavig
 import { ShopMatchingCategory } from '../../../domain/entities/shopTypes';
 import { usePagedApi } from '../../hooks/useApi';
 import { shopApi, ShopPost, ShopCategory } from '../../../data/api';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-type PostStatus = '모집중' | '마감';
+type PostStatus = 'open' | 'closed';
 
 interface MyShopPost {
   id: string;
@@ -64,18 +65,23 @@ const toMyPost = (p: ShopPost): MyShopPost => ({
   category: API_TO_CATEGORY[p.category],
   title: p.title,
   region: p.region ?? '',
-  status: p.status === 'open' ? '모집중' : '마감',
+  status: (p.status === 'open' ? 'open' : 'closed') as 'open' | 'closed',
   createdAt: p.createdAt.slice(0, 10),
   likeCount: p.likeCount,
   commentCount: p.applicationCount,
   viewCount: p.viewCount,
 });
 
-const StatusBadge = ({ status }: { status: PostStatus }) => (
-  <View style={[s.statusBadge, status === '마감' && s.statusBadgeClosed]}>
-    <Text style={[s.statusText, status === '마감' && s.statusTextClosed]}>{status}</Text>
-  </View>
-);
+const StatusBadge = ({ status }: { status: PostStatus }) => {
+  const { t } = useTranslation();
+  return (
+    <View style={[s.statusBadge, status === 'closed' && s.statusBadgeClosed]}>
+      <Text style={[s.statusText, status === 'closed' && s.statusTextClosed]}>
+        {status === 'open' ? t('myShopPosts.statusOpen') : t('myShopPosts.statusClosed')}
+      </Text>
+    </View>
+  );
+};
 
 const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete, onAd }: {
   post: MyShopPost;
@@ -83,7 +89,9 @@ const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete, onAd }: {
   onToggleStatus: (p: MyShopPost) => void;
   onDelete: (p: MyShopPost) => void;
   onAd: (p: MyShopPost) => void;
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <View style={s.card}>
     <View style={s.cardTop}>
       <View style={s.categoryTag}>
@@ -123,7 +131,7 @@ const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete, onAd }: {
         activeOpacity={0.75}
       >
         <BarChartIcon size={14} color={COLORS.gold} strokeWidth={1.8} />
-        <Text style={s.actionBtnText}>광고</Text>
+        <Text style={s.actionBtnText}>{t('myShopPosts.ad')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={s.actionBtn}
@@ -131,7 +139,7 @@ const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete, onAd }: {
         activeOpacity={0.75}
       >
         <Text style={s.actionBtnText}>
-          {post.status === '모집중' ? '마감하기' : '재모집'}
+          {post.status === 'open' ? t('myShopPosts.statusClosed') : t('myShopPosts.statusOpen')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -140,20 +148,22 @@ const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete, onAd }: {
         activeOpacity={0.75}
       >
         <EditPenIcon size={15} color={COLORS.gold} />
-        <Text style={s.actionBtnText}>수정</Text>
+        <Text style={s.actionBtnText}>{t('common.edit')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[s.actionBtn, s.actionBtnDanger]}
         onPress={() => onDelete(post)}
         activeOpacity={0.75}
       >
-        <Text style={[s.actionBtnText, s.actionBtnTextDanger]}>삭제</Text>
+        <Text style={[s.actionBtnText, s.actionBtnTextDanger]}>{t('common.delete')}</Text>
       </TouchableOpacity>
     </View>
   </View>
-));
+  );
+});
 
 const MyShopPostsScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
@@ -181,43 +191,43 @@ const MyShopPostsScreen = () => {
   }, [navigation]);
 
   const handleToggleStatus = useCallback(async (post: MyShopPost) => {
-    const nextStatus = post.status === '모집중' ? 'closed' : 'open';
+    const nextStatus = post.status === 'open' ? 'closed' : 'open';
     setItems(prev =>
-      prev.map(p => p.id === post.id ? { ...p, status: nextStatus } : p),
+      prev.map(p => p.id === post.id ? { ...p, status: nextStatus as PostStatus } : p),
     );
     try {
       await shopApi.setStatus(post.id, nextStatus);
       toast(
-        nextStatus === 'closed' ? '모집을 마감했습니다' : '다시 모집을 시작합니다',
+        nextStatus === 'closed' ? t('myShopPosts.statusClosed') : t('myShopPosts.statusOpen'),
         { variant: 'success' },
       );
     } catch {
       setItems(prev =>
-        prev.map(p => p.id === post.id ? { ...p, status: nextStatus === 'closed' ? 'open' : 'closed' } : p),
+        prev.map(p => p.id === post.id ? { ...p, status: (nextStatus === 'closed' ? 'open' : 'closed') as PostStatus } : p),
       );
-      toast('상태 변경에 실패했습니다.', { variant: 'error' });
+      toast(t('common.error'), { variant: 'error' });
     }
-  }, [setItems, toast]);
+  }, [setItems, toast, t]);
 
   const handleDelete = useCallback((post: MyShopPost) => {
     setConfirm({
-      title: '글 삭제',
-      message: '이 글을 삭제하시겠습니까?\n삭제한 글은 복구할 수 없습니다.',
-      cancelLabel: '취소',
-      confirmLabel: '삭제',
+      title: t('myShopPosts.deleteTitle'),
+      message: t('myShopPosts.deleteMsg'),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('common.delete'),
       variant: 'danger',
       onConfirm: async () => {
         setConfirm(null);
         setItems(prev => prev.filter(p => p.id !== post.id));
         try {
           await shopApi.remove(post.id);
-          toast('글이 삭제되었습니다', { variant: 'success' });
+          toast(t('myShopPosts.deleteSuccess'), { variant: 'success' });
         } catch {
-          toast('삭제에 실패했습니다.', { variant: 'error' });
+          toast(t('myShopPosts.deleteFailed'), { variant: 'error' });
         }
       },
     });
-  }, [setItems, toast]);
+  }, [setItems, toast, t]);
 
   const handleAd = useCallback((post: MyShopPost) => {
     navigation.navigate('AdManage', {
@@ -247,7 +257,7 @@ const MyShopPostsScreen = () => {
         >
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>샵&매칭 글 관리</Text>
+        <Text style={s.headerTitle}>{t('myShopPosts.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -260,7 +270,13 @@ const MyShopPostsScreen = () => {
             activeOpacity={0.75}
           >
             <Text style={[s.filterTabText, filter === tab.key && s.filterTabTextActive]}>
-              {tab.label}
+              {tab.key === 'all'
+                ? t('common.all')
+                : tab.key === '부스 쉐어'
+                  ? t('shop.tab.booth')
+                  : tab.key === '타투 모델 구인 (비기너)'
+                    ? t('shop.tab.model')
+                    : t('shop.tab.media')}
             </Text>
           </TouchableOpacity>
         ))}
@@ -285,15 +301,15 @@ const MyShopPostsScreen = () => {
           ) : (
             <View style={s.empty}>
               <PenIcon size={40} color={COLORS.gray3} />
-              <Text style={s.emptyTitle}>작성한 글이 없습니다</Text>
-              <Text style={s.emptyDesc}>샵&매칭에서 첫 글을 작성해보세요</Text>
+              <Text style={s.emptyTitle}>{t('myShopPosts.empty')}</Text>
+              <Text style={s.emptyDesc}>{t('myShopPosts.writeFirst')}</Text>
               <TouchableOpacity
                 style={s.emptyBtn}
                 onPress={() => navigation.navigate('ShopWrite')}
                 activeOpacity={0.85}
               >
                 <PenIcon size={16} color={COLORS.black} />
-                <Text style={s.emptyBtnText}>글쓰기</Text>
+                <Text style={s.emptyBtnText}>{t('shop.writeHeader')}</Text>
               </TouchableOpacity>
             </View>
           )

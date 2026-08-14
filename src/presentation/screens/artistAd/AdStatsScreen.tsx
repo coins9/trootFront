@@ -22,6 +22,7 @@ import { ArtistAdItem, ArtistAdStatus } from '../../../domain/entities/artistAdT
 import { useApi, usePagedApi } from '../../hooks/useApi';
 import { artistApi, adApi, type Artwork, type AdCampaign } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 const FMT_DATE = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '-';
@@ -57,6 +58,7 @@ const PROMO_URL_KEY: Record<string, 'adInquiryUrl' | 'partnerInquiryUrl'> = {
 };
 
 const AdStatsScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const settings = usePublicSettings();
@@ -80,7 +82,7 @@ const AdStatsScreen = () => {
 
   const openPromoUrl = useCallback((url: string) => {
     Linking.openURL(url).catch(() => {
-      toast('링크를 열 수 없습니다. 잠시 후 다시 시도해주세요.', { variant: 'error' });
+      toast(t('adStats.linkError'), { variant: 'error' });
     });
   }, [toast]);
 
@@ -150,7 +152,7 @@ const AdStatsScreen = () => {
         >
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>광고 및 통계 관리</Text>
+        <Text style={styles.title}>{t('adStats.title')}</Text>
       </View>
 
       <ScrollView
@@ -173,10 +175,10 @@ const AdStatsScreen = () => {
         })}
 
         {/* Section title */}
-        <Text style={styles.sectionTitle}>도안 광고 관리</Text>
+        <Text style={styles.sectionTitle}>{t('adStats.sectionTitle')}</Text>
 
         {adItems.length === 0 ? (
-          <Text style={styles.emptyText}>등록한 도안이 없습니다.</Text>
+          <Text style={styles.emptyText}>{t('adStats.artworkEmpty')}</Text>
         ) : (
           adItems.map((ad) => (
             <AdCard

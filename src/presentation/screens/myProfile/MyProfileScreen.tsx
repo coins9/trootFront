@@ -125,14 +125,14 @@ const MyProfileScreen = () => {
       if (prev === next) return prev;
       const tKey = MODE_TAB_KEYS.find((m) => m.key === next)?.tKey;
       const label = tKey ? t(tKey) : '';
-      toast(`${label} 모드로 전환되었습니다`, { variant: 'success' });
+      toast(t('profile.modeSwitched').replace('{{mode}}', label), { variant: 'success' });
       return next;
     });
   }, [t, toast]);
 
   /* ── 이용자 메뉴 ── */
   const userReservationItems: MenuItem[] = [
-    { Icon: CalendarIcon, label: t('profile.bookingManage'), badge: '예약 확인 대기', onPress: goToReservationManage },
+    { Icon: CalendarIcon, label: t('profile.bookingManage'), badge: t('profile.reservationPending'), onPress: goToReservationManage },
     { Icon: HeartIcon, label: t('profile.favArtists'), onPress: goToFavoriteArtists },
     { Icon: PaletteIcon, label: t('profile.favWorks'), onPress: goToFavoriteWorks },
     { Icon: StoreIcon, label: t('profile.favPhotoShops'), onPress: goToFavoritePhotoShops },
@@ -155,25 +155,25 @@ const MyProfileScreen = () => {
     {
       Icon: CheckCircleIcon,
       label: t('profile.reservationRequests'),
-      description: '들어온 예약 요청을 확인하고 확정',
+      description: t('profile.artistDescRequests'),
       onPress: goToReservationRequests,
     },
     {
       Icon: CalendarIcon,
       label: t('profile.bookingManage'),
-      description: '예약 확인, 일정 관리, 노쇼 방지',
+      description: t('profile.artistDescSchedule'),
       onPress: goToArtistReservation,
     },
     {
       Icon: BarChartIcon,
       label: t('profile.adStats'),
-      description: '광고 관리 및 통계 확인',
+      description: t('profile.artistDescAdStats'),
       onPress: goToArtistAdStats,
     },
     {
       Icon: EditPenIcon,
       label: t('profile.portfolioReview'),
-      description: '프로필 · 작품 · 리뷰를 한 화면에서 관리',
+      description: t('profile.artistDescPortfolio'),
       onPress: goToArtistMyPage,
     },
   ];
@@ -183,19 +183,19 @@ const MyProfileScreen = () => {
     {
       Icon: FolderIcon,
       label: t('profile.addProduct'),
-      description: '새 상품을 등록하고 판매를 시작하세요',
+      description: t('profile.vendorDescAddProduct'),
       onPress: goToProductForm,
     },
     {
       Icon: StoreIcon,
       label: t('profile.manageProducts'),
-      description: '등록한 상품 수정 · 재고 · 판매 상태 관리',
+      description: t('profile.vendorDescManage'),
       onPress: goToMyProducts,
     },
     {
       Icon: BarChartIcon,
       label: t('profile.sellerInfo'),
-      description: '입점 상태와 수수료 · 정산 내역 확인',
+      description: t('profile.vendorDescSeller'),
       onPress: goToMyProducts,
     },
   ];

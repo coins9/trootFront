@@ -31,6 +31,8 @@ import { usePagedApi } from '../../hooks/useApi';
 import { useDebounce } from '../../hooks/useDebounce';
 import { shopApi, ShopPost } from '../../../data/api';
 import SearchBar from '../../components/common/SearchBar';
+import ScreenBanner from '../../components/common/ScreenBanner';
+import { useTranslation } from '../../store/languageStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type ShareFilterKind = 'region' | 'lighting' | 'bed' | 'occupancy' | 'sort';
@@ -166,10 +168,11 @@ const BEGINNER_FILTERS: { label: string; Icon: React.ComponentType<any> }[] = [
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const CATEGORY_SUBTITLES: Record<ShopMatchingCategory, string> = {
-  '부스 쉐어': '타투 공간을 공유하고, 함께 성장하세요.',
-  '타투 모델 구인 (비기너)': '비기너 타투이스트의 모델을 지원해보세요.',
-  '사진/영상 편집자': '타투샵 콘텐츠를 함께 만들 전문가를 찾아보세요.',
+// 표시용 번역은 컴포넌트 내부에서 t()로 처리, 여기는 비교용 값만 유지
+const CATEGORY_SUBTITLES: Record<ShopMatchingCategory, 'booth' | 'model' | 'media'> = {
+  '부스 쉐어': 'booth',
+  '타투 모델 구인 (비기너)': 'model',
+  '사진/영상 편집자': 'media',
 };
 
 // 카테고리 → 관리자에서 설정한 왈라(Walla) 배너 URL 키
@@ -180,6 +183,7 @@ const CATEGORY_WALLA_KEY: Record<ShopMatchingCategory, 'bannerBoothUrl' | 'banne
 };
 
 const ShopMatchingScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const settings = usePublicSettings();
   const [category, setCategory] = useState<ShopMatchingCategory>('부스 쉐어');
@@ -273,49 +277,63 @@ const ShopMatchingScreen = () => {
 
   const shareFilterButtons = useMemo(() => [
     {
-      label: shareFilter.region === '전체' ? '지역' : shareFilter.region.replace('서울 · ', ''),
+      label: shareFilter.region === '전체' ? t('shop.filter.region') : shareFilter.region.replace('서울 · ', ''),
       Icon: RegionIcon,
       kind: 'region' as const,
       active: shareFilter.region !== '전체',
     },
     {
-      label: shareFilter.lighting === '전체' ? '조명' : shareFilter.lighting.replace(/ \(.*\)/, ''),
+      label: shareFilter.lighting === '전체' ? t('shop.filter.lighting') : shareFilter.lighting.replace(/ \(.*\)/, ''),
       Icon: LightIcon,
       kind: 'lighting' as const,
       active: shareFilter.lighting !== '전체',
     },
     {
-      label: shareFilter.bedCount === '전체' ? '베드 수' : shareFilter.bedCount,
+      label: shareFilter.bedCount === '전체' ? t('shop.filter.bed') : shareFilter.bedCount,
       Icon: BedIcon,
       kind: 'bed' as const,
       active: shareFilter.bedCount !== '전체',
     },
     {
-      label: shareFilter.occupancy === '전체' ? '인원' : shareFilter.occupancy.split(' ')[0],
+      label: shareFilter.occupancy === '전체' ? t('shop.filter.occupancy') : shareFilter.occupancy.split(' ')[0],
       Icon: PeopleIcon,
       kind: 'occupancy' as const,
       active: shareFilter.occupancy !== '전체',
     },
-  ], [shareFilter]);
+  ], [shareFilter, t]);
 
   const isShareCategory = !isBeginnerCategory && !isEditorCategory;
 
-  const nonShareFilters = isEditorCategory
-    ? (expertTab === 'photo' ? PHOTO_FILTERS : VIDEO_FILTERS)
-    : isBeginnerCategory
-      ? BEGINNER_FILTERS
-      : SHARE_FILTERS;
+  const nonShareFilters = useMemo(() => {
+    const photoFilters = [
+      { label: t('shop.filter.region'), Icon: RegionIcon },
+      { label: t('shop.filter.career'), Icon: StarIcon },
+      { label: t('shop.filter.shootingStyle'), Icon: CalendarIcon },
+    ];
+    const videoFilters = [
+      { label: t('shop.filter.region'), Icon: RegionIcon },
+      { label: t('shop.filter.career'), Icon: StarIcon },
+      { label: t('shop.filter.workType'), Icon: FilterSlidersIcon },
+    ];
+    const beginnerFilters = [
+      { label: t('shop.filter.region'), Icon: RegionIcon },
+      { label: t('shop.filter.style'), Icon: FilterSlidersIcon },
+      { label: t('shop.filter.price'), Icon: StarIcon },
+      { label: t('shop.filter.date'), Icon: CalendarIcon },
+    ];
+    if (isEditorCategory) return expertTab === 'photo' ? photoFilters : videoFilters;
+    if (isBeginnerCategory) return beginnerFilters;
+    return photoFilters;
+  }, [isEditorCategory, isBeginnerCategory, expertTab, t]);
 
   const sortLabel = isShareCategory
     ? `↑↓ ${shareFilter.sort.split(' (')[0]}`
     : isEditorCategory
-      ? '↑↓ 추천순'
-      : '↑↓ 최신순';
+      ? t('shop.sortRecommended')
+      : t('shop.sortLatest');
 
-  const editorTitle = expertTab === 'photo' ? '사진 작가' : '영상 편집자';
-  const editorSubtitle = expertTab === 'photo'
-    ? '타투 촬영 전문 작가들의 프로필과 작업 정보를 확인하세요.'
-    : '릴스, 쇼츠, 보정 작업 전문 편집자들의 프로필을 확인하세요.';
+  const editorTitle = expertTab === 'photo' ? t('shop.photoExpert') : t('shop.videoExpert');
+  const editorSubtitle = expertTab === 'photo' ? t('shop.photoSubtitle') : t('shop.videoSubtitle');
 
   const Header = (
     <View>
@@ -336,7 +354,7 @@ const ShopMatchingScreen = () => {
                 adjustsFontSizeToFit
                 minimumFontScale={0.75}
               >
-                {c}
+                {t(`shop.tab.${CATEGORY_SUBTITLES[c]}` as any)}
               </Text>
               {isActive && <View style={styles.categoryUnderline} />}
             </TouchableOpacity>
@@ -347,12 +365,32 @@ const ShopMatchingScreen = () => {
       {/* Title */}
       <View style={styles.titleBlock}>
         <Text style={styles.title}>
-          {isEditorCategory ? editorTitle : category}
+          {isEditorCategory ? editorTitle : t(`shop.tab.${CATEGORY_SUBTITLES[category]}` as any)}
         </Text>
         <Text style={styles.subtitle}>
-          {isEditorCategory ? editorSubtitle : CATEGORY_SUBTITLES[category]}
+          {isEditorCategory ? editorSubtitle : t(`shop.subtitle.${CATEGORY_SUBTITLES[category]}` as any)}
         </Text>
       </View>
+
+      {/* 탭별 메인 배너 */}
+      {isShareCategory && (settings.shopBoothBannerImage || settings.shopBoothBannerUrl) && (
+        <ScreenBanner
+          imageUrl={settings.shopBoothBannerImage || undefined}
+          linkUrl={settings.shopBoothBannerUrl || undefined}
+        />
+      )}
+      {isBeginnerCategory && (settings.shopModelBannerImage || settings.shopModelBannerUrl) && (
+        <ScreenBanner
+          imageUrl={settings.shopModelBannerImage || undefined}
+          linkUrl={settings.shopModelBannerUrl || undefined}
+        />
+      )}
+      {isEditorCategory && (settings.shopMediaBannerImage || settings.shopMediaBannerUrl) && (
+        <ScreenBanner
+          imageUrl={settings.shopMediaBannerImage || undefined}
+          linkUrl={settings.shopMediaBannerUrl || undefined}
+        />
+      )}
 
       {/* Editor sub-tabs (photo / video) */}
       {isEditorCategory && (
@@ -369,7 +407,7 @@ const ShopMatchingScreen = () => {
             <Text
               style={[styles.subTabText, expertTab === 'photo' && styles.subTabTextActive]}
             >
-              사진 작가
+              {t('shop.photoExpert')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -384,7 +422,7 @@ const ShopMatchingScreen = () => {
             <Text
               style={[styles.subTabText, expertTab === 'video' && styles.subTabTextActive]}
             >
-              영상 편집자
+              {t('shop.videoExpert')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -394,10 +432,7 @@ const ShopMatchingScreen = () => {
       {isBeginnerCategory && (
         <View style={styles.warningBanner}>
           <WarningTriangleIcon size={15} color={COLORS.gold} />
-          <Text style={styles.warningText}>
-            비기너 타투이스트의 작업이므로, 모든 선택과 문제 발생 시 책임은{'\n'}
-            손님과 타투이스트 당사자에게 있으며 플랫폼은 책임지지 않습니다.
-          </Text>
+          <Text style={styles.warningText}>{t('shop.beginnerDisclaimer')}</Text>
         </View>
       )}
 
@@ -452,9 +487,7 @@ const ShopMatchingScreen = () => {
       {isEditorCategory && expertTab === 'video' && (
         <View style={styles.hintRow}>
           <InfoIcon size={13} color={COLORS.gray} />
-          <Text style={styles.hintText}>
-            프로필을 클릭하면 상세 정보를 확인할 수 있습니다.
-          </Text>
+          <Text style={styles.hintText}>{t('shop.profileClickHint')}</Text>
         </View>
       )}
     </View>
@@ -469,7 +502,7 @@ const ShopMatchingScreen = () => {
           value={keyword}
           onChangeText={setKeyword}
           onCancel={handleSearchCancel}
-          placeholder="부스, 모델, 편집자 검색"
+          placeholder={t('shop.searchPlaceholder')}
         />
       )}
       {isBeginnerCategory ? (
@@ -521,13 +554,13 @@ const ShopMatchingScreen = () => {
         }}
       >
         <PenIcon size={20} color={COLORS.black} />
-        <Text style={styles.fabText}>글쓰기</Text>
+        <Text style={styles.fabText}>{t('shop.write')}</Text>
       </TouchableOpacity>
 
       {/* Share filter bottom sheets */}
       <ShareFilterBottomSheet<ShareRegion>
         visible={activeFilterSheet === 'region'}
-        title="지역 선택"
+        title={t('shop.filter.selectRegion')}
         options={SHARE_REGION_OPTIONS}
         selected={shareFilter.region}
         onSelect={(v) => setShareFilter((prev) => ({ ...prev, region: v }))}
@@ -535,7 +568,7 @@ const ShopMatchingScreen = () => {
       />
       <ShareFilterBottomSheet<ShareLighting>
         visible={activeFilterSheet === 'lighting'}
-        title="조명 선택"
+        title={t('shop.filter.selectLighting')}
         options={SHARE_LIGHTING_OPTIONS}
         selected={shareFilter.lighting}
         onSelect={(v) => setShareFilter((prev) => ({ ...prev, lighting: v }))}
@@ -543,7 +576,7 @@ const ShopMatchingScreen = () => {
       />
       <ShareFilterBottomSheet<ShareBedCount>
         visible={activeFilterSheet === 'bed'}
-        title="베드 수 선택"
+        title={t('shop.filter.selectBed')}
         options={SHARE_BED_OPTIONS}
         selected={shareFilter.bedCount}
         onSelect={(v) => setShareFilter((prev) => ({ ...prev, bedCount: v }))}
@@ -551,7 +584,7 @@ const ShopMatchingScreen = () => {
       />
       <ShareFilterBottomSheet<ShareOccupancy>
         visible={activeFilterSheet === 'occupancy'}
-        title="인원 선택"
+        title={t('shop.filter.selectOccupancy')}
         options={SHARE_OCCUPANCY_OPTIONS}
         selected={shareFilter.occupancy}
         onSelect={(v) => setShareFilter((prev) => ({ ...prev, occupancy: v }))}
@@ -559,7 +592,7 @@ const ShopMatchingScreen = () => {
       />
       <ShareFilterBottomSheet<ShareSort>
         visible={activeFilterSheet === 'sort'}
-        title="정렬"
+        title={t('shop.filter.sort')}
         options={SHARE_SORT_OPTIONS}
         selected={shareFilter.sort}
         onSelect={(v) => setShareFilter((prev) => ({ ...prev, sort: v }))}

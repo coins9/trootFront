@@ -14,6 +14,7 @@ import { useApi } from '../../hooks/useApi';
 import { artistApi } from '../../../data/api';
 import { toArtist } from '../../../data/api/mappers';
 import { Artist } from '../../../domain/entities/types';
+import { useTranslation } from '../../store/languageStore';
 
 const { width: W, height: H } = Dimensions.get('window');
 const HERO_HEIGHT = H * 0.55;
@@ -80,6 +81,7 @@ const GridCard = memo(({ item, onPress }: { item: PickItem; onPress: () => void 
 GridCard.displayName = 'GridCard';
 
 const RootsPickScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<RootsPickNavProp>();
 
   const { data, loading } = useApi(
@@ -107,7 +109,7 @@ const RootsPickScreen = () => {
         <LogoHeader />
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyText}>
-            {loading ? '불러오는 중...' : '아직 선정된 아티스트가 없습니다.'}
+            {loading ? t('common.loading') : t('rootsPick.empty')}
           </Text>
         </View>
       </SafeAreaView>
@@ -156,7 +158,7 @@ const RootsPickScreen = () => {
               TIMELESS.
             </Text>
             <Text style={styles.subtitle}>
-              루트가 선정한{'\n'}프리미엄 타투 아티스트
+              {t('rootsPick.headline')}
             </Text>
 
             <View style={styles.viewArtistsDivider} />

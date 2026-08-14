@@ -21,6 +21,9 @@ import { useDebounce } from '../../hooks/useDebounce';
 import {
   supplyApi, favoriteApi, type SupplyProduct, type ProductCategory,
 } from '../../../data/api';
+import { usePublicSettings } from '../../hooks/usePublicSettings';
+import ScreenBanner from '../../components/common/ScreenBanner';
+import { useTranslation } from '../../store/languageStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -34,6 +37,21 @@ const CODE_BY_CATEGORY: Record<SupplyCategory, ProductCategory> = {
   '스탠실 용품': 'stencil',
   '애프터케어': 'aftercare',
   '가구·인테리어': 'furniture',
+};
+// 카테고리 한국어 키 → 번역 키 (supplies.category.*)
+const CATEGORY_T_KEY: Record<SupplyCategory, string> = {
+  '머신 & 장비': 'machine',
+  '니들 (바늘)': 'needle',
+  '잉크': 'ink',
+  '위생·소모품': 'hygiene',
+  '스탠실 용품': 'stencil',
+  '애프터케어': 'aftercare',
+  '가구·인테리어': 'furniture',
+};
+const SORT_T_KEY: Record<SupplySort, string> = {
+  '인기순': 'popular',
+  '가격대': 'price',
+  '카테고리': 'recent',
 };
 const CATEGORY_BY_CODE = Object.fromEntries(
   Object.entries(CODE_BY_CATEGORY).map(([label, code]) => [code, label]),
@@ -59,8 +77,10 @@ const toSupply = (p: SupplyProduct): TattooSupply => ({
 });
 
 const TattooSuppliesScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
+  const settings = usePublicSettings();
   const [category, setCategory] = useState<SupplyCategory>('머신 & 장비');
   const [sort, setSort] = useState<SupplySort>('인기순');
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
@@ -97,7 +117,7 @@ const TattooSuppliesScreen = () => {
       else next.add(id);
       return next;
     });
-    toast(willAdd ? '찜 목록에 추가되었습니다.' : '찜을 해제했습니다.', {
+    toast(willAdd ? t('common.bookmarked') : t('common.unbookmarked'), {
       variant: willAdd ? 'success' : undefined,
     });
     try {
@@ -127,6 +147,14 @@ const TattooSuppliesScreen = () => {
 
   const Header = (
     <View>
+      {/* 용품샵 메인 배너 */}
+      {(settings.suppliesBannerImage || settings.suppliesBannerUrl) && (
+        <ScreenBanner
+          imageUrl={settings.suppliesBannerImage || undefined}
+          linkUrl={settings.suppliesBannerUrl || undefined}
+        />
+      )}
+
       {/* Category chips */}
       <ScrollView
         horizontal
@@ -144,7 +172,7 @@ const TattooSuppliesScreen = () => {
               style={[styles.categoryChip, isActive && styles.categoryChipActive]}
             >
               <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>
-                {c}
+                {t(`supplies.category.${CATEGORY_T_KEY[c]}` as any)}
               </Text>
             </TouchableOpacity>
           );
@@ -162,7 +190,7 @@ const TattooSuppliesScreen = () => {
               activeOpacity={0.8}
               style={[styles.filterBtn, isActive && styles.filterBtnActive]}
             >
-              <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{s}</Text>
+              <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{t(`supplies.sort.${SORT_T_KEY[s]}` as any)}</Text>
               <ChevronDownIcon
                 size={12}
                 color={isActive ? COLORS.gold : COLORS.gray}
@@ -183,7 +211,7 @@ const TattooSuppliesScreen = () => {
           value={keyword}
           onChangeText={setKeyword}
           onCancel={handleSearchCancel}
-          placeholder="타투용품 검색"
+          placeholder={t('supplies.searchPlaceholder')}
         />
       )}
       <FlatList

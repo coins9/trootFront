@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
+import { useTranslation } from '../../store/languageStore';
 import LogoHeader from '../../components/common/LogoHeader';
 import SearchBar from '../../components/common/SearchBar';
 import HomeArtistHeader from '../../components/home/HomeArtistHeader';
@@ -29,6 +30,7 @@ type FeedRow = { key: string; left: Tattoo; right?: Tattoo };
 type HomeNavProp = NativeStackNavigationProp<RootStackParamList>;
 
 const HomeScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<HomeNavProp>();
   const [bottomSheetType, setBottomSheetType] = useState<FilterType | null>(null);
   const [fullFilterVisible, setFullFilterVisible] = useState(false);
@@ -146,10 +148,10 @@ const HomeScreen = () => {
     }
     return (
       <View style={styles.state}>
-        <Text style={styles.stateText}>{error ?? '아직 등록된 작품이 없습니다.'}</Text>
+        <Text style={styles.stateText}>{error ?? t('home.empty')}</Text>
         {error && (
           <TouchableOpacity onPress={reload} style={styles.retry} activeOpacity={0.8}>
-            <Text style={styles.retryText}>다시 시도</Text>
+            <Text style={styles.retryText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -165,7 +167,7 @@ const HomeScreen = () => {
           value={keyword}
           onChangeText={setKeyword}
           onCancel={handleSearchCancel}
-          placeholder="작품, 타투이스트 검색"
+          placeholder={t('home.searchPlaceholder')}
         />
       )}
       <FlatList

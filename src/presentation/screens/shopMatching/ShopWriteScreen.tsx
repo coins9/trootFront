@@ -20,6 +20,7 @@ import {
 } from '../../../domain/entities/shopTypes';
 import { shopApi, ShopCategory } from '../../../data/api';
 import BilingualSection from '../../components/common/BilingualSection';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteP = RouteProp<RootStackParamList, 'ShopWrite'>;
@@ -499,6 +500,7 @@ const ShopWriteScreen = () => {
   const route = useRoute<RouteP>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [category, setCategory] = useState<ShopMatchingCategory>(
     route.params?.initialCategory ?? '부스 쉐어',
@@ -600,21 +602,21 @@ const ShopWriteScreen = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!isValid()) {
-      toast('필수 항목을 모두 입력해주세요', { variant: 'error' });
+      toast(t('shop.writeRequired'), { variant: 'error' });
       return;
     }
     if (submitting) return;
     setSubmitting(true);
     try {
       await shopApi.create(buildBody());
-      toast('글이 등록되었습니다', { variant: 'success' });
+      toast(t('shop.writeSuccess'), { variant: 'success' });
       navigation.goBack();
     } catch {
-      toast('등록에 실패했습니다. 다시 시도해주세요.', { variant: 'error' });
+      toast(t('shop.writeFailed'), { variant: 'error' });
     } finally {
       setSubmitting(false);
     }
-  }, [isValid, submitting, buildBody, toast, navigation]);
+  }, [isValid, submitting, buildBody, toast, navigation, t]);
 
   const handleCategoryChange = useCallback((cat: ShopMatchingCategory) => {
     setCategory(cat);
@@ -632,7 +634,7 @@ const ShopWriteScreen = () => {
         >
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>글쓰기</Text>
+        <Text style={s.headerTitle}>{t('shop.writeHeader')}</Text>
         <TouchableOpacity
           onPress={handleSubmit}
           style={[s.submitBtn, isValid() && s.submitBtnActive]}
@@ -642,7 +644,7 @@ const ShopWriteScreen = () => {
           {submitting ? (
             <ActivityIndicator size="small" color={COLORS.black} />
           ) : (
-            <Text style={[s.submitText, isValid() && s.submitTextActive]}>등록</Text>
+            <Text style={[s.submitText, isValid() && s.submitTextActive]}>{t('shop.writeSubmit')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -657,8 +659,8 @@ const ShopWriteScreen = () => {
             activeOpacity={0.75}
           >
             <Text style={[s.tabText, category === cat && s.tabTextActive]} numberOfLines={1}>
-              {cat === '부스 쉐어' ? '부스 쉐어' :
-               cat === '타투 모델 구인 (비기너)' ? '타투 모델' : '사진/영상'}
+              {cat === '부스 쉐어' ? t('shop.tab.booth') :
+               cat === '타투 모델 구인 (비기너)' ? t('shop.tab.model') : t('shop.tab.media')}
             </Text>
           </TouchableOpacity>
         ))}
@@ -699,13 +701,10 @@ const ShopWriteScreen = () => {
           >
             <WarningTriangleIcon size={16} color={COLORS.gold} />
             <View style={s.policyTextWrap}>
-              <Text style={s.policyTitle}>게시 전 꼭 확인해주세요</Text>
-              <Text style={s.policyDesc}>
-                표기 가격과 현장 가격이 크게 다른 기망행위, 도안 · 포트폴리오 도용,
-                등록 정보와 다른 시술자(대리 · 수강생) 작업은 제재 대상입니다.
-              </Text>
+              <Text style={s.policyTitle}>{t('shop.writePolicyTitle')}</Text>
+              <Text style={s.policyDesc}>{t('shop.writePolicyDesc')}</Text>
               <View style={s.policyLinkRow}>
-                <Text style={s.policyLink}>이용 안전 정책 자세히 보기</Text>
+                <Text style={s.policyLink}>{t('shop.writePolicyLink')}</Text>
                 <ChevronRightIcon size={13} color={COLORS.gold} />
               </View>
             </View>

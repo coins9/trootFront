@@ -34,6 +34,7 @@ import { DepositItem, DepositStatus } from '../../../domain/entities/depositType
 import { useApi, usePagedApi } from '../../hooks/useApi';
 import { reservationApi, type ArtistReservationView } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 function toDepositItem(v: ArtistReservationView): DepositItem {
   const dt = new Date(v.scheduledAt);
@@ -75,6 +76,7 @@ interface DepositCardProps {
 const DepositCard = React.memo(({
   item, status, onPrimary, onSecondary, onMore,
 }: DepositCardProps) => {
+  const { t } = useTranslation();
   const isPending = status === 'pending';
 
   return (
@@ -82,11 +84,11 @@ const DepositCard = React.memo(({
       <View style={styles.cardHeader}>
         <View style={styles.statusBadge}>
           <Text style={styles.statusBadgeText}>
-            {isPending ? '입금 대기중' : '확정 완료'}
+            {isPending ? t('reservation.depositPendingBadge') : t('reservation.confirmed')}
           </Text>
         </View>
         <View style={styles.cardHeaderRight}>
-          <Text style={styles.reservationLabel}>예약 번호 </Text>
+          <Text style={styles.reservationLabel}>{t('reservation.numberLabel')} </Text>
           <Text style={styles.reservationNumber}>{item.reservationNumber}</Text>
           <TouchableOpacity
             onPress={onMore}
@@ -135,7 +137,7 @@ const DepositCard = React.memo(({
         </View>
 
         <View style={styles.amountBlock}>
-          <Text style={styles.amountLabel}>예약금</Text>
+          <Text style={styles.amountLabel}>{t('reservation.depositAmount')}</Text>
           <View style={styles.amountValueRow}>
             <Text style={styles.amountValue}>
               {item.depositAmount.toLocaleString()}
@@ -149,13 +151,13 @@ const DepositCard = React.memo(({
 
       <View style={styles.dateGrid}>
         <View style={styles.dateItem}>
-          <Text style={styles.dateItemLabel}>신청일</Text>
+          <Text style={styles.dateItemLabel}>{t('reservation.requestedAt')}</Text>
           <Text style={styles.dateItemValue}>{item.requestedAt}</Text>
         </View>
         <View style={styles.dateItemDivider} />
         <View style={styles.dateItem}>
           <Text style={styles.dateItemLabel}>
-            {isPending ? '입금 기한' : '입금일'}
+            {isPending ? t('reservation.dueAt') : t('reservation.confirmedAt')}
           </Text>
           <Text style={[
             styles.dateItemValue,
@@ -173,14 +175,14 @@ const DepositCard = React.memo(({
             activeOpacity={0.85}
             style={[styles.actionBtn, styles.actionBtnGhost]}
           >
-            <Text style={styles.actionBtnGhostText}>미입금 취소</Text>
+            <Text style={styles.actionBtnGhostText}>{t('reservation.cancelPending')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onPrimary}
             activeOpacity={0.85}
             style={[styles.actionBtn, styles.actionBtnPrimary]}
           >
-            <Text style={styles.actionBtnPrimaryText}>입금 확인 및 확정</Text>
+            <Text style={styles.actionBtnPrimaryText}>{t('reservation.confirmDeposit')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -190,7 +192,7 @@ const DepositCard = React.memo(({
             activeOpacity={0.85}
             style={[styles.actionBtn, styles.actionBtnGhost, { flex: 1 }]}
           >
-            <Text style={styles.actionBtnGhostText}>예약 취소</Text>
+            <Text style={styles.actionBtnGhostText}>{t('reservation.cancelConfirmed')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -203,6 +205,7 @@ DepositCard.displayName = 'DepositCard';
    Screen
    ============================================================ */
 const DepositManagementScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
@@ -323,10 +326,8 @@ const DepositManagementScreen = () => {
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
         <View style={styles.titleGroup}>
-          <Text style={styles.title}>예약금 확인 및 관리</Text>
-          <Text style={styles.subtitle}>
-            고객의 예약금 입금 현황을 확인하고 관리하세요.
-          </Text>
+          <Text style={styles.title}>{t('reservation.depositTitle')}</Text>
+          <Text style={styles.subtitle}>{t('reservation.depositSubtitle')}</Text>
         </View>
         <TouchableOpacity
           onPress={handleGuide}
@@ -335,7 +336,7 @@ const DepositManagementScreen = () => {
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
           <HelpCircleIcon size={14} color={COLORS.gold} />
-          <Text style={styles.guideText}>가이드</Text>
+          <Text style={styles.guideText}>{t('reservation.guide')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -350,7 +351,7 @@ const DepositManagementScreen = () => {
           style={styles.tabBtn}
         >
           <Text style={[styles.tabText, activeTab === 'pending' && styles.tabTextActive]}>
-            입금 대기 ({summary?.pending.count ?? pending.length})
+            {t('reservation.tabPendingDeposit')} ({summary?.pending.count ?? pending.length})
           </Text>
           {activeTab === 'pending' && <View style={styles.tabUnderline} />}
         </TouchableOpacity>
@@ -363,7 +364,7 @@ const DepositManagementScreen = () => {
           style={styles.tabBtn}
         >
           <Text style={[styles.tabText, activeTab === 'confirmed' && styles.tabTextActive]}>
-            확정 완료 ({summary?.paid.count ?? confirmed.length})
+            {t('reservation.confirmed')} ({summary?.paid.count ?? confirmed.length})
           </Text>
           {activeTab === 'confirmed' && <View style={styles.tabUnderline} />}
         </TouchableOpacity>
@@ -385,20 +386,16 @@ const DepositManagementScreen = () => {
         {/* Info banner */}
         <View style={styles.infoBanner}>
           <AlertInfoIcon size={18} color={COLORS.gold} />
-          <Text style={styles.infoText}>
-            입금 확인은 매일 09:00 / 15:00 / 21:00 자동 업데이트됩니다.
-          </Text>
+          <Text style={styles.infoText}>{t('reservation.infoUpdate')}</Text>
         </View>
 
         {listLoading ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>불러오는 중...</Text>
+            <Text style={styles.emptyText}>{t('common.loading')}</Text>
           </View>
         ) : list.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              {activeTab === 'pending' ? '입금 대기 중인 예약이 없습니다.' : '확정 완료된 예약이 없습니다.'}
-            </Text>
+            <Text style={styles.emptyText}>{t('common.empty')}</Text>
           </View>
         ) : (
           list.map((item) => (
@@ -429,14 +426,14 @@ const DepositManagementScreen = () => {
         </View>
         <View style={styles.summaryColLeft}>
           <Text style={styles.summaryLabel}>
-            {activeTab === 'pending' ? '입금 대기 합계' : '확정 완료 합계'}
+            {activeTab === 'pending' ? t('reservation.summaryPendingLabel') : t('reservation.summaryConfirmedLabel')}
           </Text>
           <Text style={styles.summaryAmount}>
             {(activeTab === 'pending' ? pendingSum : confirmedSum).toLocaleString()}원
           </Text>
         </View>
         <View style={styles.summaryColRight}>
-          <Text style={styles.summaryLabel}>건수</Text>
+          <Text style={styles.summaryLabel}>{t('reservation.countLabel')}</Text>
           <Text style={styles.summaryAmount}>
             {(activeTab === 'pending'
               ? (summary?.pending.count ?? pending.length)

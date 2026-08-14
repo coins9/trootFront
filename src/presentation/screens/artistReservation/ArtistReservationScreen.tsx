@@ -38,6 +38,7 @@ import NewReservationSheet from '../../components/artistReservation/NewReservati
 import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 if (
   Platform.OS === 'android' &&
@@ -89,10 +90,12 @@ const formatHalfHour = (h: number) => {
   const mm = h - hh === 0.5 ? '30' : '00';
   return `${String(hh).padStart(2, '0')}:${mm}`;
 };
-const formatDateLabel = (d: Date) => {
+const WEEKDAY_KO_SHORT = ['일','월','화','수','목','금','토'];
+const WEEKDAY_EN_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const formatDateLabel = (d: Date, language: 'ko' | 'en' = 'ko') => {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
-  const dow = ['일','월','화','수','목','금','토'][d.getDay()];
+  const dow = language === 'en' ? WEEKDAY_EN_SHORT[d.getDay()] : WEEKDAY_KO_SHORT[d.getDay()];
   return `${d.getFullYear()}.${mm}.${dd} (${dow})`;
 };
 
@@ -118,56 +121,59 @@ interface SummaryProps {
 }
 const SummaryBar = React.memo(({
   total, confirmed, pending, noShow, depositPending, depositPendingSum,
-}: SummaryProps) => (
-  <View style={styles.summaryWrap}>
-    <View style={styles.summaryRow}>
-      <View style={styles.summaryCell}>
-        <View style={styles.summaryIcon}>
-          <CalendarIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
+}: SummaryProps) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.summaryWrap}>
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryCell}>
+          <View style={styles.summaryIcon}>
+            <CalendarIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
+          </View>
+          <Text style={styles.summaryLabel}>{t('reservation.summaryTotal')}</Text>
+          <Text style={styles.summaryValue}>{total}</Text>
         </View>
-        <Text style={styles.summaryLabel}>총 예약</Text>
-        <Text style={styles.summaryValue}>{total}건</Text>
-      </View>
-      <View style={styles.summarySep} />
-      <View style={styles.summaryCell}>
-        <View style={styles.summaryIcon}>
-          <CheckCircleIcon size={16} color={COLORS.gold} />
+        <View style={styles.summarySep} />
+        <View style={styles.summaryCell}>
+          <View style={styles.summaryIcon}>
+            <CheckCircleIcon size={16} color={COLORS.gold} />
+          </View>
+          <Text style={styles.summaryLabel}>{t('reservation.summaryConfirmedPending')}</Text>
+          <Text style={styles.summaryValue}>
+            {confirmed}
+            <Text style={styles.summarySub}> · {pending}</Text>
+          </Text>
         </View>
-        <Text style={styles.summaryLabel}>확정 · 대기</Text>
-        <Text style={styles.summaryValue}>
-          {confirmed}
-          <Text style={styles.summarySub}> · {pending}</Text>
-        </Text>
-      </View>
-      <View style={styles.summarySep} />
-      <View style={styles.summaryCell}>
-        <View style={styles.summaryIcon}>
-          <XIcon size={14} color={noShow > 0 ? COLORS.danger : COLORS.gray} strokeWidth={2} />
+        <View style={styles.summarySep} />
+        <View style={styles.summaryCell}>
+          <View style={styles.summaryIcon}>
+            <XIcon size={14} color={noShow > 0 ? COLORS.danger : COLORS.gray} strokeWidth={2} />
+          </View>
+          <Text style={styles.summaryLabel}>{t('reservation.summaryNoShow')}</Text>
+          <Text style={[
+            styles.summaryValue,
+            noShow > 0 && { color: COLORS.danger },
+          ]}>
+            {noShow}
+          </Text>
         </View>
-        <Text style={styles.summaryLabel}>노쇼</Text>
-        <Text style={[
-          styles.summaryValue,
-          noShow > 0 && { color: COLORS.danger },
-        ]}>
-          {noShow}건
-        </Text>
       </View>
-    </View>
 
-    <View style={styles.depositBar}>
-      <View style={styles.depositIconWrap}>
-        <WalletIcon size={18} color={COLORS.gold} strokeWidth={1.7} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.depositLabel}>예약금 대기</Text>
-        <Text style={styles.depositValue}>
-          {depositPendingSum.toLocaleString()}원
-          <Text style={styles.depositSub}> · {depositPending}건</Text>
-        </Text>
+      <View style={styles.depositBar}>
+        <View style={styles.depositIconWrap}>
+          <WalletIcon size={18} color={COLORS.gold} strokeWidth={1.7} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.depositLabel}>{t('reservation.summaryDepositPending')}</Text>
+          <Text style={styles.depositValue}>
+            {depositPendingSum.toLocaleString()}
+            <Text style={styles.depositSub}> · {depositPending}</Text>
+          </Text>
+        </View>
       </View>
     </View>
-  </View>
-));
+  );
+});
 SummaryBar.displayName = 'SummaryBar';
 
 /* ============================================================
@@ -177,30 +183,33 @@ interface ViewTabsProps {
   view: ViewKey;
   onChange: (v: ViewKey) => void;
 }
-const ViewTabs = React.memo(({ view, onChange }: ViewTabsProps) => (
-  <View style={styles.tabRow}>
-    <TouchableOpacity
-      onPress={() => onChange('timeline')}
-      activeOpacity={0.85}
-      style={[styles.tabBtn, view === 'timeline' && styles.tabBtnActive]}
-    >
-      <ClockOutlineIcon size={14} color={view === 'timeline' ? COLORS.black : COLORS.gray} strokeWidth={1.8} />
-      <Text style={[styles.tabText, view === 'timeline' && styles.tabTextActive]}>
-        시간별 보기
-      </Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      onPress={() => onChange('calendar')}
-      activeOpacity={0.85}
-      style={[styles.tabBtn, view === 'calendar' && styles.tabBtnActive]}
-    >
-      <CalendarIcon size={14} color={view === 'calendar' ? COLORS.black : COLORS.gray} strokeWidth={1.7} />
-      <Text style={[styles.tabText, view === 'calendar' && styles.tabTextActive]}>
-        월간 캘린더
-      </Text>
-    </TouchableOpacity>
-  </View>
-));
+const ViewTabs = React.memo(({ view, onChange }: ViewTabsProps) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.tabRow}>
+      <TouchableOpacity
+        onPress={() => onChange('timeline')}
+        activeOpacity={0.85}
+        style={[styles.tabBtn, view === 'timeline' && styles.tabBtnActive]}
+      >
+        <ClockOutlineIcon size={14} color={view === 'timeline' ? COLORS.black : COLORS.gray} strokeWidth={1.8} />
+        <Text style={[styles.tabText, view === 'timeline' && styles.tabTextActive]}>
+          {t('reservation.viewTimeline')}
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => onChange('calendar')}
+        activeOpacity={0.85}
+        style={[styles.tabBtn, view === 'calendar' && styles.tabBtnActive]}
+      >
+        <CalendarIcon size={14} color={view === 'calendar' ? COLORS.black : COLORS.gray} strokeWidth={1.7} />
+        <Text style={[styles.tabText, view === 'calendar' && styles.tabTextActive]}>
+          {t('reservation.viewCalendar')}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
 ViewTabs.displayName = 'ViewTabs';
 
 /* ============================================================
@@ -215,26 +224,29 @@ interface DateHeaderProps {
 }
 const DateHeader = React.memo(({
   label, onPrev, onNext, onToday, todayLabel,
-}: DateHeaderProps) => (
-  <View style={styles.dateHeader}>
-    <TouchableOpacity onPress={onPrev} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-      <ChevronLeftIcon size={18} color={COLORS.white} />
-    </TouchableOpacity>
-    <Text style={styles.dateHeaderText}>{label}</Text>
-    <TouchableOpacity onPress={onNext} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-      <ChevronRightIcon size={18} color={COLORS.white} />
-    </TouchableOpacity>
-    <View style={{ flex: 1 }} />
-    <TouchableOpacity
-      onPress={onToday}
-      activeOpacity={0.85}
-      style={styles.todayBtn}
-      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-    >
-      <Text style={styles.todayText}>{todayLabel ?? '오늘'}</Text>
-    </TouchableOpacity>
-  </View>
-));
+}: DateHeaderProps) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.dateHeader}>
+      <TouchableOpacity onPress={onPrev} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <ChevronLeftIcon size={18} color={COLORS.white} />
+      </TouchableOpacity>
+      <Text style={styles.dateHeaderText}>{label}</Text>
+      <TouchableOpacity onPress={onNext} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <ChevronRightIcon size={18} color={COLORS.white} />
+      </TouchableOpacity>
+      <View style={{ flex: 1 }} />
+      <TouchableOpacity
+        onPress={onToday}
+        activeOpacity={0.85}
+        style={styles.todayBtn}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      >
+        <Text style={styles.todayText}>{todayLabel ?? t('reservation.today')}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
 DateHeader.displayName = 'DateHeader';
 
 /* ============================================================
@@ -255,6 +267,7 @@ interface EventRowProps {
   onPress: () => void;
 }
 const EventRow = React.memo(({ item, statusOverride, onPress }: EventRowProps) => {
+  const { t } = useTranslation();
   const currentStatus = statusOverride[item.id] ?? item.status;
   const isNoShow = currentStatus === '노쇼';
   const isDone   = currentStatus === '완료';
@@ -291,8 +304,8 @@ const EventRow = React.memo(({ item, statusOverride, onPress }: EventRowProps) =
             item.depositStatus === 'pending' && { color: COLORS.danger },
           ]}>
             {item.depositStatus === 'paid'
-              ? `${item.depositAmount.toLocaleString()}원 입금 완료`
-              : `예약금 ${item.depositAmount.toLocaleString()}원 대기`}
+              ? t('reservation.depositPaidLabel').replace('{{amount}}', item.depositAmount.toLocaleString())
+              : t('reservation.depositPendingLabel').replace('{{amount}}', item.depositAmount.toLocaleString())}
           </Text>
         ) : null}
       </View>
@@ -310,7 +323,11 @@ const EventRow = React.memo(({ item, statusOverride, onPress }: EventRowProps) =
           isNoShow   && styles.evChipTextDanger,
           isDone     && styles.evChipTextDone,
         ]}>
-          {currentStatus}
+          {currentStatus === '대기' ? t('reservation.bookingStatus.waiting')
+            : currentStatus === '확정' ? t('reservation.bookingStatus.confirmed')
+            : currentStatus === '완료' ? t('reservation.bookingStatus.completed')
+            : currentStatus === '노쇼' ? t('reservation.bookingStatus.noShow')
+            : t('reservation.bookingStatus.cancelled')}
         </Text>
       </View>
     </TouchableOpacity>
@@ -330,32 +347,34 @@ interface TimelineProps {
 }
 const TimelineView = React.memo(({
   dateLabel, lunarLabel, items, statusOverride, onOpenDetail,
-}: TimelineProps) => (
-  <View style={styles.evCard}>
-    {/* Date header */}
-    <View style={styles.evDateHeader}>
-      <Text style={styles.evDateTitle}>{dateLabel}</Text>
-      {lunarLabel ? <Text style={styles.evDateSub}>{lunarLabel}</Text> : null}
-    </View>
+}: TimelineProps) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.evCard}>
+      <View style={styles.evDateHeader}>
+        <Text style={styles.evDateTitle}>{dateLabel}</Text>
+        {lunarLabel ? <Text style={styles.evDateSub}>{lunarLabel}</Text> : null}
+      </View>
 
-    {items.length === 0 ? (
-      <View style={styles.evEmpty}>
-        <Text style={styles.evEmptyText}>이날 예약이 없습니다.</Text>
-      </View>
-    ) : (
-      <View style={styles.evList}>
-        {items.map((it) => (
-          <EventRow
-            key={it.id}
-            item={it}
-            statusOverride={statusOverride}
-            onPress={() => onOpenDetail(it)}
-          />
-        ))}
-      </View>
-    )}
-  </View>
-));
+      {items.length === 0 ? (
+        <View style={styles.evEmpty}>
+          <Text style={styles.evEmptyText}>{t('reservation.evEmpty')}</Text>
+        </View>
+      ) : (
+        <View style={styles.evList}>
+          {items.map((it) => (
+            <EventRow
+              key={it.id}
+              item={it}
+              statusOverride={statusOverride}
+              onPress={() => onOpenDetail(it)}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+});
 TimelineView.displayName = 'TimelineView';
 
 /* ============================================================
@@ -369,9 +388,12 @@ interface CalendarProps {
   summaryMap: Record<string, MonthlyCellSummary>;
   multiEvents: MultiDayEvent[];
 }
+const WEEKDAY_EN_CAL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const CalendarView = React.memo(({
   monthStart, selectedDate, today, onSelect, summaryMap, multiEvents,
 }: CalendarProps) => {
+  const { t, language } = useTranslation();
+  const weekdayLabels = language === 'en' ? WEEKDAY_EN_CAL : WEEKDAY_KO;
   const gridStart = useMemo(() => {
     const d = new Date(monthStart);
     const dow = (d.getDay() + 6) % 7;
@@ -390,7 +412,7 @@ const CalendarView = React.memo(({
   return (
     <View style={styles.calCard}>
       <View style={styles.calDowRow}>
-        {WEEKDAY_KO.map((d, i) => (
+        {weekdayLabels.map((d, i) => (
           <Text
             key={d}
             style={[
@@ -476,7 +498,7 @@ const CalendarView = React.memo(({
                       ]}>
                         {summary?.isBreak && !hasBar ? (
                           <View style={styles.calBreak}>
-                            <Text style={styles.calBreakText}>마감</Text>
+                            <Text style={styles.calBreakText}>{t('reservation.calBreak')}</Text>
                           </View>
                         ) : (
                           <>
@@ -563,6 +585,7 @@ const stripeToneStyle = (tone: 'red' | 'gold' | 'purple' | 'blue') => {
 const ArtistReservationScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
+  const { t, language } = useTranslation();
   const todayRef = useRef<Date>(new Date());
   const today = todayRef.current;
 
@@ -696,8 +719,8 @@ const ArtistReservationScreen = () => {
   }, []);
 
   const dateLabel = useMemo(
-    () => (view === 'timeline' ? formatDateLabel(selectedDate) : formatMonth(monthStart)),
-    [view, selectedDate, monthStart],
+    () => (view === 'timeline' ? formatDateLabel(selectedDate, language) : formatMonth(monthStart)),
+    [view, selectedDate, monthStart, language],
   );
 
   /* Status change */
@@ -718,8 +741,8 @@ const ArtistReservationScreen = () => {
       memo: it.memo,
       isAppLinked: it.isAppLinked ?? true,
       status: currentStatus,
-      timeLabel: `${formatHalfHour(it.startHour)} · ${it.durationH}시간`,
-      dateLabel: formatDateLabel(selectedDate),
+      timeLabel: `${formatHalfHour(it.startHour)} · ${it.durationH}h`,
+      dateLabel: formatDateLabel(selectedDate, language),
       kind: it.kind,
     });
   }, [statusOverride, selectedDate]);
@@ -727,32 +750,33 @@ const ArtistReservationScreen = () => {
   const closeDetail = useCallback(() => setDetail(null), []);
 
   const requestNoShow = useCallback((id: string, customerName?: string) => {
+    const name = customerName ?? t('reservation.noShowDefault');
     setConfirm({
-      title: '노쇼(No-show) 처리',
-      message: `${customerName ?? '해당 고객'}을(를) 노쇼로 처리하시겠습니까?\n노쇼 처리 시 고객 신뢰도에 반영됩니다.`,
-      cancelLabel: '취소',
-      confirmLabel: '노쇼 확정',
+      title: t('reservation.noShowTitle'),
+      message: t('reservation.noShowMsg').replace('{{name}}', name),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('reservation.noShowConfirm'),
       variant: 'danger',
       onConfirm: () => {
         setStatus(id, '노쇼');
-        toast('노쇼 처리되었습니다.', { variant: 'error' });
+        toast(t('reservation.toastNoShow'), { variant: 'error' });
       },
     });
-  }, [setStatus, toast]);
+  }, [setStatus, toast, t]);
 
   const requestComplete = useCallback((id: string) => {
     setConfirm({
-      title: '시술 완료 처리',
-      message: '해당 시술을 완료 상태로 변경하시겠습니까?',
-      cancelLabel: '취소',
-      confirmLabel: '완료 처리',
+      title: t('reservation.completeTitle'),
+      message: t('reservation.completeMsg'),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('reservation.completeConfirm'),
       variant: 'default',
       onConfirm: () => {
         setStatus(id, '완료');
-        toast('시술 완료로 표시되었습니다.', { variant: 'success' });
+        toast(t('reservation.toastComplete'), { variant: 'success' });
       },
     });
-  }, [setStatus, toast]);
+  }, [setStatus, toast, t]);
 
   /* FAB → 새 예약 등록 시트 오픈 */
   const handleFab = useCallback(() => {
@@ -789,32 +813,34 @@ const ArtistReservationScreen = () => {
     setReservationSheetEditing(null);
     toast(
       reservationSheetEditing
-        ? '예약이 수정되었습니다.'
-        : '새 예약이 등록되었습니다.',
+        ? t('reservation.toastUpdated')
+        : t('reservation.toastAdded'),
       { variant: 'success' },
     );
-  }, [selectedDate, reservationSheetEditing, toast]);
+  }, [selectedDate, reservationSheetEditing, toast, t]);
 
   /* Shop registration */
   const handleShopRegister = useCallback((name: string, location: string) => {
     setConfirm({
-      title: '샵 등록',
-      message: `'${name}' (${location})\n오너로 새 샵을 등록하시겠습니까?`,
-      cancelLabel: '취소',
-      confirmLabel: '등록',
+      title: t('reservation.shopRegisterTitle'),
+      message: t('reservation.shopRegisterMsg')
+        .replace('{{name}}', name)
+        .replace('{{location}}', location),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('reservation.shopRegisterConfirm'),
       onConfirm: () => {
         easeLayoutAnim();
         setShopInfo({ name, location });
-        toast(`샵 '${name}' 등록이 완료되었습니다.`, { variant: 'success' });
+        toast(t('reservation.toastShopRegistered').replace('{{name}}', name), { variant: 'success' });
       },
     });
-  }, [toast]);
+  }, [toast, t]);
 
   const handleShopJoin = useCallback((code: string) => {
     easeLayoutAnim();
     setShopInfo({ name: `합류 완료 (${code})`, location: '서울' });
-    toast(`${code} 코드로 샵 합류 요청이 전송되었습니다.`, { variant: 'success' });
-  }, [toast]);
+    toast(t('reservation.toastShopJoined').replace('{{code}}', code), { variant: 'success' });
+  }, [toast, t]);
 
   /* Calendar cell tap → 날짜만 변경, 뷰 유지 */
   const handleCalendarSelect = useCallback((d: Date) => {
@@ -836,10 +862,8 @@ const ArtistReservationScreen = () => {
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>예약 관리</Text>
-          <Text style={styles.subtitle}>
-            예약 · 예약금 · 노쇼를 한 화면에서 관리하세요.
-          </Text>
+          <Text style={styles.title}>{t('reservation.title')}</Text>
+          <Text style={styles.subtitle}>{t('reservation.subtitle')}</Text>
         </View>
       </View>
 
@@ -854,7 +878,7 @@ const ArtistReservationScreen = () => {
           style={styles.topTabBtn}
         >
           <Text style={[styles.topTabText, topTab === 'my' && styles.topTabTextActive]}>
-            내 예약
+            {t('reservation.tabMy')}
           </Text>
           {topTab === 'my' && <View style={styles.topTabUnderline} />}
         </TouchableOpacity>
@@ -869,7 +893,7 @@ const ArtistReservationScreen = () => {
             style={styles.topTabBtn}
           >
             <Text style={[styles.topTabText, topTab === 'shop_schedule' && styles.topTabTextActive]}>
-              샵 일정
+              {t('reservation.tabShopSchedule')}
             </Text>
             {topTab === 'shop_schedule' && <View style={styles.topTabUnderline} />}
           </TouchableOpacity>
@@ -885,7 +909,7 @@ const ArtistReservationScreen = () => {
         >
           <View style={styles.topTabLabelWrap}>
             <Text style={[styles.topTabText, topTab === 'shop' && styles.topTabTextActive]}>
-              샵 {shopInfo ? '관리' : '등록'}
+              {shopInfo ? t('reservation.tabShopManage') : t('reservation.tabShopRegister')}
             </Text>
             {!shopInfo && <View style={styles.topTabDot} />}
           </View>
@@ -915,9 +939,9 @@ const ArtistReservationScreen = () => {
         ) : topTab === 'shop_schedule' && shopInfo ? (
           <View style={styles.shopWrap}>
             <View style={styles.shopScheduleHeader}>
-              <Text style={styles.shopScheduleTitle}>{shopInfo.name} 오늘 일정</Text>
+              <Text style={styles.shopScheduleTitle}>{shopInfo.name} {t('reservation.shopTodaySchedule')}</Text>
               <Text style={styles.shopScheduleSub}>
-                {formatDateLabel(today)} · {shopInfo.location}
+                {formatDateLabel(today, language)} · {shopInfo.location}
               </Text>
             </View>
             {MOCK_ARTIST_COLUMNS.map((col) => {
@@ -933,7 +957,7 @@ const ArtistReservationScreen = () => {
                     </View>
                   </View>
                   {todayBookings.length === 0 ? (
-                    <Text style={styles.shopColEmpty}>오늘 예약이 없습니다.</Text>
+                    <Text style={styles.shopColEmpty}>{t('reservation.shopColEmpty')}</Text>
                   ) : (
                     <View style={styles.shopColList}>
                       {todayBookings.map((b) => (
@@ -957,7 +981,7 @@ const ArtistReservationScreen = () => {
                               styles.shopColChipText,
                               b.kind === 'consulting' && styles.shopColChipTextConsult,
                             ]}>
-                              {b.kind === 'consulting' ? '상담' : '시술'}
+                              {b.kind === 'consulting' ? t('reservation.shopConsult') : t('reservation.shopProcedure')}
                             </Text>
                           </View>
                         </View>
@@ -989,12 +1013,12 @@ const ArtistReservationScreen = () => {
           onPrev={goPrev}
           onNext={goNext}
           onToday={goToday}
-          todayLabel={isSelectedToday ? '오늘' : '오늘로'}
+          todayLabel={isSelectedToday ? t('reservation.today') : t('reservation.goToday')}
         />
 
         {view === 'timeline' && (
           <TimelineView
-            dateLabel={formatDateLabel(selectedDate)}
+            dateLabel={formatDateLabel(selectedDate, language)}
             items={items}
             statusOverride={statusOverride}
             onOpenDetail={openDetail}
@@ -1012,7 +1036,7 @@ const ArtistReservationScreen = () => {
               multiEvents={multiEvents}
             />
             <TimelineView
-              dateLabel={formatDateLabel(selectedDate)}
+              dateLabel={formatDateLabel(selectedDate, language)}
               items={items}
               statusOverride={statusOverride}
               onOpenDetail={openDetail}
@@ -1049,7 +1073,7 @@ const ArtistReservationScreen = () => {
       {/* 새 예약 등록 / 수정 시트 */}
       <NewReservationSheet
         visible={reservationSheetOpen}
-        dateLabel={formatDateLabel(selectedDate)}
+        dateLabel={formatDateLabel(selectedDate, language)}
         editing={reservationSheetEditing}
         onClose={() => {
           setReservationSheetOpen(false);

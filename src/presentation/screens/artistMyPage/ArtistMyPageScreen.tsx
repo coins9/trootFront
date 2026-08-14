@@ -29,6 +29,7 @@ import {
   type ArtistPage, type Artwork, type ReviewByArtist,
 } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 /* ---- Mappers ---- */
 function toSelfProfile(p: ArtistPage): ArtistSelfProfile {
@@ -37,7 +38,7 @@ function toSelfProfile(p: ArtistPage): ArtistSelfProfile {
     id: p.id,
     nickname: p.pageName,
     handle: `@${p.handle}`,
-    location: regionParts.join(' ') || '지역 미설정',
+    location: regionParts.join(' ') || '',
     intro: p.bio ?? '',
     avatarUri: p.profileImage ?? '',
     rating: parseFloat(p.rating) || 0,
@@ -71,7 +72,7 @@ function toReviewItem(r: ReviewByArtist): ArtistReviewItem {
   const avg = (r.painScore + r.kindnessScore + r.hygieneScore + r.satisfactionScore) / 4;
   return {
     id: r.id,
-    customer: r.customerNickname ?? '(닉네임 없음)',
+    customer: r.customerNickname ?? '',
     rating: Math.round(avg),
     artworkId: '',
     artworkTitle: r.bodyPart ?? '',
@@ -108,6 +109,7 @@ const GRID_COL = 3;
 const GRID_ITEM = (W - GRID_GAP * (GRID_COL - 1)) / GRID_COL;
 
 const ArtistMyPageScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
 
@@ -145,19 +147,18 @@ const ArtistMyPageScreen = () => {
 
   const requestReviewSupport = useCallback(() => {
     setConfirm({
-      title: '리뷰 삭제/숨김 문의',
-      message:
-        '타투이스트는 리뷰를 임의로 삭제/숨길 수 없습니다.\n허위 · 명예훼손 · 비방 등에 해당하면 고객센터로 접수해주세요. 검토 후 조치됩니다.',
-      cancelLabel: '취소',
-      confirmLabel: '문의 접수',
+      title: t('artistMyPage.reviewSupportTitle'),
+      message: t('artistMyPage.reviewSupportMsg'),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('artistMyPage.reviewSupportConfirm'),
       variant: 'danger',
       onConfirm: () => {
         Linking.openURL('https://tally.so/r/troot-review-support').catch(() => {
-          toast('링크를 열 수 없습니다.', { variant: 'error' });
+          toast(t('common.linkError'), { variant: 'error' });
         });
       },
     });
-  }, [toast]);
+  }, [toast, t]);
 
   const avgRating = profile.rating;
   const totalLikes = profile.likes;
@@ -184,8 +185,8 @@ const ArtistMyPageScreen = () => {
       setProfileOverride((prev) => ({ ...prev, ...next }));
     }
     setEditProfileOpen(false);
-    toast('프로필이 저장되었습니다.', { variant: 'success' });
-  }, [toast, reloadProfile]);
+    toast(t('artistMyPage.saved'), { variant: 'success' });
+  }, [toast, reloadProfile, t]);
 
   /* ==== Artwork ==== */
   const handleOpenArtworkForm = useCallback((aw: ArtistArtwork | null) => {
@@ -218,27 +219,27 @@ const ArtistMyPageScreen = () => {
       easeLayoutAnim();
       reloadArtworks();
     } catch {
-      toast('저장 중 오류가 발생했습니다.', { variant: 'error' });
+      toast(t('common.error'), { variant: 'error' });
     }
     setArtworkFormOpen(false);
     setArtworkFormEditing(null);
     toast(
-      artworkFormEditing ? '작품이 수정되었습니다.' : '새 작품이 등록되었습니다.',
+      artworkFormEditing ? t('artistMyPage.artworkSaved') : t('artistMyPage.artworkAdded'),
       { variant: 'success' },
     );
-  }, [artworkFormEditing, toast, reloadArtworks]);
+  }, [artworkFormEditing, toast, reloadArtworks, t]);
   const handleDeleteArtwork = useCallback(async (id: string) => {
     try {
       await artistApi.deleteArtwork(id);
       easeLayoutAnim();
       setApiArtworks((prev) => prev.filter((a) => a.id !== id));
     } catch {
-      toast('삭제 중 오류가 발생했습니다.', { variant: 'error' });
+      toast(t('common.error'), { variant: 'error' });
       return;
     }
     setArtworkDetail(null);
-    toast('작품이 삭제되었습니다.', { variant: 'error' });
-  }, [toast, setApiArtworks]);
+    toast(t('artistMyPage.artworkDeleted'), { variant: 'success' });
+  }, [toast, setApiArtworks, t]);
 
   /* ==== Review ==== */
   const handleSubmitReply = useCallback(async (id: string, reply: ArtistReviewReply) => {
@@ -249,12 +250,12 @@ const ArtistMyPageScreen = () => {
         r.id === id ? { ...r, reply: reply.content, repliedAt: new Date().toISOString() } : r
       )));
     } catch {
-      toast('답글 등록에 실패했습니다.', { variant: 'error' });
+      toast(t('artistMyPage.replyFailed'), { variant: 'error' });
       return;
     }
     setReviewOpen(null);
-    toast('답글이 등록되었습니다.', { variant: 'success' });
-  }, [toast, setApiReviews]);
+    toast(t('artistMyPage.replySaved'), { variant: 'success' });
+  }, [toast, setApiReviews, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -275,7 +276,7 @@ const ArtistMyPageScreen = () => {
           >
             <BackArrowIcon size={22} color={COLORS.white} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>포트폴리오 · 리뷰 관리</Text>
+          <Text style={styles.headerTitle}>{t('artistMyPage.title')}</Text>
         </View>
 
         {/* Profile card */}
@@ -293,7 +294,7 @@ const ArtistMyPageScreen = () => {
               <Text style={styles.handle}>{profile.handle}</Text>
               <View style={styles.locationRow}>
                 <LocationPinIcon size={12} color={COLORS.gray} />
-                <Text style={styles.location} numberOfLines={1}>{profile.location}</Text>
+                <Text style={styles.location} numberOfLines={1}>{profile.location || t('artistMyPage.locationDefault')}</Text>
               </View>
             </View>
           </View>
@@ -307,7 +308,7 @@ const ArtistMyPageScreen = () => {
                 <StarIcon size={16} color={COLORS.gold} filled />
                 <Text style={styles.ratingText}>{avgRating.toFixed(1)}</Text>
               </View>
-              <Text style={styles.statLabel}>평점 · {profile.reviewCount}</Text>
+              <Text style={styles.statLabel}>{t('artistMyPage.ratingLabel')} · {profile.reviewCount}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
@@ -315,12 +316,12 @@ const ArtistMyPageScreen = () => {
                 <HeartIcon size={14} color={COLORS.gold} filled />
                 <Text style={styles.statValue}>{totalLikes.toLocaleString()}</Text>
               </View>
-              <Text style={styles.statLabel}>누적 찜</Text>
+              <Text style={styles.statLabel}>{t('artistMyPage.totalLikes')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{profile.bookedCount}</Text>
-              <Text style={styles.statLabel}>완료 예약</Text>
+              <Text style={styles.statLabel}>{t('artistMyPage.completedBookings')}</Text>
             </View>
           </View>
 
@@ -330,7 +331,7 @@ const ArtistMyPageScreen = () => {
             style={styles.editProfileBtn}
           >
             <EditPenIcon size={13} color={COLORS.gold} strokeWidth={1.8} />
-            <Text style={styles.editProfileText}>프로필 수정</Text>
+            <Text style={styles.editProfileText}>{t('artistMyPage.editProfile')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -342,7 +343,7 @@ const ArtistMyPageScreen = () => {
             style={[styles.segBtn, tab === 'artworks' && styles.segBtnActive]}
           >
             <Text style={[styles.segText, tab === 'artworks' && styles.segTextActive]}>
-              작품 관리 · {artworks.length}
+              {t('artistMyPage.tabArtworks')} · {artworks.length}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -351,7 +352,7 @@ const ArtistMyPageScreen = () => {
             style={[styles.segBtn, tab === 'reviews' && styles.segBtnActive]}
           >
             <Text style={[styles.segText, tab === 'reviews' && styles.segTextActive]}>
-              리뷰 관리 · {answeredCount}/{reviews.length}
+              {t('artistMyPage.tabReviews')} · {answeredCount}/{reviews.length}
             </Text>
           </TouchableOpacity>
         </View>
@@ -359,13 +360,13 @@ const ArtistMyPageScreen = () => {
         {tab === 'artworks' ? (
           artworks.length === 0 ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>등록된 작품이 없습니다.</Text>
+              <Text style={styles.emptyText}>{t('artistMyPage.artworkEmpty')}</Text>
               <TouchableOpacity
                 onPress={() => handleOpenArtworkForm(null)}
                 activeOpacity={0.85}
                 style={styles.emptyBtn}
               >
-                <Text style={styles.emptyBtnText}>새 작품 등록</Text>
+                <Text style={styles.emptyBtnText}>{t('artistMyPage.artworkAdd')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -389,7 +390,7 @@ const ArtistMyPageScreen = () => {
                   )}
                   {aw.isPromoted && (
                     <View style={styles.gridAdBadge}>
-                      <Text style={styles.gridAdText}>광고중</Text>
+                      <Text style={styles.gridAdText}>{t('artistMyPage.adRunning')}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -399,7 +400,7 @@ const ArtistMyPageScreen = () => {
         ) : (
           reviews.length === 0 ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>아직 작성된 리뷰가 없습니다.</Text>
+              <Text style={styles.emptyText}>{t('artistMyPage.reviewEmpty')}</Text>
             </View>
           ) : (
             <View style={styles.reviewList}>
@@ -419,11 +420,11 @@ const ArtistMyPageScreen = () => {
                     </View>
                     {rv.isAnswered ? (
                       <View style={styles.answeredBadge}>
-                        <Text style={styles.answeredText}>답글완료</Text>
+                        <Text style={styles.answeredText}>{t('artistMyPage.answered')}</Text>
                       </View>
                     ) : (
                       <View style={styles.pendingBadge}>
-                        <Text style={styles.pendingText}>답글대기</Text>
+                        <Text style={styles.pendingText}>{t('artistMyPage.pendingReply')}</Text>
                       </View>
                     )}
                   </View>
@@ -442,7 +443,7 @@ const ArtistMyPageScreen = () => {
                   )}
                   {rv.reply && (
                     <View style={styles.replyBox}>
-                      <Text style={styles.replyLabel}>내 답글</Text>
+                      <Text style={styles.replyLabel}>{t('artistMyPage.myReply')}</Text>
                       <Text style={styles.replyContent} numberOfLines={2}>
                         {rv.reply.content}
                       </Text>
@@ -452,7 +453,7 @@ const ArtistMyPageScreen = () => {
                     <Text style={styles.reviewDate}>{rv.createdAt}</Text>
                     <View style={styles.reviewDetailBtn}>
                       <Text style={styles.reviewDetailText}>
-                        {rv.isAnswered ? '답글 수정 · 상세 보기' : '답글 작성 · 상세 보기'}
+                        {rv.isAnswered ? t('artistMyPage.editReply') : t('artistMyPage.writeReply')}
                       </Text>
                       <ChevronRightIcon size={12} color={COLORS.gold} />
                     </View>

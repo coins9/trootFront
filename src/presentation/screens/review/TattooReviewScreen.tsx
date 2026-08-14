@@ -23,6 +23,7 @@ import {
   type ReviewableItem, type ReviewWithArtist,
 } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type TabKey = 'writable' | 'written';
@@ -101,11 +102,13 @@ interface WritableCardProps {
   review: WritableReview;
   onWrite: () => void;
 }
-const WritableCard = React.memo(({ review, onWrite }: WritableCardProps) => (
+const WritableCard = React.memo(({ review, onWrite }: WritableCardProps) => {
+  const { t } = useTranslation();
+  return (
   <View style={styles.card}>
     <View style={styles.writableHeader}>
       <View style={styles.badge}>
-        <Text style={styles.badgeText}>리뷰 작성 가능</Text>
+        <Text style={styles.badgeText}>{t('review.badge')}</Text>
       </View>
       <Text style={styles.dLeft}>D-{review.daysLeft}</Text>
     </View>
@@ -132,26 +135,26 @@ const WritableCard = React.memo(({ review, onWrite }: WritableCardProps) => (
 
     <View style={styles.metaRow}>
       <CalendarIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
-      <Text style={styles.metaLabel}>시술 날짜</Text>
+      <Text style={styles.metaLabel}>{t('review.procedureDate')}</Text>
       <Text style={styles.metaValue} numberOfLines={1}>
         {review.procedureDate}  {review.procedureTime}
       </Text>
     </View>
     <View style={styles.metaRow}>
       <PaletteIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
-      <Text style={styles.metaLabel}>시술 부위</Text>
+      <Text style={styles.metaLabel}>{t('review.bodyPart')}</Text>
       <Text style={styles.metaValue} numberOfLines={1}>
         {review.bodyPart} · {review.style}
       </Text>
     </View>
 
-    <Text style={styles.sectionTitle}>리뷰 작성 안내</Text>
+    <Text style={styles.sectionTitle}>{t('review.guideTitle')}</Text>
     <View style={styles.guideBox}>
       <View style={styles.guideRow}>
         <CalendarIcon size={18} color={COLORS.gold} strokeWidth={1.6} />
         <View style={styles.guideText}>
-          <Text style={styles.guideLabel}>작성 기간</Text>
-          <Text style={styles.guideDesc}>시술 완료 후 14일 이내</Text>
+          <Text style={styles.guideLabel}>{t('review.guidePeriodLabel')}</Text>
+          <Text style={styles.guideDesc}>{t('review.guidePeriodDesc')}</Text>
         </View>
       </View>
       <View style={styles.guideRow}>
@@ -159,17 +162,17 @@ const WritableCard = React.memo(({ review, onWrite }: WritableCardProps) => (
           <Text style={styles.guidePText}>P</Text>
         </View>
         <View style={styles.guideText}>
-          <Text style={styles.guideLabel}>리뷰 혜택</Text>
+          <Text style={styles.guideLabel}>{t('review.guideBenefitLabel')}</Text>
           <Text style={styles.guideDesc}>
-            리뷰 작성 시 {review.rewardPoint.toLocaleString()}P 지급
+            {t('review.guideBenefitDesc').replace('{{point}}', review.rewardPoint.toLocaleString())}
           </Text>
         </View>
       </View>
       <View style={styles.guideRow}>
         <ShieldCheckIcon size={18} color={COLORS.gold} strokeWidth={1.6} />
         <View style={styles.guideText}>
-          <Text style={styles.guideLabel}>리뷰 정책</Text>
-          <Text style={styles.guideDesc}>솔직한 리뷰는 다른 유저에게 큰 도움이 됩니다.</Text>
+          <Text style={styles.guideLabel}>{t('review.guidePolicyLabel')}</Text>
+          <Text style={styles.guideDesc}>{t('review.guidePolicyDesc')}</Text>
         </View>
       </View>
     </View>
@@ -179,10 +182,11 @@ const WritableCard = React.memo(({ review, onWrite }: WritableCardProps) => (
       activeOpacity={0.85}
       style={styles.writeBtn}
     >
-      <Text style={styles.writeBtnText}>리뷰 작성하기</Text>
+      <Text style={styles.writeBtnText}>{t('review.writeBtn')}</Text>
     </TouchableOpacity>
   </View>
-));
+  );
+});
 WritableCard.displayName = 'WritableCard';
 
 /* ------------- Written card ------------- */
@@ -190,7 +194,9 @@ interface WrittenCardProps {
   review: WrittenReview;
   onAddHealed: () => void;
 }
-const WrittenCard = React.memo(({ review, onAddHealed }: WrittenCardProps) => (
+const WrittenCard = React.memo(({ review, onAddHealed }: WrittenCardProps) => {
+  const { t } = useTranslation();
+  return (
   <View style={styles.card}>
     <View style={styles.writtenHeader}>
       <View style={styles.avatar}>
@@ -249,15 +255,17 @@ const WrittenCard = React.memo(({ review, onAddHealed }: WrittenCardProps) => (
         style={styles.healedBtn}
       >
         <CameraSolidIcon size={18} color={COLORS.black} strokeWidth={1.7} />
-        <Text style={styles.healedText}>6개월 후 발색(Healed) 사진 추가하기</Text>
+        <Text style={styles.healedText}>{t('review.healedBtn')}</Text>
       </TouchableOpacity>
     )}
   </View>
-));
+  );
+});
 WrittenCard.displayName = 'WrittenCard';
 
 /* ------------- Screen ------------- */
 const TattooReviewScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const [tab, setTab] = useState<TabKey>('writable');
@@ -290,7 +298,7 @@ const TattooReviewScreen = () => {
         >
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>내 타투 리뷰</Text>
+        <Text style={styles.title}>{t('review.title')}</Text>
       </View>
 
       <View style={styles.tabRow}>
@@ -301,7 +309,7 @@ const TattooReviewScreen = () => {
         >
           <View style={styles.tabLabelWrap}>
             <Text style={[styles.tabText, tab === 'writable' && styles.tabTextActive]}>
-              작성 가능한 리뷰
+              {t('review.tabWritable')}
             </Text>
             {writable.length > 0 && (
               <View style={[styles.countBadge, tab === 'writable' && styles.countBadgeActive]}>
@@ -320,7 +328,7 @@ const TattooReviewScreen = () => {
         >
           <View style={styles.tabLabelWrap}>
             <Text style={[styles.tabText, tab === 'written' && styles.tabTextActive]}>
-              내가 쓴 리뷰
+              {t('review.tabWritten')}
             </Text>
           </View>
           {tab === 'written' && <View style={styles.tabUnderline} />}
@@ -343,16 +351,16 @@ const TattooReviewScreen = () => {
         {tab === 'writable' ? (
           <>
             <Text style={styles.leadText}>
-              시술 후 14일 이내에 리뷰를 작성하면,{'\n'}
-              <Text style={styles.leadHighlight}>T:ROOT 포인트 3,000P</Text>를 드려요.
+              {t('review.leadText')}{'\n'}
+              <Text style={styles.leadHighlight}>{t('review.leadHighlight')}</Text>
             </Text>
             {writableLoading ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>불러오는 중...</Text>
+                <Text style={styles.emptyText}>{t('common.loading')}</Text>
               </View>
             ) : writable.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>작성 가능한 리뷰가 없습니다.</Text>
+                <Text style={styles.emptyText}>{t('review.emptyWritable')}</Text>
               </View>
             ) : (
               writable.map((r) => (
@@ -367,11 +375,11 @@ const TattooReviewScreen = () => {
         ) : (
           writtenLoading ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>불러오는 중...</Text>
+              <Text style={styles.emptyText}>{t('common.loading')}</Text>
             </View>
           ) : written.length === 0 ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>아직 작성한 리뷰가 없습니다.</Text>
+              <Text style={styles.emptyText}>{t('review.empty')}</Text>
             </View>
           ) : (
             <>
@@ -384,7 +392,7 @@ const TattooReviewScreen = () => {
               ))}
               {writtenMore && (
                 <View style={styles.empty}>
-                  <Text style={styles.emptyText}>불러오는 중...</Text>
+                  <Text style={styles.emptyText}>{t('common.loading')}</Text>
                 </View>
               )}
             </>

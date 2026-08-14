@@ -18,6 +18,7 @@ import {
 import { usePagedApi } from '../../hooks/useApi';
 import { reservationApi, type CustomerReservationView } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 const STATUS_MAP: Record<string, ReservationStatus> = {
   requested: '예약 대기중',
@@ -55,6 +56,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 const TABS: ReservationTab[] = ['진행 중인 예약', '지난 예약'];
 
 const ReservationManageScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const [tab, setTab] = useState<ReservationTab>('진행 중인 예약');
@@ -92,10 +94,18 @@ const ReservationManageScreen = () => {
       {/* Top row: status chip + reservation number */}
       <View style={styles.topRow}>
         <View style={styles.statusChip}>
-          <Text style={styles.statusText}>{item.status}</Text>
+          <Text style={styles.statusText}>
+            {item.status === '예약 대기중'
+              ? t('reservation.status.requested')
+              : item.status === '확정'
+                ? t('reservation.status.confirmed')
+                : item.status === '완료'
+                  ? t('reservation.status.completed')
+                  : t('reservation.status.cancelled')}
+          </Text>
         </View>
         <View style={styles.numberBlock}>
-          <Text style={styles.numberLabel}>예약 번호</Text>
+          <Text style={styles.numberLabel}>{t('reservation.numberLabel')}</Text>
           <Text style={styles.numberValue}>{item.reservationNumber}</Text>
         </View>
       </View>
@@ -140,7 +150,7 @@ const ReservationManageScreen = () => {
         <View style={styles.detailRow}>
           <WonIcon size={13} color={COLORS.gray} />
           <Text style={styles.detailText}>
-            총 금액   <Text style={styles.priceValue}>
+            {t('reservation.totalPrice')}   <Text style={styles.priceValue}>
               {item.totalPrice.toLocaleString()}원
             </Text>
           </Text>
@@ -154,7 +164,7 @@ const ReservationManageScreen = () => {
           activeOpacity={0.85}
           style={styles.ctaSolid}
         >
-          <Text style={styles.ctaSolidText}>1:1 채팅하기</Text>
+          <Text style={styles.ctaSolidText}>{t('reservation.chat')}</Text>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
@@ -162,11 +172,11 @@ const ReservationManageScreen = () => {
           activeOpacity={0.85}
           style={styles.ctaOutline}
         >
-          <Text style={styles.ctaOutlineText}>상세 내역 보기</Text>
+          <Text style={styles.ctaOutlineText}>{t('reservation.viewDetail')}</Text>
         </TouchableOpacity>
       )}
     </View>
-  ), [isOngoingTab, handleOpenChat, handleDetail]);
+  ), [isOngoingTab, handleOpenChat, handleDetail, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -182,22 +192,22 @@ const ReservationManageScreen = () => {
         >
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.subHeaderTitle}>예약 관리</Text>
+        <Text style={styles.subHeaderTitle}>{t('reservation.title')}</Text>
       </View>
 
       {/* Tabs */}
       <View style={styles.tabBar}>
-        {TABS.map((t) => {
-          const active = t === tab;
+        {TABS.map((tabKey) => {
+          const active = tabKey === tab;
           return (
             <TouchableOpacity
-              key={t}
-              onPress={() => setTab(t)}
+              key={tabKey}
+              onPress={() => setTab(tabKey)}
               activeOpacity={0.75}
               style={styles.tabItem}
             >
               <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                {t}
+                {tabKey === '진행 중인 예약' ? t('reservation.tabOngoing') : t('reservation.tabPast')}
               </Text>
               {active && <View style={styles.tabUnderline} />}
             </TouchableOpacity>
@@ -217,16 +227,16 @@ const ReservationManageScreen = () => {
           <View style={styles.empty}>
             <Text style={styles.emptyText}>
               {loading
-                ? '불러오는 중...'
+                ? t('common.loading')
                 : isOngoingTab
-                  ? '진행 중인 예약이 없습니다.'
-                  : '지난 예약 내역이 없습니다.'}
+                  ? t('reservation.emptyOngoing')
+                  : t('reservation.emptyPast')}
             </Text>
           </View>
         }
         ListFooterComponent={loadingMore ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>불러오는 중...</Text>
+            <Text style={styles.emptyText}>{t('common.loading')}</Text>
           </View>
         ) : null}
       />

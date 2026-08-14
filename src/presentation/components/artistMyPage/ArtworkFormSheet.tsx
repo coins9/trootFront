@@ -14,6 +14,7 @@ import {
   GENRES, BODY_PARTS, SUBJECTS, MOODS,
 } from '../../../data/mock/mockData';
 import BilingualSection from '../common/BilingualSection';
+import { useTranslation } from '../../store/languageStore';
 
 interface Props {
   visible: boolean;
@@ -46,6 +47,7 @@ const emptyForm = (): ArtistArtwork => ({
 });
 
 const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) => {
+  const { t } = useTranslation();
   const translate = useRef(new Animated.Value(SH)).current;
   const insets = useSafeAreaInsets();
   const [form, setForm] = useState<ArtistArtwork>(emptyForm());
@@ -112,7 +114,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
               <View style={styles.handle} />
               <View style={styles.headerRow}>
                 <Text style={styles.title}>
-                  {isEdit ? '작품 수정' : '새 작품 등록'}
+                  {isEdit ? t('artistMyPage.artworkFormTitleEdit') : t('artistMyPage.artworkFormTitleAdd')}
                 </Text>
                 <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <XIcon size={20} color={COLORS.gray} />
@@ -144,7 +146,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                   <TextInput
                     value={form.title}
                     onChangeText={(v) => setSingle('title', v)}
-                    placeholder="예: 블랙워크 천사"
+                    placeholder={t('artistMyPage.artworkFormTitlePlaceholder')}
                     placeholderTextColor={COLORS.gray2}
                     style={styles.input}
                     maxLength={30}
@@ -258,7 +260,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                       <TextInput
                         value={form.duration}
                         onChangeText={(v) => setSingle('duration', v)}
-                        placeholder="예: 2시간"
+                        placeholder={t('artistMyPage.artworkFormDurationPlaceholder')}
                         placeholderTextColor={COLORS.gray2}
                         style={styles.input}
                         maxLength={20}
@@ -273,7 +275,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                   <TextInput
                     value={form.description}
                     onChangeText={(v) => v.length <= DESC_MAX && setSingle('description', v)}
-                    placeholder="사이즈, 세션 수, 컨셉 등을 간단히 적어주세요."
+                    placeholder={t('artistMyPage.artworkFormDescPlaceholder')}
                     placeholderTextColor={COLORS.gray2}
                     multiline
                     maxLength={DESC_MAX}
@@ -306,7 +308,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
               >
                 <CheckCircleIcon size={16} color={COLORS.black} />
                 <Text style={styles.saveText}>
-                  {isEdit ? '수정 저장' : '작품 등록'}
+                  {isEdit ? t('artistMyPage.artworkFormSubmitEdit') : t('artistMyPage.artworkFormSubmitAdd')}
                 </Text>
               </TouchableOpacity>
             </View>
