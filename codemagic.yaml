@@ -134,6 +134,9 @@ workflows:
       - name: CocoaPods 설치
         script: |
           cd ios
+          # 기존 팟 파일과 락 파일을 싹 밀어버리고 강제로 새로 받습니다.
+          rm -rf Pods
+          rm -f Podfile.lock
           pod install --repo-update
 
       - name: JS 번들 사전 생성
