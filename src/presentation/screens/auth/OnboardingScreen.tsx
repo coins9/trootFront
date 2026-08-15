@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import { useTranslation } from '../../store/languageStore';
 import { useAuthStore } from '../../store/authStore';
+import { useToast } from '../../components/common/Toast';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -20,6 +21,7 @@ const OnboardingScreen = () => {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { toast } = useToast();
   const completeOnboarding = useAuthStore((s) => s.completeOnboarding);
 
   const [nickname, setNickname] = useState('');
@@ -30,11 +32,15 @@ const OnboardingScreen = () => {
   const handleStart = useCallback(async () => {
     if (!canSubmit) return;
     Keyboard.dismiss();
-    await completeOnboarding(trimmed, 'USER');
-    setTimeout(() => {
-      navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
-    }, 120);
-  }, [canSubmit, completeOnboarding, trimmed, navigation]);
+    try {
+      await completeOnboarding(trimmed, 'USER');
+      setTimeout(() => {
+        navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+      }, 120);
+    } catch {
+      toast(t('onboarding.failed'), { variant: 'error' });
+    }
+  }, [canSubmit, completeOnboarding, trimmed, navigation, toast, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

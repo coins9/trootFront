@@ -66,6 +66,7 @@ export const en: TranslationSchema = {
     nicknamePlaceholder: 'Enter nickname',
     nicknameTaken: 'This nickname is already taken',
     startApp: 'Get started with T:ROOT',
+    failed: 'Failed to set nickname. Please try again.',
   },
 
   settings: {
@@ -329,6 +330,14 @@ export const en: TranslationSchema = {
     reviewSupportTitle: 'Request Review Removal',
     reviewSupportMsg: 'Artists cannot remove or hide reviews.\nIf a review contains false claims, defamation, or harassment, please contact us for review.',
     reviewSupportConfirm: 'Submit Request',
+    registerPageTitle: 'Register as Artist',
+    registerTitle: 'Create your tattoo artist page',
+    registerSubtitle: 'Manage your portfolio, bookings, and promotions all in one place.',
+    registerNameLabel: 'Display name',
+    registerNamePlaceholder: 'e.g. John Tattoo Studio',
+    registerHandleLabel: 'Handle (unique ID)',
+    registerHandlePlaceholder: 'e.g. johntattoo (letters/numbers, min 2 chars)',
+    registerSubmit: 'Register as tattoo artist',
   },
 
   adStats: {

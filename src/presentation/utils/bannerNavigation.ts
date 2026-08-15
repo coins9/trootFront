@@ -55,7 +55,7 @@ export async function handleBannerLink(
     try {
       const artistPage = await artistApi.detail(id);
       const artist = toArtist(artistPage);
-      navigation.navigate('ArtistProfile' as never, { artist } as never);
+      (navigation as any).navigate('ArtistProfile', { artist });
     } catch {
       // 존재하지 않는 ID면 조용히 무시
     }

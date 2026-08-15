@@ -63,6 +63,7 @@ export const ko = {
     nicknamePlaceholder: '닉네임 입력',
     nicknameTaken: '이미 사용 중인 닉네임입니다',
     startApp: 'T:ROOT 시작하기',
+    failed: '닉네임 설정에 실패했습니다. 다시 시도해주세요.',
   },
 
   settings: {
@@ -326,6 +327,14 @@ export const ko = {
     reviewSupportTitle: '리뷰 삭제/숨김 문의',
     reviewSupportMsg: '타투이스트는 리뷰를 임의로 삭제/숨길 수 없습니다.\n허위 · 명예훼손 · 비방 등에 해당하면 고객센터로 접수해주세요.',
     reviewSupportConfirm: '문의 접수',
+    registerPageTitle: '타투이스트 등록',
+    registerTitle: '타투이스트 페이지를 만들어보세요',
+    registerSubtitle: '포트폴리오 · 예약 · 광고를 한 곳에서 관리할 수 있어요.',
+    registerNameLabel: '활동명 (표시 이름)',
+    registerNamePlaceholder: '예: 홍길동 타투',
+    registerHandleLabel: '핸들 (고유 ID)',
+    registerHandlePlaceholder: '예: honggildong (영문/숫자, 최소 2자)',
+    registerSubmit: '타투이스트 등록하기',
   },
 
   adStats: {

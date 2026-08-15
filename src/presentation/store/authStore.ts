@@ -15,6 +15,8 @@ interface AuthStore {
   hydrate: () => Promise<void>;
   loginWith: (provider: AuthProvider) => Promise<{ isNewUser: boolean }>;
   completeOnboarding: (nickname: string, role: AccountRole) => Promise<void>;
+  /** 역할 승격 후 새 토큰으로 세션 갱신 */
+  refresh: () => Promise<void>;
   /** 토큰 갱신 결과 반영 (api 클라이언트가 호출) */
   applyTokens: (accessToken: string, refreshToken: string) => Promise<void>;
   /** 갱신 실패 시 세션 폐기 */
@@ -104,6 +106,25 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     };
     await persist(session);
     set({ session });
+  },
+
+  refresh: async () => {
+    const current = get().session;
+    if (!current) return;
+    try {
+      const res = await fetch(`${API_BASE}/app/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: current.refreshToken }),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { success: true; data: AuthSession }
+        | { success: false }
+        | null;
+      if (!res.ok || !json || json.success === false) return;
+      await persist(json.data);
+      set({ session: json.data });
+    } catch { /* 실패해도 기존 세션 유지 */ }
   },
 
   applyTokens: async (accessToken, refreshToken) => {

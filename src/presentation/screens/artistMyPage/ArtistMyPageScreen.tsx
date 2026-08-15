@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Image,
   StatusBar, Dimensions, LayoutAnimation, Platform, UIManager, Linking,
+  TextInput, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -30,6 +31,7 @@ import {
 } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
+import { useAuthStore } from '../../store/authStore';
 
 /* ---- Mappers ---- */
 function toSelfProfile(p: ArtistPage): ArtistSelfProfile {
@@ -112,10 +114,36 @@ const ArtistMyPageScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
+  const refresh = useAuthStore((s) => s.refresh);
 
-  const { data: apiProfile, reload: reloadProfile } = useApi(() => artistApi.me(), []);
+  const { data: apiProfile, loading: profileLoading, reload: reloadProfile } = useApi(() => artistApi.me(), []);
   const { items: apiArtworks, setItems: setApiArtworks, reload: reloadArtworks } =
     usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
+
+  /* ==== 타투이스트 등록 폼 상태 ==== */
+  const [regName, setRegName] = useState('');
+  const [regHandle, setRegHandle] = useState('');
+  const [regSubmitting, setRegSubmitting] = useState(false);
+
+  const canRegister = regName.trim().length >= 1 && regHandle.trim().replace(/^@/, '').length >= 2;
+
+  const handleRegister = useCallback(async () => {
+    if (!canRegister) return;
+    setRegSubmitting(true);
+    try {
+      await artistApi.createPage({
+        pageName: regName.trim(),
+        handle: regHandle.trim().replace(/^@/, ''),
+      });
+      await refresh();
+      reloadProfile();
+      reloadArtworks();
+    } catch {
+      toast(t('common.error'), { variant: 'error' });
+    } finally {
+      setRegSubmitting(false);
+    }
+  }, [canRegister, regName, regHandle, refresh, reloadProfile, reloadArtworks, toast, t]);
   const artistPageId = apiProfile?.id ?? '';
   const { items: apiReviews, setItems: setApiReviews } =
     usePagedApi(
@@ -256,6 +284,70 @@ const ArtistMyPageScreen = () => {
     setReviewOpen(null);
     toast(t('artistMyPage.replySaved'), { variant: 'success' });
   }, [toast, setApiReviews, t]);
+
+  /* 타투이스트 등록 UI — 프로필이 없고 로딩이 끝난 경우 */
+  if (!profileLoading && !apiProfile) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader />
+        <View style={styles.subHeader}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.backBtn}
+          >
+            <BackArrowIcon size={22} color={COLORS.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('artistMyPage.registerPageTitle')}</Text>
+        </View>
+        <ScrollView
+          contentContainerStyle={styles.regContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.regTitle}>{t('artistMyPage.registerTitle')}</Text>
+          <Text style={styles.regSubtitle}>{t('artistMyPage.registerSubtitle')}</Text>
+
+          <Text style={styles.regLabel}>{t('artistMyPage.registerNameLabel')}</Text>
+          <TextInput
+            style={styles.regInput}
+            placeholder={t('artistMyPage.registerNamePlaceholder')}
+            placeholderTextColor={COLORS.gray2}
+            value={regName}
+            onChangeText={setRegName}
+            maxLength={100}
+            autoCapitalize="none"
+          />
+
+          <Text style={styles.regLabel}>{t('artistMyPage.registerHandleLabel')}</Text>
+          <TextInput
+            style={styles.regInput}
+            placeholder={t('artistMyPage.registerHandlePlaceholder')}
+            placeholderTextColor={COLORS.gray2}
+            value={regHandle}
+            onChangeText={(v) => setRegHandle(v.replace(/\s/g, ''))}
+            maxLength={50}
+            autoCapitalize="none"
+          />
+
+          <TouchableOpacity
+            onPress={handleRegister}
+            disabled={!canRegister || regSubmitting}
+            activeOpacity={0.85}
+            style={[styles.regBtn, (!canRegister || regSubmitting) && styles.regBtnDisabled]}
+          >
+            {regSubmitting
+              ? <ActivityIndicator color={COLORS.black} />
+              : <Text style={[styles.regBtnText, (!canRegister || regSubmitting) && styles.regBtnTextDisabled]}>
+                  {t('artistMyPage.registerSubmit')}
+                </Text>
+            }
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -899,4 +991,54 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+
+  /* 타투이스트 등록 폼 */
+  regContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 60,
+    gap: 0,
+  },
+  regTitle: {
+    color: COLORS.white,
+    fontSize: 22,
+    fontWeight: '800',
+    lineHeight: 30,
+    marginBottom: 8,
+  },
+  regSubtitle: {
+    color: COLORS.gray,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 28,
+  },
+  regLabel: {
+    color: COLORS.gray,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 17,
+    marginBottom: 6,
+    marginTop: 16,
+  },
+  regInput: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: COLORS.white,
+    lineHeight: 20,
+  },
+  regBtn: {
+    marginTop: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: COLORS.gold,
+    alignItems: 'center',
+  },
+  regBtnDisabled: { backgroundColor: COLORS.elevated },
+  regBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.black, lineHeight: 20 },
+  regBtnTextDisabled: { color: COLORS.gray2 },
 });
