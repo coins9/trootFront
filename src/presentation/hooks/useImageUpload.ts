@@ -16,16 +16,36 @@ interface Options {
   onError?: (message: string) => void;
 }
 
+const requestAndroidGalleryPermission = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android') return true;
+  try {
+    // Android 13+(API 33+)는 READ_MEDIA_IMAGES, 그 미만은 READ_EXTERNAL_STORAGE
+    const sdkInt = typeof Platform.Version === 'number' ? Platform.Version : parseInt(Platform.Version, 10);
+    const permission = sdkInt >= 33
+      ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+      : PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
+    const result = await PermissionsAndroid.request(permission, {
+      title: '사진 접근 권한',
+      message: 'T:ROOT가 갤러리에서 사진을 선택하려면 접근 권한이 필요합니다.',
+      buttonPositive: '허용',
+      buttonNegative: '거부',
+    });
+    return result === PermissionsAndroid.RESULTS.GRANTED;
+  } catch {
+    return false;
+  }
+};
+
 const requestAndroidCameraPermission = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') return true;
   try {
     const result = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.CAMERA,
       {
-        title: 'Camera Permission',
-        message: 'T:ROOT needs camera access to take photos.',
-        buttonPositive: 'Allow',
-        buttonNegative: 'Deny',
+        title: '카메라 권한',
+        message: 'T:ROOT가 사진을 찍으려면 카메라 권한이 필요합니다.',
+        buttonPositive: '허용',
+        buttonNegative: '거부',
       },
     );
     return result === PermissionsAndroid.RESULTS.GRANTED;
@@ -66,6 +86,12 @@ export function useImageUpload({ scope, max, current, onError }: Options) {
     const remaining = max - current;
     if (remaining <= 0) {
       onError?.(`사진은 최대 ${max}장까지 첨부할 수 있어요`);
+      return [];
+    }
+
+    const granted = await requestAndroidGalleryPermission();
+    if (!granted) {
+      onError?.('갤러리 접근 권한이 필요합니다. 설정에서 권한을 허용해주세요.');
       return [];
     }
 

@@ -456,4 +456,5 @@ export const userApi = {
   updateFcmToken: (fcmToken: string, platform: 'ios' | 'android') =>
     api.patch('/app/users/me/fcm-token', { fcmToken, platform }),
   switchRole: (role: 'USER' | 'TATTOOIST') => api.patch('/app/users/me/role', { role }),
+  withdraw: () => api.delete<void>('/app/users/me'),
 };

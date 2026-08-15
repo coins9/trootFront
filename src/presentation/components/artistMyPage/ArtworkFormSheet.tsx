@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, Animated,
-  Dimensions, Platform, TextInput, ScrollView, KeyboardAvoidingView,
+  Dimensions, Platform, TextInput, ScrollView, KeyboardAvoidingView, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
@@ -15,6 +15,7 @@ import {
 } from '../../../data/mock/mockData';
 import BilingualSection from '../common/BilingualSection';
 import { useTranslation } from '../../store/languageStore';
+import { useImageUpload } from '../../hooks/useImageUpload';
 
 interface Props {
   visible: boolean;
@@ -81,6 +82,17 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
     setForm((prev) => ({ ...prev, [field]: v }));
   }, []);
 
+  const { pickWithChoice, uploading: imgUploading } = useImageUpload({
+    scope: 'artwork',
+    max: 1,
+    current: form.thumbnailUri ? 1 : 0,
+  });
+
+  const handlePickThumbnail = useCallback(async () => {
+    const urls = await pickWithChoice();
+    if (urls[0]) setSingle('thumbnailUri', urls[0]);
+  }, [pickWithChoice, setSingle]);
+
   const handleSubmit = useCallback(() => {
     if (!canSubmit) return;
     onSubmit(form);
@@ -128,14 +140,25 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                 contentContainerStyle={{ paddingBottom: 12 }}
               >
                 {/* Thumbnail pick (사진 전용) */}
-                <TouchableOpacity activeOpacity={0.85} style={styles.thumbPickBox}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.thumbPickBox}
+                  onPress={handlePickThumbnail}
+                  disabled={imgUploading}
+                >
                   {form.thumbnailUri ? (
-                    <View style={styles.thumbPreview} />
+                    <Image
+                      source={{ uri: form.thumbnailUri }}
+                      style={StyleSheet.absoluteFill}
+                      resizeMode="cover"
+                    />
                   ) : (
                     <>
                       <TattooPlaceholderIcon size={40} color="#3a3a3a" />
-                      <Text style={styles.thumbHint}>사진 업로드</Text>
-                      <Text style={styles.thumbSub}>탭하여 갤러리에서 선택</Text>
+                      <Text style={styles.thumbHint}>
+                        {imgUploading ? '업로드 중...' : '사진 업로드'}
+                      </Text>
+                      <Text style={styles.thumbSub}>탭하여 갤러리 / 카메라 선택</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -406,11 +429,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 18,
     gap: 6,
-  },
-  thumbPreview: {
-    width: '100%', height: '100%',
-    borderRadius: 12,
-    backgroundColor: '#2a2a2a',
+    overflow: 'hidden',
   },
   thumbHint: {
     color: COLORS.white,

@@ -15,6 +15,7 @@ import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
 import { useAuthStore } from '../../store/authStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { userApi } from '../../../data/api';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -63,6 +64,7 @@ const PrivacySecurityScreen = () => {
   const { t } = useTranslation();
   const logout = useAuthStore((s) => s.logout);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   const notImplemented = useCallback((label: string) => () => {
     toast(t('privacy.notImplemented', { label } as any));
@@ -84,19 +86,22 @@ const PrivacySecurityScreen = () => {
     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   }, [logout, navigation]);
 
-  const confirmWithdraw = useCallback(() => {
-    setWithdrawOpen(false);
-    setTimeout(() => {
-      toast(t('privacy.withdrawRequested'), { variant: 'error' });
-    }, 200);
-  }, [toast, t]);
+  const confirmWithdraw = useCallback(async () => {
+    setWithdrawing(true);
+    try {
+      await userApi.withdraw();
+      await logout();
+      setWithdrawOpen(false);
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    } catch {
+      setWithdrawing(false);
+      setWithdrawOpen(false);
+      setTimeout(() => {
+        toast(t('privacy.notImplemented', { label: t('privacy.withdraw') } as any), { variant: 'error' });
+      }, 200);
+    }
+  }, [logout, navigation, toast, t]);
 
-  const securityItems = [
-    { key: 'password', label: t('privacy.passwordChange'), onPress: notImplemented(t('privacy.passwordChange')) },
-  ];
-  const privacyItems = [
-    { key: 'blocked', label: t('privacy.blocked'), onPress: notImplemented(t('privacy.blocked')) },
-  ];
   const legalItems = [
     { key: 'safety', label: t('privacy.safetyPolicy'), onPress: goToSafetyPolicy },
     { key: 'tos', label: t('privacy.terms'), onPress: notImplemented(t('privacy.terms')) },
@@ -126,8 +131,6 @@ const PrivacySecurityScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Section title={t('privacy.sectionSecurity')} items={securityItems} />
-        <Section title={t('privacy.sectionPrivacy')} items={privacyItems} />
         <Section title={t('privacy.sectionLegal')} items={legalItems} />
 
         <TouchableOpacity
@@ -193,9 +196,12 @@ const PrivacySecurityScreen = () => {
               <TouchableOpacity
                 onPress={confirmWithdraw}
                 activeOpacity={0.85}
-                style={[styles.modalBtn, styles.modalBtnDanger]}
+                disabled={withdrawing}
+                style={[styles.modalBtn, styles.modalBtnDanger, withdrawing && { opacity: 0.5 }]}
               >
-                <Text style={styles.modalBtnDangerText}>{t('privacy.withdrawBtn')}</Text>
+                <Text style={styles.modalBtnDangerText}>
+                  {withdrawing ? t('common.loading') : t('privacy.withdrawBtn')}
+                </Text>
               </TouchableOpacity>
             </View>
           </Pressable>

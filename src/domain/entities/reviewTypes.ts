@@ -21,7 +21,6 @@ export interface WritableReview {
   bodyPart: string;
   style: string;
   daysLeft: number;
-  rewardPoint: number;
 }
 
 export interface WrittenReview {

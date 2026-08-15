@@ -14,10 +14,10 @@ interface LogoHeaderProps {
   showSearch?: boolean;
 }
 
-const LogoHeader = memo(function LogoHeader({ onBellPress, onSearchPress, showSearch = true }: LogoHeaderProps) {
+const LogoHeader = memo(function LogoHeader({ onBellPress, onSearchPress, showSearch = false }: LogoHeaderProps) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const handleBellPress = onBellPress ?? (() => navigation.navigate('NotificationSettings'));
+  const handleBellPress = onBellPress ?? (() => navigation.navigate('NotificationList'));
 
   return (
     <View style={styles.container}>

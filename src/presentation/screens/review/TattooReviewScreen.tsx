@@ -48,7 +48,6 @@ function toWritable(item: ReviewableItem, locationDefault: string): WritableRevi
     bodyPart: item.bodyPart ?? '',
     style: item.sizePreset ?? '',
     daysLeft,
-    rewardPoint: 3000,
   };
 }
 
@@ -155,17 +154,6 @@ const WritableCard = React.memo(({ review, onWrite }: WritableCardProps) => {
         <View style={styles.guideText}>
           <Text style={styles.guideLabel}>{t('review.guidePeriodLabel')}</Text>
           <Text style={styles.guideDesc}>{t('review.guidePeriodDesc')}</Text>
-        </View>
-      </View>
-      <View style={styles.guideRow}>
-        <View style={styles.guidePBadge}>
-          <Text style={styles.guidePText}>P</Text>
-        </View>
-        <View style={styles.guideText}>
-          <Text style={styles.guideLabel}>{t('review.guideBenefitLabel')}</Text>
-          <Text style={styles.guideDesc}>
-            {t('review.guideBenefitDesc').replace('{{point}}', review.rewardPoint.toLocaleString())}
-          </Text>
         </View>
       </View>
       <View style={styles.guideRow}>
@@ -642,22 +630,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-  },
-  guidePBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: COLORS.gold,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 1,
-  },
-  guidePText: {
-    color: COLORS.gold,
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 14,
   },
   guideText: {
     flex: 1,

@@ -15,7 +15,6 @@ export const MOCK_WRITABLE_REVIEWS: WritableReview[] = [
     bodyPart: '팔 (어깨 ~ 전완)',
     style: '블랙앤그레이',
     daysLeft: 6,
-    rewardPoint: 3000,
   },
   {
     id: 'wr2',
@@ -31,7 +30,6 @@ export const MOCK_WRITABLE_REVIEWS: WritableReview[] = [
     bodyPart: '팔 (상완)',
     style: '라인워크',
     daysLeft: 12,
-    rewardPoint: 3000,
   },
 ];
 

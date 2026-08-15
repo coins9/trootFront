@@ -164,7 +164,7 @@ const HomeScreen = () => {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader onSearchPress={handleSearchPress} />
+      <LogoHeader showSearch onSearchPress={handleSearchPress} />
       {!!settings.noticeBanner && !noticeDismissed && (
         <View style={styles.noticeBanner}>
           <Text style={styles.noticeText} numberOfLines={2}>{settings.noticeBanner}</Text>

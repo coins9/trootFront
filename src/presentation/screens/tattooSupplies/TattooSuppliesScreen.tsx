@@ -206,7 +206,7 @@ const TattooSuppliesScreen = () => {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader onSearchPress={handleSearchPress} />
+      <LogoHeader showSearch onSearchPress={handleSearchPress} />
       {searchVisible && (
         <SearchBar
           value={keyword}

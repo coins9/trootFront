@@ -120,12 +120,9 @@ const ReviewWriteScreen = () => {
       toast(t('review.textTooShortError').replace('{{min}}', String(TEXT_MIN)), { variant: 'error' });
       return;
     }
-    toast(
-      t('review.submitted').replace('{{point}}', review.rewardPoint.toLocaleString()),
-      { variant: 'success' },
-    );
+    toast(t('review.submitted'), { variant: 'success' });
     navigation.goBack();
-  }, [allRated, textValid, review.rewardPoint, toast, navigation, t]);
+  }, [allRated, textValid, toast, navigation, t]);
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -259,7 +256,7 @@ const ReviewWriteScreen = () => {
             activeOpacity={0.85}
           >
             <Text style={[s.submitText, !canSubmit && s.submitTextDisabled]}>
-              {t('review.submitBtn').replace('{{point}}', review.rewardPoint.toLocaleString())}
+              {t('review.submitBtn')}
             </Text>
           </TouchableOpacity>
         </View>

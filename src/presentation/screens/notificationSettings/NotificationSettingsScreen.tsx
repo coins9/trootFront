@@ -73,15 +73,14 @@ NotifRow.displayName = 'NotifRow';
 
 /* ------------- Screen ------------- */
 type NotifKey =
-  | 'chat' | 'reservationStatus' | 'reservationConfirm' | 'reservationRemind'
+  | 'reservationStatus' | 'reservationConfirm' | 'reservationRemind'
   | 'procedureDone' | 'newReply'
   | 'favoriteArtist' | 'favoriteWorkStock' | 'favoriteSupplyPrice'
-  | 'event' | 'point' | 'notice';
+  | 'event' | 'notice';
 
 type NotifState = Record<NotifKey, boolean>;
 
 const INITIAL_STATE: NotifState = {
-  chat: true,
   reservationStatus: true,
   reservationConfirm: true,
   reservationRemind: false,
@@ -91,7 +90,6 @@ const INITIAL_STATE: NotifState = {
   favoriteWorkStock: true,
   favoriteSupplyPrice: false,
   event: true,
-  point: false,
   notice: true,
 };
 
@@ -107,7 +105,6 @@ const NotificationSettingsScreen = () => {
     {
       title: t('notification.bookingGroup'),
       items: [
-        { key: 'chat' as NotifKey, label: t('notification.chat') },
         { key: 'reservationStatus' as NotifKey, label: t('notification.reservationStatus') },
         { key: 'reservationConfirm' as NotifKey, label: t('notification.reservationConfirm') },
         { key: 'reservationRemind' as NotifKey, label: t('notification.reservationRemind') },
@@ -122,7 +119,6 @@ const NotificationSettingsScreen = () => {
         { key: 'favoriteWorkStock' as NotifKey, label: t('notification.favoriteWorkStock') },
         { key: 'favoriteSupplyPrice' as NotifKey, label: t('notification.favoriteSupplyPrice') },
         { key: 'event' as NotifKey, label: t('notification.event') },
-        { key: 'point' as NotifKey, label: t('notification.point') },
         { key: 'notice' as NotifKey, label: t('notification.notice') },
       ],
     },
