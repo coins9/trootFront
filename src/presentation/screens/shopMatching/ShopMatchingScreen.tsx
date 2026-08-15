@@ -32,6 +32,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { shopApi, ShopPost } from '../../../data/api';
 import SearchBar from '../../components/common/SearchBar';
 import ScreenBanner from '../../components/common/ScreenBanner';
+import BannerCarousel from '../../components/common/BannerCarousel';
 import { useTranslation } from '../../store/languageStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
@@ -372,24 +373,27 @@ const ShopMatchingScreen = () => {
         </Text>
       </View>
 
-      {/* 탭별 메인 배너 */}
-      {isShareCategory && (settings.shopBoothBannerImage || settings.shopBoothBannerUrl) && (
-        <ScreenBanner
-          imageUrl={settings.shopBoothBannerImage || undefined}
-          linkUrl={settings.shopBoothBannerUrl || undefined}
-        />
+      {/* 탭별 메인 배너 — 다중 이미지 우선, 없으면 단일 이미지 폴백 */}
+      {isShareCategory && (
+        settings.bannerBoothImages.length > 0
+          ? <BannerCarousel items={settings.bannerBoothImages} />
+          : (settings.shopBoothBannerImage || settings.shopBoothBannerUrl)
+            ? <ScreenBanner imageUrl={settings.shopBoothBannerImage || undefined} linkUrl={settings.shopBoothBannerUrl || undefined} />
+            : null
       )}
-      {isBeginnerCategory && (settings.shopModelBannerImage || settings.shopModelBannerUrl) && (
-        <ScreenBanner
-          imageUrl={settings.shopModelBannerImage || undefined}
-          linkUrl={settings.shopModelBannerUrl || undefined}
-        />
+      {isBeginnerCategory && (
+        settings.bannerBeginnerImages.length > 0
+          ? <BannerCarousel items={settings.bannerBeginnerImages} />
+          : (settings.shopModelBannerImage || settings.shopModelBannerUrl)
+            ? <ScreenBanner imageUrl={settings.shopModelBannerImage || undefined} linkUrl={settings.shopModelBannerUrl || undefined} />
+            : null
       )}
-      {isEditorCategory && (settings.shopMediaBannerImage || settings.shopMediaBannerUrl) && (
-        <ScreenBanner
-          imageUrl={settings.shopMediaBannerImage || undefined}
-          linkUrl={settings.shopMediaBannerUrl || undefined}
-        />
+      {isEditorCategory && (
+        settings.bannerMediaImages.length > 0
+          ? <BannerCarousel items={settings.bannerMediaImages} />
+          : (settings.shopMediaBannerImage || settings.shopMediaBannerUrl)
+            ? <ScreenBanner imageUrl={settings.shopMediaBannerImage || undefined} linkUrl={settings.shopMediaBannerUrl || undefined} />
+            : null
       )}
 
       {/* Editor sub-tabs (photo / video) */}

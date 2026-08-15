@@ -1,6 +1,11 @@
 const API_BASE = 'https://api.tattooroot.com/api/v1';
 const TIMEOUT_MS = 8000;
 
+export interface BannerImageItem {
+  imageUrl: string;
+  linkUrl: string;
+}
+
 export interface PublicSettings {
   kakaoChannelUrl: string;
   kakaoChannelId: string;
@@ -31,6 +36,13 @@ export interface PublicSettings {
   /** 용품샵 배너 */
   suppliesBannerImage: string;
   suppliesBannerUrl: string;
+  /** 배너 이미지 슬롯 — 관리자에서 복수 이미지 관리 */
+  bannerBeginnerImages: BannerImageItem[];
+  bannerSupplyImages: BannerImageItem[];
+  bannerBoothImages: BannerImageItem[];
+  bannerMediaImages: BannerImageItem[];
+  bannerAdImages: BannerImageItem[];
+  bannerPartnerImages: BannerImageItem[];
 }
 
 /** 서버 응답 전이나 실패 시에도 문의 경로가 끊기지 않도록 하는 기본값 */
@@ -60,6 +72,12 @@ export const DEFAULT_SETTINGS: PublicSettings = {
   shopMediaBannerUrl: '',
   suppliesBannerImage: '',
   suppliesBannerUrl: '',
+  bannerBeginnerImages: [],
+  bannerSupplyImages: [],
+  bannerBoothImages: [],
+  bannerMediaImages: [],
+  bannerAdImages: [],
+  bannerPartnerImages: [],
 };
 
 export const fetchPublicSettings = async (): Promise<PublicSettings> => {

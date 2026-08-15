@@ -12,6 +12,7 @@ import { BackArrowIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import PromoBanner from '../../components/artistAd/PromoBanner';
+import BannerCarousel from '../../components/common/BannerCarousel';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
 import AdCard from '../../components/artistAd/AdCard';
 import SuperUpBottomSheet, { SuperUpPlan } from '../../components/artistAd/SuperUpBottomSheet';
@@ -162,6 +163,14 @@ const AdStatsScreen = () => {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomTabHeight + 32 }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* 다중 배너 이미지 캐러셀 (관리자 설정) */}
+        {settings.bannerAdImages.length > 0 && (
+          <BannerCarousel items={settings.bannerAdImages} />
+        )}
+        {settings.bannerPartnerImages.length > 0 && (
+          <BannerCarousel items={settings.bannerPartnerImages} />
+        )}
+
         {/* Promo banners */}
         {MOCK_PROMO_BANNERS.map((b) => {
           // 관리자에서 설정한 문의 링크로 연결, 없으면 배너 기본값(Tally)로 폴백

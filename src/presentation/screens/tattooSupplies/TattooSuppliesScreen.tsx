@@ -23,6 +23,7 @@ import {
 } from '../../../data/api';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
 import ScreenBanner from '../../components/common/ScreenBanner';
+import BannerCarousel from '../../components/common/BannerCarousel';
 import { useTranslation } from '../../store/languageStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
@@ -147,13 +148,13 @@ const TattooSuppliesScreen = () => {
 
   const Header = (
     <View>
-      {/* 용품샵 메인 배너 */}
-      {(settings.suppliesBannerImage || settings.suppliesBannerUrl) && (
-        <ScreenBanner
-          imageUrl={settings.suppliesBannerImage || undefined}
-          linkUrl={settings.suppliesBannerUrl || undefined}
-        />
-      )}
+      {/* 용품샵 메인 배너 — 다중 이미지 우선, 없으면 단일 이미지 폴백 */}
+      {settings.bannerSupplyImages.length > 0
+        ? <BannerCarousel items={settings.bannerSupplyImages} />
+        : (settings.suppliesBannerImage || settings.suppliesBannerUrl)
+          ? <ScreenBanner imageUrl={settings.suppliesBannerImage || undefined} linkUrl={settings.suppliesBannerUrl || undefined} />
+          : null
+      }
 
       {/* Category chips */}
       <ScrollView
