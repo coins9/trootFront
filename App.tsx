@@ -14,8 +14,10 @@ import { useAuthStore } from './src/presentation/store/authStore';
 import { initSocialAuth } from './src/data/auth/socialAuth';
 import { ENV } from './src/infrastructure/config/env';
 import { notificationService } from './src/infrastructure/notifications/notificationService';
+import { activateAdapty } from './src/infrastructure/adapty/adaptyService';
 
 enableScreens();
+activateAdapty();
 
 initSocialAuth({
   googleWebClientId: ENV.googleWebClientId,

@@ -4,6 +4,7 @@ import { signInWith, signOutSocial } from '../../data/auth/socialAuth';
 import {
   SocialAuthCancelled, type AuthProvider, type AuthSession, type AccountRole,
 } from '../../domain/entities/authTypes';
+import { adaptyService } from '../../infrastructure/adapty/adaptyService';
 
 const SESSION_KEY = '@troot/session';
 const API_BASE = 'https://api.tattooroot.com/api/v1';
@@ -69,6 +70,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const session = json.data;
       await persist(session);
       set({ session });
+      // 구독이 기기가 아닌 계정에 귀속되도록 Adapty에 userId 연결
+      adaptyService.identify(session.user.id).catch(() => {});
       // 온보딩 미완료면 닉네임·역할 설정 화면으로 보낸다
       return { isNewUser: !session.user.onboarded };
     } finally {
@@ -155,6 +158,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }).catch(() => undefined);
 
       await signOutSocial(session.user.provider);
+      adaptyService.logout().catch(() => {});
     }
     await persist(null);
     set({ session: null });
