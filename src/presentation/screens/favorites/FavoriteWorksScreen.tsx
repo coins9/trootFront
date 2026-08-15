@@ -12,6 +12,7 @@ import {
   BackArrowIcon, HeartIcon, TattooPlaceholderIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import { useTranslation } from '../../store/languageStore';
 import {
   FAVORITE_WORK_CATEGORIES,
   FavoriteWork, FavoriteWorkCategory,
@@ -46,9 +47,11 @@ const IMG_H = CARD_W;
 interface WorkCardProps {
   work: FavoriteWork;
   onToggleFavorite: () => void;
+  soldOutLabel: string;
+  priceText: string;
 }
 
-const WorkCard = React.memo(({ work, onToggleFavorite }: WorkCardProps) => (
+const WorkCard = React.memo(({ work, onToggleFavorite, soldOutLabel, priceText }: WorkCardProps) => (
   <View style={styles.card}>
     <View style={styles.imageWrap}>
       {work.imageUri ? (
@@ -70,7 +73,7 @@ const WorkCard = React.memo(({ work, onToggleFavorite }: WorkCardProps) => (
       {work.isSoldOut && (
         <View style={styles.soldOutOverlay} pointerEvents="none">
           <View style={styles.soldOutChip}>
-            <Text style={styles.soldOutTop}>예약 완료</Text>
+            <Text style={styles.soldOutTop}>{soldOutLabel}</Text>
             <Text style={styles.soldOutBottom}>(SOLD OUT)</Text>
           </View>
         </View>
@@ -79,13 +82,14 @@ const WorkCard = React.memo(({ work, onToggleFavorite }: WorkCardProps) => (
 
     <View style={styles.body}>
       <Text style={styles.artistName}>{work.artistNickname}</Text>
-      <Text style={styles.price}>{work.price.toLocaleString()}원~</Text>
+      <Text style={styles.price}>{priceText}</Text>
     </View>
   </View>
 ));
 WorkCard.displayName = 'WorkCard';
 
 const FavoriteWorksScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const [category, setCategory] = useState<FavoriteWorkCategory>('전체');
@@ -107,7 +111,7 @@ const FavoriteWorksScreen = () => {
 
   const handleToggle = useCallback(async (work: FavoriteWork) => {
     setRemoved((prev) => new Set(prev).add(work.id));
-    toast('찜을 해제했습니다.');
+    toast(t('favorites.unfavoritedPlain'));
     try {
       await favoriteApi.toggle('artwork', work.id);
     } catch {
@@ -116,9 +120,9 @@ const FavoriteWorksScreen = () => {
         next.delete(work.id);
         return next;
       });
-      toast('처리에 실패했습니다.', { variant: 'error' });
+      toast(t('common.error'), { variant: 'error' });
     }
-  }, [toast]);
+  }, [toast, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -134,8 +138,8 @@ const FavoriteWorksScreen = () => {
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
         <View style={styles.titleGroup}>
-          <Text style={styles.title}>찜한 작품</Text>
-          <Text style={styles.subtitle}>마음에 담아둔 타투 작품을 모아보세요.</Text>
+          <Text style={styles.title}>{t('favorites.works')}</Text>
+          <Text style={styles.subtitle}>{t('favorites.worksSubtitle')}</Text>
         </View>
       </View>
 
@@ -161,7 +165,12 @@ const FavoriteWorksScreen = () => {
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <WorkCard work={item} onToggleFavorite={() => handleToggle(item)} />
+          <WorkCard
+            work={item}
+            onToggleFavorite={() => handleToggle(item)}
+            soldOutLabel={t('favorites.bookingDone')}
+            priceText={t('favorites.priceFrom').replace('{{price}}', item.price.toLocaleString())}
+          />
         )}
         numColumns={2}
         columnWrapperStyle={styles.columnWrapper}
@@ -179,10 +188,10 @@ const FavoriteWorksScreen = () => {
             <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>{error ?? '찜한 작품이 없습니다.'}</Text>
+              <Text style={styles.emptyText}>{error ?? t('favorites.emptyWorks')}</Text>
               {error && (
                 <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
-                  <Text style={styles.retryBtnText}>다시 시도</Text>
+                  <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
                 </TouchableOpacity>
               )}
             </View>

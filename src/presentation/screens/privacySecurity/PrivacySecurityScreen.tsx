@@ -65,12 +65,12 @@ const PrivacySecurityScreen = () => {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   const notImplemented = useCallback((label: string) => () => {
-    toast(`${label} — 준비 중입니다`);
-  }, [toast]);
+    toast(t('privacy.notImplemented', { label } as any));
+  }, [toast, t]);
 
   const handleDownload = useCallback(() => {
-    toast('개인정보 다운로드 — 준비 중입니다');
-  }, [toast]);
+    toast(t('privacy.notImplemented', { label: t('privacy.downloadData') } as any));
+  }, [toast, t]);
 
   const openWithdraw = useCallback(() => setWithdrawOpen(true), []);
   const closeWithdraw = useCallback(() => setWithdrawOpen(false), []);
@@ -87,22 +87,22 @@ const PrivacySecurityScreen = () => {
   const confirmWithdraw = useCallback(() => {
     setWithdrawOpen(false);
     setTimeout(() => {
-      toast('회원탈퇴 요청이 접수되었습니다.', { variant: 'error' });
+      toast(t('privacy.withdrawRequested'), { variant: 'error' });
     }, 200);
-  }, [toast]);
+  }, [toast, t]);
 
   const securityItems = [
-    { key: 'password', label: '비밀번호 변경', onPress: notImplemented('비밀번호 변경') },
+    { key: 'password', label: t('privacy.passwordChange'), onPress: notImplemented(t('privacy.passwordChange')) },
   ];
   const privacyItems = [
-    { key: 'blocked', label: '차단된 사용자', onPress: notImplemented('차단된 사용자') },
+    { key: 'blocked', label: t('privacy.blocked'), onPress: notImplemented(t('privacy.blocked')) },
   ];
   const legalItems = [
-    { key: 'safety', label: '이용 안전 정책 (신고 · 제재)', onPress: goToSafetyPolicy },
-    { key: 'tos', label: '서비스 이용약관', onPress: notImplemented('서비스 이용약관') },
-    { key: 'privacy', label: '개인정보 처리방침', onPress: notImplemented('개인정보 처리방침') },
-    { key: 'community', label: '커뮤니티 가이드라인', onPress: notImplemented('커뮤니티 가이드라인') },
-    { key: 'copyright', label: '저작권 정책', onPress: notImplemented('저작권 정책') },
+    { key: 'safety', label: t('privacy.safetyPolicy'), onPress: goToSafetyPolicy },
+    { key: 'tos', label: t('privacy.terms'), onPress: notImplemented(t('privacy.terms')) },
+    { key: 'privacy', label: t('privacy.privacyPolicyLink'), onPress: notImplemented(t('privacy.privacyPolicyLink')) },
+    { key: 'community', label: t('privacy.community'), onPress: notImplemented(t('privacy.community')) },
+    { key: 'copyright', label: t('privacy.copyright'), onPress: notImplemented(t('privacy.copyright')) },
   ];
 
   return (
@@ -118,7 +118,7 @@ const PrivacySecurityScreen = () => {
         >
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>개인정보 및 보안</Text>
+        <Text style={styles.title}>{t('privacy.title')}</Text>
       </View>
 
       <ScrollView
@@ -126,9 +126,9 @@ const PrivacySecurityScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Section title="보안 (Security)" items={securityItems} />
-        <Section title="프라이버시 (Privacy)" items={privacyItems} />
-        <Section title="약관 및 정책 (Legal)" items={legalItems} />
+        <Section title={t('privacy.sectionSecurity')} items={securityItems} />
+        <Section title={t('privacy.sectionPrivacy')} items={privacyItems} />
+        <Section title={t('privacy.sectionLegal')} items={legalItems} />
 
         <TouchableOpacity
           onPress={handleDownload}
@@ -136,7 +136,7 @@ const PrivacySecurityScreen = () => {
           hitSlop={{ top: 10, bottom: 10, left: 20, right: 20 }}
           style={styles.downloadBtn}
         >
-          <Text style={styles.downloadText}>개인정보 다운로드 </Text>
+          <Text style={styles.downloadText}>{t('privacy.downloadData')} </Text>
           <ChevronRightIcon size={16} color={COLORS.gray} />
         </TouchableOpacity>
 
@@ -153,12 +153,10 @@ const PrivacySecurityScreen = () => {
           activeOpacity={0.85}
           style={styles.withdrawBtn}
         >
-          <Text style={styles.withdrawText}>회원탈퇴</Text>
+          <Text style={styles.withdrawText}>{t('privacy.withdraw')}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.withdrawHint}>
-          탈퇴 시 계정과 예약·리뷰·찜 데이터가 모두 삭제되며 복구할 수 없습니다.
-        </Text>
+        <Text style={styles.withdrawHint}>{t('privacy.withdrawHint')}</Text>
       </ScrollView>
 
       {/* ── 탈퇴 확인 모달 ── */}
@@ -174,15 +172,15 @@ const PrivacySecurityScreen = () => {
             <View style={styles.modalIconWrap}>
               <ShieldCheckIcon size={30} color={COLORS.danger} strokeWidth={1.8} />
             </View>
-            <Text style={styles.modalTitle}>정말 탈퇴하시겠어요?</Text>
+            <Text style={styles.modalTitle}>{t('privacy.withdrawModalTitle')}</Text>
             <Text style={styles.modalDesc}>
-              탈퇴하시면 아래 정보가 모두 삭제되며{'\n'}
-              <Text style={styles.modalDescStrong}>복구할 수 없습니다.</Text>
+              {t('privacy.withdrawModalDesc')}{'\n'}
+              <Text style={styles.modalDescStrong}>{t('privacy.withdrawModalDescStrong')}</Text>
             </Text>
             <View style={styles.modalBullets}>
-              <Text style={styles.modalBullet}>· 예약 및 시술 기록</Text>
-              <Text style={styles.modalBullet}>· 작성한 리뷰와 찜 목록</Text>
-              <Text style={styles.modalBullet}>· 보유 T:ROOT 포인트</Text>
+              <Text style={styles.modalBullet}>{t('privacy.withdrawBullet1')}</Text>
+              <Text style={styles.modalBullet}>{t('privacy.withdrawBullet2')}</Text>
+              <Text style={styles.modalBullet}>{t('privacy.withdrawBullet3')}</Text>
             </View>
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -190,14 +188,14 @@ const PrivacySecurityScreen = () => {
                 activeOpacity={0.85}
                 style={[styles.modalBtn, styles.modalBtnGhost]}
               >
-                <Text style={styles.modalBtnGhostText}>취소</Text>
+                <Text style={styles.modalBtnGhostText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={confirmWithdraw}
                 activeOpacity={0.85}
                 style={[styles.modalBtn, styles.modalBtnDanger]}
               >
-                <Text style={styles.modalBtnDangerText}>탈퇴하기</Text>
+                <Text style={styles.modalBtnDangerText}>{t('privacy.withdrawBtn')}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>

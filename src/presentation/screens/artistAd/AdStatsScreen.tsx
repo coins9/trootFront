@@ -27,27 +27,6 @@ import { useTranslation } from '../../store/languageStore';
 const FMT_DATE = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '-';
 
-function toAdItem(artwork: Artwork, campaign?: AdCampaign): ArtistAdItem {
-  const status: ArtistAdStatus = campaign
-    ? campaign.type === 'superup' ? 'super_up'
-      : campaign.type === 'cardad' ? 'card'
-      : 'up'
-    : 'idle';
-  return {
-    id: campaign?.id ?? artwork.id,
-    title: artwork.title || '(제목 없음)',
-    thumbnailUri: artwork.thumbnail ?? (artwork.images[0] ?? ''),
-    status,
-    statusLabel: campaign ? `${campaign.planLabel} 진행 중` : '광고 없음',
-    periodStart: FMT_DATE(campaign?.startedAt ?? null),
-    periodEnd: FMT_DATE(campaign?.expiresAt ?? null),
-    impressions: { current: campaign?.impressions ?? 0, goal: 0, unit: '회' },
-    clicks: { current: campaign?.clicks ?? 0, goal: 0, unit: '건' },
-    inquiries: { current: 0, goal: 0, unit: '건' },
-    trend: [],
-  };
-}
-
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type SheetKind = 'superUp' | 'cardAd';
 
@@ -70,8 +49,30 @@ const AdStatsScreen = () => {
 
   const adItems = useMemo(() => {
     const campaignMap = new Map((campaigns ?? []).map((c) => [c.targetId, c]));
-    return artworks.map((aw) => toAdItem(aw, campaignMap.get(aw.id) ?? undefined));
-  }, [artworks, campaigns]);
+    return artworks.map((aw) => {
+      const campaign = campaignMap.get(aw.id);
+      const status: ArtistAdStatus = campaign
+        ? campaign.type === 'superup' ? 'super_up'
+          : campaign.type === 'cardad' ? 'card'
+          : 'up'
+        : 'idle';
+      return {
+        id: campaign?.id ?? aw.id,
+        title: aw.title || t('adStats.noTitle'),
+        thumbnailUri: aw.thumbnail ?? (aw.images[0] ?? ''),
+        status,
+        statusLabel: campaign
+          ? t('adStats.campaignActive').replace('{{label}}', campaign.planLabel)
+          : t('adStats.noAd'),
+        periodStart: FMT_DATE(campaign?.startedAt ?? null),
+        periodEnd: FMT_DATE(campaign?.expiresAt ?? null),
+        impressions: { current: campaign?.impressions ?? 0, goal: 0, unit: t('adStats.unitViews') },
+        clicks: { current: campaign?.clicks ?? 0, goal: 0, unit: t('adStats.unitCount') },
+        inquiries: { current: 0, goal: 0, unit: t('adStats.unitCount') },
+        trend: [],
+      } as ArtistAdItem;
+    });
+  }, [artworks, campaigns, t]);
 
   const openBottomSheet = useCallback((kind: SheetKind) => {
     // NOTE: superUp → 슈퍼UP 횟수권 결제 바텀시트가 올라옵니다.
@@ -87,29 +88,26 @@ const AdStatsScreen = () => {
   }, [toast]);
 
   const handleOpenDetail = useCallback((item: ArtistAdItem) => () => {
-    // NOTE: 상세 통계 페이지가 열립니다. (준비 중)
-    toast(`${item.title} 상세 통계 — 준비 중입니다`);
-    // 실제 라우트 등록 후 아래로 교체
-    // navigation.navigate('AdDetail', { id: item.id });
-  }, [toast]);
+    toast(t('adStats.detailComingSoon').replace('{{title}}', item.title));
+  }, [toast, t]);
 
   const handleUp = useCallback((item: ArtistAdItem) => () => {
     Alert.alert(
-      'UP 적용',
-      '해당 도안을 상단으로 무료로 끌어올리시겠습니까?',
+      t('adStats.upTitle'),
+      t('adStats.upMsg'),
       [
-        { text: '취소', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: '확인',
+          text: t('common.confirm'),
           style: 'default',
           onPress: () => {
-            toast(`${item.title} 이(가) 상단으로 UP 되었습니다.`, { variant: 'success' });
+            toast(t('adStats.toastUp').replace('{{title}}', item.title), { variant: 'success' });
           },
         },
       ],
       { cancelable: true },
     );
-  }, [toast]);
+  }, [toast, t]);
 
   const handleSuperUp = useCallback((_item: ArtistAdItem) => () => {
     openBottomSheet('superUp');
@@ -123,21 +121,25 @@ const AdStatsScreen = () => {
     closeBottomSheet();
     setTimeout(() => {
       toast(
-        `슈퍼UP ${plan.label} · ${plan.price.toLocaleString()}원 결제 — 준비 중입니다`,
+        t('adStats.superUpComingSoon')
+          .replace('{{label}}', plan.label)
+          .replace('{{price}}', plan.price.toLocaleString()),
         { variant: 'success' },
       );
     }, 200);
-  }, [closeBottomSheet, toast]);
+  }, [closeBottomSheet, toast, t]);
 
   const handleCardAdPurchase = useCallback((plan: CardAdPlan) => {
     closeBottomSheet();
     setTimeout(() => {
       toast(
-        `카드광고 ${plan.label} · ${plan.price.toLocaleString()}원 결제 — 준비 중입니다`,
+        t('adStats.cardAdComingSoon')
+          .replace('{{label}}', plan.label)
+          .replace('{{price}}', plan.price.toLocaleString()),
         { variant: 'success' },
       );
     }, 200);
-  }, [closeBottomSheet, toast]);
+  }, [closeBottomSheet, toast, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

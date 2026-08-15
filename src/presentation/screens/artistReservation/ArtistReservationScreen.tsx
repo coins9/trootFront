@@ -630,8 +630,8 @@ const ArtistReservationScreen = () => {
         id: r.id,
         startHour,
         durationH: r.durationMinutes / 60,
-        title: r.bodyPart ?? r.sizePreset ?? '시술',
-        subtitle: r.memo ?? 'App 예약',
+        title: r.bodyPart ?? r.sizePreset ?? t('reservation.defaultProcedure'),
+        subtitle: r.memo ?? t('reservation.appBooking'),
         status: toBookingStatus(r.status),
         kind: r.artworkId ? 'procedure' : 'consulting',
         bodyPart: r.bodyPart ?? undefined,
@@ -644,7 +644,7 @@ const ArtistReservationScreen = () => {
       map[iso].push(item);
     }
     return map;
-  }, [rawSchedule]);
+  }, [rawSchedule, t]);
 
   const items = useMemo(() => {
     const iso = toISODate(selectedDate);
@@ -838,7 +838,7 @@ const ArtistReservationScreen = () => {
 
   const handleShopJoin = useCallback((code: string) => {
     easeLayoutAnim();
-    setShopInfo({ name: `합류 완료 (${code})`, location: '서울' });
+    setShopInfo({ name: t('reservation.shopJoinedName').replace('{{code}}', code), location: '-' });
     toast(t('reservation.toastShopJoined').replace('{{code}}', code), { variant: 'success' });
   }, [toast, t]);
 
@@ -953,7 +953,7 @@ const ArtistReservationScreen = () => {
                     <Text style={styles.shopColName}>{col.artistName}</Text>
                     <Text style={styles.shopColBed}>{col.bedName}</Text>
                     <View style={styles.shopColCount}>
-                      <Text style={styles.shopColCountText}>{todayBookings.length}건</Text>
+                      <Text style={styles.shopColCountText}>{t('reservation.countSuffix').replace('{{count}}', String(todayBookings.length))}</Text>
                     </View>
                   </View>
                   {todayBookings.length === 0 ? (

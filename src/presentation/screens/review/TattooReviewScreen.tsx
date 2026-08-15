@@ -29,7 +29,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 type TabKey = 'writable' | 'written';
 
 /* ---- Mappers ---- */
-function toWritable(item: ReviewableItem): WritableReview {
+function toWritable(item: ReviewableItem, locationDefault: string): WritableReview {
   const scheduled = new Date(item.scheduledAt);
   const completedAt = new Date(item.updatedAt);
   const daysLeft = Math.max(0, 14 - Math.floor((Date.now() - completedAt.getTime()) / 86_400_000));
@@ -40,7 +40,7 @@ function toWritable(item: ReviewableItem): WritableReview {
       id: item.artist?.id ?? item.artistPageId,
       nickname: item.artist?.pageName ?? '',
       handle: item.artist?.pageName ? `@${item.artist.pageName}` : '',
-      location: regionParts.join(' ') || '지역 미설정',
+      location: regionParts.join(' ') || locationDefault,
       avatarUri: item.artist?.profileImage ?? '',
     },
     procedureDate: scheduled.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -52,7 +52,7 @@ function toWritable(item: ReviewableItem): WritableReview {
   };
 }
 
-function toWritten(r: ReviewWithArtist): WrittenReview {
+function toWritten(r: ReviewWithArtist, locationDefault: string): WrittenReview {
   const regionParts = [r.artist?.regionSido, r.artist?.regionSigungu].filter(Boolean);
   return {
     id: r.id,
@@ -60,7 +60,7 @@ function toWritten(r: ReviewWithArtist): WrittenReview {
       id: r.artist?.id ?? r.artistPageId,
       nickname: r.artist?.pageName ?? '',
       handle: r.artist?.pageName ? `@${r.artist.pageName}` : '',
-      location: regionParts.join(' ') || '지역 미설정',
+      location: regionParts.join(' ') || locationDefault,
       avatarUri: r.artist?.profileImage ?? '',
     },
     writtenDate: new Date(r.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -274,16 +274,25 @@ const TattooReviewScreen = () => {
   const { items: writtenRaw, loading: writtenLoading, loadingMore: writtenMore, loadMore: loadMoreWritten } =
     usePagedApi((cursor) => reviewApi.mine({ cursor }), []);
 
-  const writable = useMemo(() => (writableRaw ?? []).map(toWritable), [writableRaw]);
-  const written = useMemo(() => writtenRaw.map(toWritten), [writtenRaw]);
+  const writable = useMemo(() => {
+    const locationDefault = t('reservation.locationDefault');
+    return (writableRaw ?? []).map((item) => toWritable(item, locationDefault));
+  }, [writableRaw, t]);
+  const written = useMemo(() => {
+    const locationDefault = t('reservation.locationDefault');
+    return writtenRaw.map((r) => toWritten(r, locationDefault));
+  }, [writtenRaw, t]);
 
   const handleWrite = useCallback((review: WritableReview) => {
     navigation.navigate('ReviewWrite', { review });
   }, [navigation]);
 
   const handleAddHealed = useCallback((review: WrittenReview) => {
-    toast(`${review.artist.nickname} Healed 사진 추가 — 준비 중입니다`, { variant: 'success' });
-  }, [toast]);
+    toast(
+      t('review.healedComingSoon').replace('{{name}}', review.artist.nickname),
+      { variant: 'success' },
+    );
+  }, [toast, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

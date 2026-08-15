@@ -13,6 +13,7 @@ import {
   CameraSolidIcon, VideoFilmIcon, ImageMountainIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import { useTranslation } from '../../store/languageStore';
 import {
   PHOTO_SHOP_CATEGORIES,
   FavoritePhotoShop, PhotoShopCategory,
@@ -60,6 +61,7 @@ interface ShopCardProps {
 }
 
 const ShopCard = React.memo(({ shop, onToggleFavorite, onInquiry }: ShopCardProps) => {
+  const { t } = useTranslation();
   const LogoIcon = CATEGORY_ICON[shop.category];
 
   return (
@@ -105,8 +107,8 @@ const ShopCard = React.memo(({ shop, onToggleFavorite, onInquiry }: ShopCardProp
 
       <View style={styles.footerRow}>
         <Text style={styles.priceText}>
-          예상 견적: <Text style={styles.priceValue}>
-            {shop.estimatedPrice.toLocaleString()}원~
+          {t('favorites.estimatedPriceLabel')}<Text style={styles.priceValue}>
+            {t('favorites.priceFrom').replace('{{price}}', shop.estimatedPrice.toLocaleString())}
           </Text>
         </Text>
         <TouchableOpacity
@@ -114,7 +116,7 @@ const ShopCard = React.memo(({ shop, onToggleFavorite, onInquiry }: ShopCardProp
           activeOpacity={0.85}
           style={styles.inquiryBtn}
         >
-          <Text style={styles.inquiryText}>1:1 문의</Text>
+          <Text style={styles.inquiryText}>{t('common.inquire')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -123,6 +125,7 @@ const ShopCard = React.memo(({ shop, onToggleFavorite, onInquiry }: ShopCardProp
 ShopCard.displayName = 'ShopCard';
 
 const FavoritePhotoShopsScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const [category, setCategory] = useState<PhotoShopCategory>('사진 촬영');
@@ -144,7 +147,7 @@ const FavoritePhotoShopsScreen = () => {
 
   const handleToggle = useCallback(async (shop: FavoritePhotoShop) => {
     setRemoved((prev) => new Set(prev).add(shop.id));
-    toast(`${shop.name} 찜을 해제했습니다.`);
+    toast(t('favorites.unfavorited').replace('{{name}}', shop.name));
     try {
       await favoriteApi.toggle('shop_post', shop.id);
     } catch {
@@ -153,9 +156,9 @@ const FavoritePhotoShopsScreen = () => {
         next.delete(shop.id);
         return next;
       });
-      toast('처리에 실패했습니다.', { variant: 'error' });
+      toast(t('common.error'), { variant: 'error' });
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const handleInquiry = useCallback(async (shop: FavoritePhotoShop) => {
     if (shop.kakaoLink) {
@@ -165,8 +168,8 @@ const FavoritePhotoShopsScreen = () => {
         return;
       }
     }
-    toast(`${shop.name}의 오픈카톡을 연결할 수 없습니다.`, { variant: 'error' });
-  }, [toast]);
+    toast(t('favorites.inquiryChannelError').replace('{{name}}', shop.name), { variant: 'error' });
+  }, [toast, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -182,8 +185,8 @@ const FavoritePhotoShopsScreen = () => {
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
         <View style={styles.titleGroup}>
-          <Text style={styles.title}>찜한 사진/영상 편집샵</Text>
-          <Text style={styles.subtitle}>저장한 포토/영상 스튜디오를 모아보세요.</Text>
+          <Text style={styles.title}>{t('favorites.photoShops')}</Text>
+          <Text style={styles.subtitle}>{t('favorites.photoShopsSubtitle')}</Text>
         </View>
       </View>
 
@@ -229,10 +232,10 @@ const FavoritePhotoShopsScreen = () => {
             <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>{error ?? '찜한 스튜디오가 없습니다.'}</Text>
+              <Text style={styles.emptyText}>{error ?? t('favorites.emptyPhotoShops')}</Text>
               {error && (
                 <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
-                  <Text style={styles.retryBtnText}>다시 시도</Text>
+                  <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
                 </TouchableOpacity>
               )}
             </View>

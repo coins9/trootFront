@@ -45,7 +45,7 @@ function toDepositItem(v: ArtistReservationView): DepositItem {
     reservationNumber: `R-${v.id.slice(0, 8).toUpperCase()}`,
     customer: {
       id: v.customer?.id ?? '',
-      nickname: v.customer?.nickname ?? '(이름 없음)',
+      nickname: v.customer?.nickname ?? '',
       handle: '',
       avatarUri: v.customer?.profileImage ?? '',
     },
@@ -113,7 +113,7 @@ const DepositCard = React.memo(({
         <View style={styles.customerInfo}>
           <View style={styles.customerNameRow}>
             <Text style={styles.customerName} numberOfLines={1}>
-              {item.customer.nickname}
+              {item.customer.nickname || t('reservation.noNameFallback')}
             </Text>
             {item.customer.isVip && (
               <StarIcon size={14} color={COLORS.gold} filled />
@@ -226,91 +226,100 @@ const DepositManagementScreen = () => {
   const listLoading = activeTab === 'pending' ? pendingLoading : confirmedLoading;
 
   const handleGuide = useCallback(() => {
-    toast('예약금 관리 가이드 — 준비 중입니다');
-  }, [toast]);
+    toast(t('reservation.guideComingSoon'));
+  }, [toast, t]);
 
   const handleMore = useCallback((item: DepositItem) => () => {
-    toast(`${item.reservationNumber} — 옵션 준비 중입니다`);
-  }, [toast]);
+    toast(t('reservation.optionComingSoon').replace('{{number}}', item.reservationNumber));
+  }, [toast, t]);
 
   const handleConfirm = useCallback((item: DepositItem) => () => {
     Alert.alert(
-      '입금 확인',
-      '해당 고객의 예약금 입금이 확인되었습니까? 승인 시 예약이 최종 확정됩니다.',
+      t('reservation.confirmDepositTitle'),
+      t('reservation.confirmDepositMsg'),
       [
-        { text: '취소', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: '확인',
+          text: t('common.confirm'),
           style: 'default',
           onPress: async () => {
             easeLayoutAnim();
             setPendingRaw((prev) => prev.filter((d) => d.id !== item.id));
             try {
               await reservationApi.confirmDeposit(item.id);
-              toast(`${item.customer.nickname} 예약금이 확정되었습니다.`, { variant: 'success' });
+              toast(
+                t('reservation.toastDepositConfirmed').replace('{{name}}', item.customer.nickname || t('reservation.noNameFallback')),
+                { variant: 'success' },
+              );
             } catch {
-              toast('처리 중 오류가 발생했습니다.', { variant: 'error' });
+              toast(t('common.error'), { variant: 'error' });
             }
           },
         },
       ],
       { cancelable: true },
     );
-  }, [toast, setPendingRaw]);
+  }, [toast, setPendingRaw, t]);
 
   const handleCancelPending = useCallback((item: DepositItem) => () => {
     Alert.alert(
-      '미입금 취소',
-      '미입금으로 인해 해당 예약을 취소하시겠습니까? 고객에게 취소 알림이 발송됩니다.',
+      t('reservation.cancelPendingTitle'),
+      t('reservation.cancelPendingMsg'),
       [
-        { text: '돌아가기', style: 'cancel' },
+        { text: t('reservation.cancelBack'), style: 'cancel' },
         {
-          text: '취소 확정',
+          text: t('reservation.cancelPendingConfirmBtn'),
           style: 'destructive',
           onPress: async () => {
             easeLayoutAnim();
             setPendingRaw((prev) => prev.filter((d) => d.id !== item.id));
             try {
               await reservationApi.rejectByArtist(item.id, '미입금');
-              toast(`${item.customer.nickname} 예약이 미입금 취소되었습니다.`, { variant: 'error' });
+              toast(
+                t('reservation.toastDepositCancelled').replace('{{name}}', item.customer.nickname || t('reservation.noNameFallback')),
+                { variant: 'error' },
+              );
             } catch {
-              toast('처리 중 오류가 발생했습니다.', { variant: 'error' });
+              toast(t('common.error'), { variant: 'error' });
             }
           },
         },
       ],
       { cancelable: true },
     );
-  }, [toast, setPendingRaw]);
+  }, [toast, setPendingRaw, t]);
 
   const handleCancelConfirmed = useCallback((item: DepositItem) => () => {
     Alert.alert(
-      '예약 취소 (환불)',
-      '확정된 예약을 취소하시겠습니까? 샵의 환불 규정에 따라 처리됩니다.',
+      t('reservation.cancelConfirmedTitle'),
+      t('reservation.cancelConfirmedMsg'),
       [
-        { text: '돌아가기', style: 'cancel' },
+        { text: t('reservation.cancelBack'), style: 'cancel' },
         {
-          text: '취소하기',
+          text: t('reservation.cancelConfirmedBtn'),
           style: 'destructive',
           onPress: async () => {
             easeLayoutAnim();
             setConfirmedRaw((prev) => prev.filter((d) => d.id !== item.id));
             try {
               await reservationApi.rejectByArtist(item.id, '예약 취소');
-              toast(`${item.customer.nickname} 예약이 취소되었습니다.`, { variant: 'error' });
+              toast(
+                t('reservation.toastDepositRefunded').replace('{{name}}', item.customer.nickname || t('reservation.noNameFallback')),
+                { variant: 'error' },
+              );
             } catch {
-              toast('처리 중 오류가 발생했습니다.', { variant: 'error' });
+              toast(t('common.error'), { variant: 'error' });
             }
           },
         },
       ],
       { cancelable: true },
     );
-  }, [toast, setConfirmedRaw]);
+  }, [toast, setConfirmedRaw, t]);
 
   const handleSummaryTap = useCallback(() => {
-    toast('예약금 합계 상세 — 준비 중입니다');
-  }, [toast]);
+    toast(t('reservation.summaryComingSoon'));
+  }, [toast, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

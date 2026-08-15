@@ -7,6 +7,7 @@ import {
 } from '../icons';
 import { FilterType } from '../../../domain/entities/types';
 import { useFilterStore } from '../../store/filterStore';
+import { useTranslation } from '../../store/languageStore';
 
 interface FilterBarProps {
   onFilterPress: (type: FilterType) => void;
@@ -14,6 +15,7 @@ interface FilterBarProps {
 
 const FilterBar = memo(({ onFilterPress }: FilterBarProps) => {
   const { genres, bodyParts, subjects, moods, budgetMin, budgetMax, region } = useFilterStore();
+  const { t } = useTranslation();
 
   const genreCount = genres.length;
   const bodyPartCount = bodyParts.length;
@@ -28,33 +30,33 @@ const FilterBar = memo(({ onFilterPress }: FilterBarProps) => {
   }[] = [
     {
       type: 'region',
-      label: region.city ?? '지역',
+      label: region.city ?? t('filter.region'),
       Icon: RegionIcon,
       active: !!region.city,
     },
     {
       type: 'genre',
-      label: '장르',
+      label: t('filter.genre'),
       count: genreCount || 14,
       Icon: GenreIcon,
       active: genreCount > 0,
     },
     {
       type: 'bodyPart',
-      label: '부위',
+      label: t('filter.bodyPart'),
       count: bodyPartCount || 30,
       Icon: BodyPartIconSvg,
       active: bodyPartCount > 0,
     },
     {
       type: 'subject',
-      label: '주제/감성',
+      label: t('filter.subject'),
       Icon: SubjectIcon,
       active: subjects.length > 0 || moods.length > 0,
     },
     {
       type: 'budget',
-      label: '예산',
+      label: t('filter.budget'),
       Icon: WonIcon,
       active: hasBudget,
     },

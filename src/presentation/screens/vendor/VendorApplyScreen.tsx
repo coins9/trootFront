@@ -12,17 +12,18 @@ import { useToast } from '../../components/common/Toast';
 import { ApiError } from '../../../data/api/client';
 import { supplyVendorApi } from '../../../data/api/vendor';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// 사업자등록번호 10자리
 const BIZ_RE = /^\d{3}-?\d{2}-?\d{5}$/;
 
 const VendorApplyScreen = () => {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [name, setName] = useState('');
   const [businessNo, setBusinessNo] = useState('');
@@ -38,7 +39,7 @@ const VendorApplyScreen = () => {
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || submitting) return;
 
-    // iOS: 키보드가 열린 채 화면 전환 시 크래시 위험 → 먼저 닫는다
+    // iOS: dismiss keyboard before screen transition to prevent crash
     Keyboard.dismiss();
     setSubmitting(true);
     try {
@@ -48,17 +49,17 @@ const VendorApplyScreen = () => {
         ecommerceRegNo: ecommerceRegNo.trim() || undefined,
         contactEmail: contactEmail.trim(),
       });
-      toast('입점 신청이 접수되었습니다. 심사 후 알려드릴게요.', { variant: 'success' });
+      toast(t('vendor.applySuccess'), { variant: 'success' });
       setTimeout(() => navigation.goBack(), 150);
     } catch (e) {
       toast(
-        e instanceof ApiError ? e.userMessage : '신청에 실패했습니다.',
+        e instanceof ApiError ? e.userMessage : t('vendor.applyFailed'),
         { variant: 'error' },
       );
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, submitting, name, businessNo, ecommerceRegNo, contactEmail, toast, navigation]);
+  }, [canSubmit, submitting, name, businessNo, ecommerceRegNo, contactEmail, toast, navigation, t]);
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -71,7 +72,7 @@ const VendorApplyScreen = () => {
         >
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>판매자 입점 신청</Text>
+        <Text style={s.headerTitle}>{t('vendor.applyTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -86,23 +87,20 @@ const VendorApplyScreen = () => {
         >
           <View style={s.notice}>
             <InfoIcon size={15} color={COLORS.gold} />
-            <Text style={s.noticeText}>
-              타투용품은 사업자만 판매할 수 있습니다. 제출한 정보는 심사 용도로만 사용되며,
-              승인 후 상품을 등록할 수 있습니다.
-            </Text>
+            <Text style={s.noticeText}>{t('vendor.applyNotice')}</Text>
           </View>
 
-          <Text style={s.label}>상호 <Text style={s.req}>*</Text></Text>
+          <Text style={s.label}>{t('vendor.labelName')} <Text style={s.req}>*</Text></Text>
           <TextInput
             style={s.input}
-            placeholder="사업자등록증 상의 상호"
+            placeholder={t('vendor.placeholderName')}
             placeholderTextColor={COLORS.gray2}
             value={name}
             onChangeText={setName}
             maxLength={100}
           />
 
-          <Text style={s.label}>사업자등록번호 <Text style={s.req}>*</Text></Text>
+          <Text style={s.label}>{t('vendor.labelBizNo')} <Text style={s.req}>*</Text></Text>
           <TextInput
             style={s.input}
             placeholder="000-00-00000"
@@ -113,20 +111,20 @@ const VendorApplyScreen = () => {
             maxLength={12}
           />
           {businessNo.length > 0 && !BIZ_RE.test(businessNo.trim()) && (
-            <Text style={s.hintErr}>10자리 숫자로 입력해주세요.</Text>
+            <Text style={s.hintErr}>{t('vendor.bizNoError')}</Text>
           )}
 
-          <Text style={s.label}>통신판매업 신고번호</Text>
+          <Text style={s.label}>{t('vendor.labelEcommerce')}</Text>
           <TextInput
             style={s.input}
-            placeholder="제0000-지역-0000호 (선택)"
+            placeholder={t('vendor.placeholderEcommerce')}
             placeholderTextColor={COLORS.gray2}
             value={ecommerceRegNo}
             onChangeText={setEcommerceRegNo}
             maxLength={100}
           />
 
-          <Text style={s.label}>담당자 이메일 <Text style={s.req}>*</Text></Text>
+          <Text style={s.label}>{t('vendor.labelEmail')} <Text style={s.req}>*</Text></Text>
           <TextInput
             style={s.input}
             placeholder="orders@example.com"
@@ -138,13 +136,10 @@ const VendorApplyScreen = () => {
             maxLength={191}
           />
           {contactEmail.length > 0 && !EMAIL_RE.test(contactEmail.trim()) && (
-            <Text style={s.hintErr}>올바른 이메일 형식이 아닙니다.</Text>
+            <Text style={s.hintErr}>{t('vendor.emailError')}</Text>
           )}
 
-          <Text style={s.footNote}>
-            심사는 영업일 기준 3~5일 소요됩니다.{'\n'}
-            배송과 상품 정보에 대한 책임은 판매자에게 있습니다.
-          </Text>
+          <Text style={s.footNote}>{t('vendor.footNote')}</Text>
         </ScrollView>
 
         <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
@@ -155,7 +150,7 @@ const VendorApplyScreen = () => {
             style={[s.submitBtn, (!canSubmit || submitting) && s.submitBtnDisabled]}
           >
             <Text style={[s.submitText, (!canSubmit || submitting) && s.submitTextDisabled]}>
-              {submitting ? '신청 중...' : '입점 신청하기'}
+              {submitting ? t('vendor.submitting') : t('vendor.submitBtn')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -180,7 +175,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerTitle: { fontSize: 17, fontWeight: '600', color: COLORS.white, letterSpacing: 0.3 },
+  headerTitle: { fontSize: 17, fontWeight: '600', color: COLORS.white, letterSpacing: 0.3, lineHeight: 23 },
 
   content: { padding: 20, paddingBottom: 40 },
 

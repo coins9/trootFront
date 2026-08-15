@@ -8,6 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import { useTranslation } from '../../store/languageStore';
 import LogoHeader from '../../components/common/LogoHeader';
+import { usePublicSettings } from '../../hooks/usePublicSettings';
 import SearchBar from '../../components/common/SearchBar';
 import HomeArtistHeader from '../../components/home/HomeArtistHeader';
 import TattooCard from '../../components/home/TattooCard';
@@ -32,11 +33,13 @@ type HomeNavProp = NativeStackNavigationProp<RootStackParamList>;
 const HomeScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<HomeNavProp>();
+  const settings = usePublicSettings();
   const [bottomSheetType, setBottomSheetType] = useState<FilterType | null>(null);
   const [fullFilterVisible, setFullFilterVisible] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [searchVisible, setSearchVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
   const debouncedKeyword = useDebounce(keyword, 400);
 
   const {
@@ -162,6 +165,18 @@ const HomeScreen = () => {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
       <LogoHeader onSearchPress={handleSearchPress} />
+      {!!settings.noticeBanner && !noticeDismissed && (
+        <View style={styles.noticeBanner}>
+          <Text style={styles.noticeText} numberOfLines={2}>{settings.noticeBanner}</Text>
+          <TouchableOpacity
+            onPress={() => setNoticeDismissed(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.noticeDismiss}
+          >
+            <Text style={styles.noticeDismissText}>×</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {searchVisible && (
         <SearchBar
           value={keyword}
@@ -204,6 +219,35 @@ export default HomeScreen;
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.black },
+  noticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.goldDim,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(212,168,67,0.25)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  noticeText: {
+    flex: 1,
+    color: COLORS.gold,
+    fontSize: 12,
+    lineHeight: 18,
+    flexShrink: 1,
+  },
+  noticeDismiss: {
+    width: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noticeDismissText: {
+    color: COLORS.gold,
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '300',
+  },
   feedContent: { paddingBottom: 32, backgroundColor: COLORS.bg, flexGrow: 1 },
   rowWrap: { flexDirection: 'row', paddingHorizontal: SIDE_PAD },
   cell: { flex: 1 },

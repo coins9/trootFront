@@ -37,7 +37,6 @@ const SupportScreen = () => {
 
   const openKakao = useCallback(async () => {
     const { kakaoChannelId, kakaoChannelUrl } = settings;
-    // 카카오톡 앱이 있으면 1:1 채팅으로 바로 진입, 없으면 웹 채널홈으로
     const appScheme = kakaoChannelId ? `kakaoplus://plusfriend/chat/${kakaoChannelId}` : '';
     const webUrl = kakaoChannelUrl || (kakaoChannelId ? `http://pf.kakao.com/${kakaoChannelId}` : '');
 
@@ -50,22 +49,37 @@ const SupportScreen = () => {
         await Linking.openURL(webUrl);
         return;
       }
-      toast('카카오톡 문의가 아직 준비되지 않았습니다.', { variant: 'error' });
+      toast(t('support.kakaoNotReady'), { variant: 'error' });
     } catch {
-      toast('카카오톡을 열 수 없습니다.', { variant: 'error' });
+      toast(t('support.kakaoError'), { variant: 'error' });
     }
-  }, [settings, toast]);
+  }, [settings, toast, t]);
+
+  const openKakaoOpenChat = useCallback(async () => {
+    const url = settings.kakaoOpenChatUrl;
+    if (!url) return;
+    try {
+      if (await Linking.canOpenURL(url)) {
+        await Linking.openURL(url);
+      } else {
+        await Linking.openURL(url);
+      }
+    } catch {
+      toast(t('support.kakaoError'), { variant: 'error' });
+    }
+  }, [settings.kakaoOpenChatUrl, toast, t]);
 
   const openEmail = useCallback(async () => {
     const url = `mailto:${settings.supportEmail}?subject=${encodeURIComponent('[T:ROOT] 문의')}`;
     try {
       await Linking.openURL(url);
     } catch {
-      toast('메일 앱을 열 수 없습니다.', { variant: 'error' });
+      toast(t('support.emailError'), { variant: 'error' });
     }
-  }, [settings.supportEmail, toast]);
+  }, [settings.supportEmail, toast, t]);
 
   const kakaoAvailable = !!(settings.kakaoChannelUrl || settings.kakaoChannelId);
+  const openChatAvailable = !!settings.kakaoOpenChatUrl;
 
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
@@ -78,15 +92,12 @@ const SupportScreen = () => {
         >
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>문의하기</Text>
+        <Text style={s.headerTitle}>{t('support.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        <Text style={s.lead}>
-          궁금한 점이나 불편한 점이 있으신가요?{'\n'}
-          아래 방법으로 문의해주시면 확인 후 답변드리겠습니다.
-        </Text>
+        <Text style={s.lead}>{t('support.lead')}</Text>
 
         {kakaoAvailable && (
           <TouchableOpacity style={s.primaryCard} activeOpacity={0.85} onPress={openKakao}>
@@ -94,8 +105,21 @@ const SupportScreen = () => {
               <ChatBubbleIcon size={22} color="#191600" strokeWidth={1.8} />
             </View>
             <View style={s.cardText}>
-              <Text style={s.primaryTitle}>카카오톡으로 문의</Text>
-              <Text style={s.primaryDesc}>가장 빠르게 답변받을 수 있어요</Text>
+              <Text style={s.primaryTitle}>{t('support.kakao')}</Text>
+              <Text style={s.primaryDesc}>{t('support.kakaoDesc')}</Text>
+            </View>
+            <ChevronRightIcon size={18} color="rgba(25,22,0,0.5)" />
+          </TouchableOpacity>
+        )}
+
+        {openChatAvailable && (
+          <TouchableOpacity style={[s.primaryCard, s.openChatCard]} activeOpacity={0.85} onPress={openKakaoOpenChat}>
+            <View style={s.kakaoIcon}>
+              <ChatBubbleIcon size={22} color="#191600" strokeWidth={1.8} />
+            </View>
+            <View style={s.cardText}>
+              <Text style={s.primaryTitle}>{t('support.kakaoOpenChat')}</Text>
+              <Text style={s.primaryDesc}>{t('support.kakaoOpenChatDesc')}</Text>
             </View>
             <ChevronRightIcon size={18} color="rgba(25,22,0,0.5)" />
           </TouchableOpacity>
@@ -106,7 +130,7 @@ const SupportScreen = () => {
             <MailIcon size={20} color={COLORS.gold} strokeWidth={1.7} />
           </View>
           <View style={s.cardText}>
-            <Text style={s.cardTitle}>이메일 문의</Text>
+            <Text style={s.cardTitle}>{t('support.email')}</Text>
             <Text style={s.cardDesc}>{settings.supportEmail}</Text>
           </View>
           <ChevronRightIcon size={18} color={COLORS.gray} />
@@ -116,7 +140,7 @@ const SupportScreen = () => {
           <View style={s.infoRow}>
             <ClockIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
             <View style={s.infoText}>
-              <Text style={s.infoLabel}>운영시간</Text>
+              <Text style={s.infoLabel}>{t('support.hours')}</Text>
               <Text style={s.infoDesc}>{settings.supportHours}</Text>
             </View>
           </View>
@@ -124,10 +148,8 @@ const SupportScreen = () => {
           <View style={s.infoRow}>
             <ShieldCheckIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
             <View style={s.infoText}>
-              <Text style={s.infoLabel}>신고는 어떻게 하나요?</Text>
-              <Text style={s.infoDesc}>
-                타투이스트 프로필 우측 상단 더보기(⋯)에서 신고할 수 있습니다.
-              </Text>
+              <Text style={s.infoLabel}>{t('support.reportTitle')}</Text>
+              <Text style={s.infoDesc}>{t('support.reportDesc')}</Text>
             </View>
           </View>
         </View>
@@ -137,7 +159,7 @@ const SupportScreen = () => {
           activeOpacity={0.75}
           onPress={() => navigation.navigate('SafetyPolicy')}
         >
-          <Text style={s.policyLinkText}>이용 안전 정책 보기</Text>
+          <Text style={s.policyLinkText}>{t('support.safetyPolicy')}</Text>
           <ChevronRightIcon size={15} color={COLORS.gold} />
         </TouchableOpacity>
       </ScrollView>
@@ -173,6 +195,9 @@ const s = StyleSheet.create({
     borderRadius: 14,
     padding: 18,
     marginBottom: 10,
+  },
+  openChatCard: {
+    marginTop: -2,
   },
   kakaoIcon: {
     width: 42, height: 42, borderRadius: 12,

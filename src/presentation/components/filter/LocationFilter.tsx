@@ -5,6 +5,7 @@ import {
 import { COLORS } from '../../theme/colors';
 import { CheckCircleIcon } from '../icons';
 import { CITIES, DISTRICTS } from '../../../data/mock/mockData';
+import { useTranslation } from '../../store/languageStore';
 
 interface LocationFilterProps {
   selectedCity: string | null;
@@ -14,6 +15,7 @@ interface LocationFilterProps {
 
 const LocationFilter = memo(({ selectedCity, selectedDistrict, onSelect }: LocationFilterProps) => {
   const districts = selectedCity ? (DISTRICTS[selectedCity] ?? []) : [];
+  const { t } = useTranslation();
 
   const handleCityPress = useCallback((city: string) => {
     if (selectedCity === city) {
@@ -36,11 +38,11 @@ const LocationFilter = memo(({ selectedCity, selectedDistrict, onSelect }: Locat
       {/* Column headers */}
       <View style={styles.colHeaders}>
         <View style={[styles.colHeader, styles.colHeaderActive]}>
-          <Text style={styles.colHeaderTextActive}>시 / 도</Text>
+          <Text style={styles.colHeaderTextActive}>{t('filter.regionSido')}</Text>
         </View>
         <View style={styles.colHeaderGap} />
         <View style={styles.colHeader}>
-          <Text style={styles.colHeaderText}>구 / 군</Text>
+          <Text style={styles.colHeaderText}>{t('filter.regionSigungu')}</Text>
         </View>
       </View>
 
@@ -108,7 +110,7 @@ const LocationFilter = memo(({ selectedCity, selectedDistrict, onSelect }: Locat
             })
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>시/도를 먼저{'\n'}선택하세요</Text>
+              <Text style={styles.emptyText}>{t('filter.regionSelectFirst')}</Text>
             </View>
           )}
         </ScrollView>

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import { FilterType } from '../../../domain/entities/types';
 import { useFilterStore } from '../../store/filterStore';
+import { useTranslation } from '../../store/languageStore';
 import LocationFilter from './LocationFilter';
 import GenreFilter from './GenreFilter';
 import BodyPartFilter from './BodyPartFilter';
@@ -16,19 +17,6 @@ import BudgetFilter from './BudgetFilter';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.88;
-
-const TITLES: Record<FilterType, string> = {
-  region: '지역 선택',
-  genre: '장르 선택',
-  bodyPart: '부위 선택',
-  subject: '주제 / 감성 선택',
-  budget: '예산 선택',
-  full: '상세 필터',
-};
-
-const SUBTITLES: Partial<Record<FilterType, string>> = {
-  budget: '원하는 예산 범위를 설정하면 해당 조건의 도안을 확인할 수 있습니다.',
-};
 
 interface FilterBottomSheetProps {
   visible: boolean;
@@ -39,6 +27,7 @@ interface FilterBottomSheetProps {
 const FilterBottomSheet = memo(({ visible, filterType, onClose }: FilterBottomSheetProps) => {
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(SHEET_MAX_HEIGHT)).current;
+  const { t } = useTranslation();
 
   const {
     region, genres, bodyParts, subjects, moods, budgetMin, budgetMax,
@@ -46,6 +35,22 @@ const FilterBottomSheet = memo(({ visible, filterType, onClose }: FilterBottomSh
     setRegion, toggleGenre, toggleBodyPart, toggleSubject, toggleMood, setBudget,
     resetRegion, resetGenres, resetBodyParts, resetSubjectsMoods, resetBudget,
   } = useFilterStore();
+
+  const getTitle = (type: FilterType): string => {
+    switch (type) {
+      case 'region': return t('filter.regionTitle');
+      case 'genre': return t('filter.genreTitle');
+      case 'bodyPart': return t('filter.bodyPartTitle');
+      case 'subject': return t('filter.subjectTitle');
+      case 'budget': return t('filter.budgetTitle');
+      case 'full': return t('filter.fullTitle');
+    }
+  };
+
+  const getSubtitle = (type: FilterType): string | undefined => {
+    if (type === 'budget') return t('filter.budgetHint');
+    return undefined;
+  };
 
   useEffect(() => {
     if (visible) {
@@ -77,9 +82,9 @@ const FilterBottomSheet = memo(({ visible, filterType, onClose }: FilterBottomSh
 
   const getApplyLabel = () => {
     if (filterType === 'budget') {
-      return `이 예산으로 ${totalCount}개 도안 보기`;
+      return t('filter.applyBudget', { count: totalCount } as any);
     }
-    return `적용하기`;
+    return t('filter.apply');
   };
 
   const renderContent = () => {
@@ -156,12 +161,12 @@ const FilterBottomSheet = memo(({ visible, filterType, onClose }: FilterBottomSh
 
           <View style={styles.header}>
             <Text style={[styles.title, filterType === 'region' && styles.titleLeft]}>
-              {TITLES[filterType]}
+              {getTitle(filterType)}
             </Text>
           </View>
 
-          {SUBTITLES[filterType] && (
-            <Text style={styles.subtitle}>{SUBTITLES[filterType]}</Text>
+          {getSubtitle(filterType) && (
+            <Text style={styles.subtitle}>{getSubtitle(filterType)}</Text>
           )}
 
           <ScrollView
@@ -178,7 +183,7 @@ const FilterBottomSheet = memo(({ visible, filterType, onClose }: FilterBottomSh
               style={styles.resetBtn}
               activeOpacity={0.8}
             >
-              <Text style={styles.resetText}>초기화</Text>
+              <Text style={styles.resetText}>{t('filter.reset')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onClose}

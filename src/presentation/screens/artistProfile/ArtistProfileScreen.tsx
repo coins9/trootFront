@@ -21,35 +21,44 @@ import { artistTagLabels } from '../../../domain/entities/artistTags';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
 import ReportSheet, { ReportReason } from '../../components/report/ReportSheet';
 import { useToast } from '../../components/common/Toast';
+import { useTranslation } from '../../store/languageStore';
 
 const { width: W } = Dimensions.get('window');
 const COVER_HEIGHT = 340;
 const PORTFOLIO_GAP = 2;
 const PORTFOLIO_COL_SIZE = (W - PORTFOLIO_GAP * 2) / 3;
-const GRID_GENRES = ['전체', '블랙앤그레이', '리얼리스틱', '포트레이트', '미니타투'];
 
 type ProfileRoute = RouteProp<RootStackParamList, 'ArtistProfile'>;
 type ProfileNav = NativeStackNavigationProp<RootStackParamList>;
 
-type TabType = '작품' | '리뷰' | '안내';
+type TabType = 'works' | 'reviews' | 'info';
 
 const ArtistProfileScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ProfileNav>();
   const route = useRoute<ProfileRoute>();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { artist } = route.params;
 
-  const [activeTab, setActiveTab] = useState<TabType>('작품');
-  const [activeGenre, setActiveGenre] = useState('전체');
+  const [activeTab, setActiveTab] = useState<TabType>('works');
+  const [activeGenreKey, setActiveGenreKey] = useState('all');
+
+  const GRID_GENRES = useMemo(() => [
+    { key: 'all', label: t('filter.genreAll') },
+    { key: 'black_grey', label: t('filter.genreBlackGrey') },
+    { key: 'realistic', label: t('filter.genreRealistic') },
+    { key: 'portrait', label: t('filter.genrePortrait') },
+    { key: 'mini', label: t('filter.genreMini') },
+  ], [t]);
   const [following, setFollowing] = useState(false);
   const [showAllPortfolio, setShowAllPortfolio] = useState(false);
   const [bookingVisible, setBookingVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
 
   const handleReportSubmit = useCallback((_reason: ReportReason, _detail: string) => {
-    toast('신고가 접수되었습니다. 운영팀이 검토 후 조치합니다.', { variant: 'success' });
-  }, [toast]);
+    toast(t('artistProfile.reported'), { variant: 'success' });
+  }, [toast, t]);
 
   // 포트폴리오 — 실제 작가 작품 목록
   const { items: artworks, loadMore } = usePagedApi(
@@ -137,7 +146,7 @@ const ArtistProfileScreen = () => {
         <View style={styles.infoTabItem}>
           <LocationPinIcon size={18} color={COLORS.gold} />
           <View>
-            <Text style={styles.infoTabLabel}>활동 지역</Text>
+            <Text style={styles.infoTabLabel}>{t('artistProfile.regionLabel')}</Text>
             <Text style={styles.infoTabValue}>{artist.city} · {artist.district}구</Text>
           </View>
         </View>
@@ -216,17 +225,17 @@ const ArtistProfileScreen = () => {
                 <View style={styles.statItem}>
                   <StarIcon size={13} color={COLORS.gold} filled />
                   <Text style={styles.statValue}>{artist.rating}</Text>
-                  <Text style={styles.statLabelSmall}>(리뷰 {artist.reviewCount})</Text>
+                  <Text style={styles.statLabelSmall}>{t('artistProfile.reviewScore', { count: artist.reviewCount } as any)}</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItemStack}>
                   <Text style={styles.statValueBig}>{artist.followerCount}</Text>
-                  <Text style={styles.statLabelSmall}>팔로워</Text>
+                  <Text style={styles.statLabelSmall}>{t('artistProfile.followers')}</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItemStack}>
                   <Text style={styles.statValueBig}>{artist.totalSessions}</Text>
-                  <Text style={styles.statLabelSmall}>누적 시술</Text>
+                  <Text style={styles.statLabelSmall}>{t('artistProfile.totalSessions')}</Text>
                 </View>
               </View>
             </View>
@@ -267,7 +276,7 @@ const ArtistProfileScreen = () => {
                   filled={following}
                 />
                 <Text style={[styles.followText, following && styles.followTextActive]}>
-                  {following ? '팔로잉' : '팔로우'}
+                  {following ? t('artistProfile.following') : t('artistProfile.follow')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -276,7 +285,7 @@ const ArtistProfileScreen = () => {
                 onPress={() => setBookingVisible(true)}
               >
                 <CommentIcon size={16} color={COLORS.black} strokeWidth={2} />
-                <Text style={styles.consultText}>1:1 예약 / 상담하기</Text>
+                <Text style={styles.consultText}>{t('artistProfile.cta')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -284,37 +293,40 @@ const ArtistProfileScreen = () => {
             <View style={styles.badgeCard}>
               <View style={styles.badgeCol}>
                 <ShieldCheckIcon size={18} color={COLORS.gold} />
-                <Text style={styles.badgeTitle}>타투루트 인증 작가</Text>
-                <Text style={styles.badgeSub}>신원 및 자격 검증 완료</Text>
+                <Text style={styles.badgeTitle}>{t('artistProfile.certified')}</Text>
+                <Text style={styles.badgeSub}>{t('artistProfile.certifiedSub')}</Text>
               </View>
               <View style={styles.badgeDivider} />
               <View style={styles.badgeCol}>
                 <ShieldCheckIcon size={18} color={COLORS.gold} />
-                <Text style={styles.badgeTitle}>위생 안심 업소</Text>
-                <Text style={styles.badgeSub}>위생 관리 기준 통과</Text>
+                <Text style={styles.badgeTitle}>{t('artistProfile.hygienic')}</Text>
+                <Text style={styles.badgeSub}>{t('artistProfile.hygienicSub')}</Text>
               </View>
               <View style={styles.badgeDivider} />
               <View style={styles.badgeCol}>
                 <LockIcon size={18} color={COLORS.gold} />
-                <Text style={styles.badgeTitle}>예약금 보호제</Text>
-                <Text style={styles.badgeSub}>예약금 100% 보호</Text>
+                <Text style={styles.badgeTitle}>{t('artistProfile.depositProtect')}</Text>
+                <Text style={styles.badgeSub}>{t('artistProfile.depositProtectSub')}</Text>
               </View>
             </View>
           </View>
 
           {/* Tab bar */}
           <View style={styles.tabBar}>
-            {(['작품', '리뷰', '안내'] as TabType[]).map((tab) => {
-              const label = tab === '리뷰' ? `리뷰 ${artist.reviewCount}` : tab;
-              const isActive = activeTab === tab;
+            {([
+              { key: 'works' as TabType, label: t('artistProfile.tabWorks') },
+              { key: 'reviews' as TabType, label: t('artistProfile.reviewCount', { count: artist.reviewCount } as any) },
+              { key: 'info' as TabType, label: t('artistProfile.tabInfo') },
+            ]).map((tab) => {
+              const isActive = activeTab === tab.key;
               return (
                 <TouchableOpacity
-                  key={tab}
+                  key={tab.key}
                   style={[styles.tabItem, isActive && styles.tabItemActive]}
-                  onPress={() => setActiveTab(tab)}
+                  onPress={() => setActiveTab(tab.key)}
                 >
                   <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                    {label}
+                    {tab.label}
                   </Text>
                 </TouchableOpacity>
               );
@@ -323,7 +335,7 @@ const ArtistProfileScreen = () => {
         </View>
 
         {/* ── Content by tab ── */}
-        {activeTab === '작품' && (
+        {activeTab === 'works' && (
           <View>
             <View style={styles.genreFilterRow}>
               <ScrollView
@@ -333,22 +345,22 @@ const ArtistProfileScreen = () => {
                 style={{ flex: 1 }}
               >
                 {GRID_GENRES.map((g) => {
-                  const isActive = activeGenre === g;
+                  const isActive = activeGenreKey === g.key;
                   return (
                     <TouchableOpacity
-                      key={g}
-                      onPress={() => setActiveGenre(g)}
+                      key={g.key}
+                      onPress={() => setActiveGenreKey(g.key)}
                       style={[styles.genreChip, isActive && styles.genreChipActive]}
                     >
                       <Text style={[styles.genreChipText, isActive && styles.genreChipTextActive]}>
-                        {g}
+                        {g.label}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </ScrollView>
               <TouchableOpacity style={styles.sortBtn}>
-                <Text style={styles.sortText}>최신순</Text>
+                <Text style={styles.sortText}>{t('artistProfile.sortLatest')}</Text>
                 <ChevronDownIcon size={12} color={COLORS.gray} />
               </TouchableOpacity>
             </View>
@@ -363,16 +375,16 @@ const ArtistProfileScreen = () => {
                 onPress={() => { setShowAllPortfolio(true); loadMore(); }}
                 activeOpacity={0.85}
               >
-                <Text style={styles.showMoreText}>더 많은 작품 보기</Text>
+                <Text style={styles.showMoreText}>{t('artistProfile.moreWorks')}</Text>
                 <ChevronDownIcon size={16} color={COLORS.gray} />
               </TouchableOpacity>
             )}
 
-            {/* 최신 리뷰 */}
+            {/* Latest Reviews */}
             <View style={styles.latestReviewHeader}>
-              <Text style={styles.latestReviewTitle}>최신 리뷰</Text>
+              <Text style={styles.latestReviewTitle}>{t('artistProfile.latestReviews')}</Text>
               <TouchableOpacity style={styles.moreReviews}>
-                <Text style={styles.moreReviewsText}>더보기</Text>
+                <Text style={styles.moreReviewsText}>{t('artistProfile.moreReviews')}</Text>
                 <ChevronRightIcon size={13} color={COLORS.gray} />
               </TouchableOpacity>
             </View>
@@ -385,8 +397,8 @@ const ArtistProfileScreen = () => {
               <View style={styles.bottomInfoItem}>
                 <LocationPinIcon size={16} color={COLORS.gold} />
                 <View style={styles.bottomInfoTextGroup}>
-                  <Text style={styles.bottomInfoLabel}>활동 지역</Text>
-                  <Text style={styles.bottomInfoValue}>{artist.city} · {artist.district}구</Text>
+                  <Text style={styles.bottomInfoLabel}>{t('artistProfile.regionLabel')}</Text>
+                  <Text style={styles.bottomInfoValue}>{artist.city} · {artist.district}</Text>
                 </View>
               </View>
               <View style={styles.bottomInfoItem}>
@@ -394,7 +406,7 @@ const ArtistProfileScreen = () => {
                   <View style={styles.clockRing} />
                 </View>
                 <View style={styles.bottomInfoTextGroup}>
-                  <Text style={styles.bottomInfoLabel}>상담 가능 시간</Text>
+                  <Text style={styles.bottomInfoLabel}>{t('artistProfile.consultLabel')}</Text>
                   <Text style={styles.bottomInfoValue}>{artist.availableHours}</Text>
                 </View>
               </View>
@@ -403,15 +415,15 @@ const ArtistProfileScreen = () => {
                   <View style={styles.calendarInner} />
                 </View>
                 <View style={styles.bottomInfoTextGroup}>
-                  <Text style={styles.bottomInfoLabel}>휴무일</Text>
+                  <Text style={styles.bottomInfoLabel}>{t('artistProfile.dayOffLabel')}</Text>
                   <Text style={styles.bottomInfoValue}>{artist.closedDay}</Text>
                 </View>
               </View>
             </View>
           </View>
         )}
-        {activeTab === '리뷰' && renderReviewsTab()}
-        {activeTab === '안내' && renderInfoTab()}
+        {activeTab === 'reviews' && renderReviewsTab()}
+        {activeTab === 'info' && renderInfoTab()}
 
         <View style={{ height: insets.bottom + 24 }} />
       </ScrollView>

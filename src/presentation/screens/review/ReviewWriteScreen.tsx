@@ -9,7 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
   BackArrowIcon, StarIcon, PersonSilhouette, CameraAddIcon, XIcon,
-  CalendarIcon, PaletteIcon, LocationPinIcon,
+  CalendarIcon, PaletteIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useImageUpload } from '../../hooks/useImageUpload';
@@ -17,6 +17,7 @@ import {
   ReviewRatings, RATING_LABELS, RATING_GUIDES,
 } from '../../../domain/entities/reviewTypes';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteP = RouteProp<RootStackParamList, 'ReviewWrite'>;
@@ -25,9 +26,12 @@ const TEXT_MIN = 10;
 const TEXT_MAX = 500;
 const PHOTO_MAX = 5;
 
-const RATING_VALUE_LABEL = ['', '별로예요', '아쉬워요', '보통이에요', '좋아요', '최고예요'];
+const getRatingScoreLabel = (t: (key: any) => string, value: number): string => {
+  if (value <= 0) return '';
+  const keys = ['', 'review.ratingScore1', 'review.ratingScore2', 'review.ratingScore3', 'review.ratingScore4', 'review.ratingScore5'] as const;
+  return t(keys[value] as any);
+};
 
-/* 터치로 매기는 별점 입력 */
 const StarInput = React.memo(({ value, onChange }: {
   value: number;
   onChange: (v: number) => void;
@@ -48,16 +52,17 @@ const StarInput = React.memo(({ value, onChange }: {
 ));
 StarInput.displayName = 'StarInput';
 
-const RatingBlock = React.memo(({ label, guide, value, onChange }: {
+const RatingBlock = React.memo(({ label, guide, value, scoreLabel, onChange }: {
   label: string;
   guide: string;
+  scoreLabel: string;
   value: number;
   onChange: (v: number) => void;
 }) => (
   <View style={s.ratingBlock}>
     <View style={s.ratingHead}>
       <Text style={s.ratingLabel}>{label}</Text>
-      <Text style={s.ratingValueLabel}>{value > 0 ? RATING_VALUE_LABEL[value] : ''}</Text>
+      <Text style={s.ratingValueLabel}>{scoreLabel}</Text>
     </View>
     <Text style={s.ratingGuide}>{guide}</Text>
     <StarInput value={value} onChange={onChange} />
@@ -70,6 +75,7 @@ const ReviewWriteScreen = () => {
   const route = useRoute<RouteP>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { review } = route.params;
 
   const [ratings, setRatings] = useState<ReviewRatings>({
@@ -82,7 +88,7 @@ const ReviewWriteScreen = () => {
     setRatings((prev) => ({ ...prev, [key]: v }));
   }, []);
 
-  const { pickAndUpload, uploading } = useImageUpload({
+  const { pickWithChoice, uploading } = useImageUpload({
     scope: 'review',
     max: PHOTO_MAX,
     current: photos.length,
@@ -90,9 +96,9 @@ const ReviewWriteScreen = () => {
   });
 
   const addPhoto = useCallback(async () => {
-    const urls = await pickAndUpload();
+    const urls = await pickWithChoice();
     if (urls.length) setPhotos((prev) => [...prev, ...urls]);
-  }, [pickAndUpload]);
+  }, [pickWithChoice]);
 
   const removePhoto = useCallback((i: number) => {
     setPhotos((prev) => prev.filter((_, idx) => idx !== i));
@@ -107,16 +113,19 @@ const ReviewWriteScreen = () => {
 
   const handleSubmit = useCallback(() => {
     if (!allRated) {
-      toast('4가지 항목을 모두 별점으로 평가해주세요', { variant: 'error' });
+      toast(t('review.noRatingError'), { variant: 'error' });
       return;
     }
     if (!textValid) {
-      toast(`리뷰 내용을 ${TEXT_MIN}자 이상 작성해주세요`, { variant: 'error' });
+      toast(t('review.textTooShortError').replace('{{min}}', String(TEXT_MIN)), { variant: 'error' });
       return;
     }
-    toast(`리뷰가 등록되었습니다. ${review.rewardPoint.toLocaleString()}P가 지급되었어요.`, { variant: 'success' });
+    toast(
+      t('review.submitted').replace('{{point}}', review.rewardPoint.toLocaleString()),
+      { variant: 'success' },
+    );
     navigation.goBack();
-  }, [allRated, textValid, review.rewardPoint, toast, navigation]);
+  }, [allRated, textValid, review.rewardPoint, toast, navigation, t]);
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -129,7 +138,7 @@ const ReviewWriteScreen = () => {
         >
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>리뷰 작성</Text>
+        <Text style={s.headerTitle}>{t('review.writeTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -143,7 +152,7 @@ const ReviewWriteScreen = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* 아티스트 · 시술 정보 */}
+          {/* Artist / procedure info */}
           <View style={s.artistCard}>
             <View style={s.avatar}>
               {review.artist.avatarUri ? (
@@ -169,9 +178,9 @@ const ReviewWriteScreen = () => {
             </View>
           </View>
 
-          {/* 4항목 별점 */}
-          <Text style={s.sectionTitle}>항목별 평가</Text>
-          <Text style={s.sectionSub}>실제 시술 경험을 바탕으로 4가지 항목을 평가해주세요.</Text>
+          {/* Ratings */}
+          <Text style={s.sectionTitle}>{t('review.sectionRating')}</Text>
+          <Text style={s.sectionSub}>{t('review.sectionRatingSub')}</Text>
           <View style={s.ratingsCard}>
             {RATING_LABELS.map((r, i) => (
               <View key={r.key}>
@@ -179,6 +188,7 @@ const ReviewWriteScreen = () => {
                   label={r.label}
                   guide={RATING_GUIDES[r.key]}
                   value={ratings[r.key]}
+                  scoreLabel={getRatingScoreLabel(t, ratings[r.key])}
                   onChange={setRating(r.key)}
                 />
                 {i < RATING_LABELS.length - 1 && <View style={s.ratingDivider} />}
@@ -186,9 +196,11 @@ const ReviewWriteScreen = () => {
             ))}
           </View>
 
-          {/* 사진 첨부 */}
-          <Text style={s.sectionTitle}>사진 첨부</Text>
-          <Text style={s.sectionSub}>실제 시술 사진은 다른 유저에게 큰 도움이 됩니다. (최대 {PHOTO_MAX}장)</Text>
+          {/* Photos */}
+          <Text style={s.sectionTitle}>{t('review.sectionPhoto')}</Text>
+          <Text style={s.sectionSub}>
+            {t('review.sectionPhotoSub').replace('{{max}}', String(PHOTO_MAX))}
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.photoScroll}>
             <TouchableOpacity
               style={s.photoAdd}
@@ -219,11 +231,11 @@ const ReviewWriteScreen = () => {
             ))}
           </ScrollView>
 
-          {/* 텍스트 */}
-          <Text style={s.sectionTitle}>리뷰 내용</Text>
+          {/* Text */}
+          <Text style={s.sectionTitle}>{t('review.sectionText')}</Text>
           <TextInput
             style={s.textarea}
-            placeholder={`시술 경험을 솔직하게 남겨주세요. (${TEXT_MIN}자 이상)`}
+            placeholder={t('review.placeholder').replace('{{min}}', String(TEXT_MIN))}
             placeholderTextColor={COLORS.gray2}
             value={text}
             onChangeText={(v) => setText(v.slice(0, TEXT_MAX))}
@@ -233,10 +245,7 @@ const ReviewWriteScreen = () => {
           <Text style={s.counter}>{text.length}/{TEXT_MAX}</Text>
 
           <View style={s.noticeBox}>
-            <Text style={s.noticeText}>
-              작성한 리뷰는 실제 시술 인증 정보를 바탕으로 공개되며, 허위 · 비방성 리뷰는
-              운영 정책에 따라 제한될 수 있습니다.
-            </Text>
+            <Text style={s.noticeText}>{t('review.noticeText')}</Text>
           </View>
 
           <View style={{ height: 24 }} />
@@ -250,7 +259,7 @@ const ReviewWriteScreen = () => {
             activeOpacity={0.85}
           >
             <Text style={[s.submitText, !canSubmit && s.submitTextDisabled]}>
-              리뷰 등록하고 {review.rewardPoint.toLocaleString()}P 받기
+              {t('review.submitBtn').replace('{{point}}', review.rewardPoint.toLocaleString())}
             </Text>
           </TouchableOpacity>
         </View>
@@ -277,9 +286,8 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerTitle: { fontSize: 17, fontWeight: '600', color: COLORS.white, letterSpacing: 0.3 },
+  headerTitle: { fontSize: 17, fontWeight: '600', color: COLORS.white, letterSpacing: 0.3, lineHeight: 23 },
 
-  /* artist card */
   artistCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -307,7 +315,6 @@ const s = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.white, lineHeight: 21, marginBottom: 4 },
   sectionSub: { fontSize: 12, color: COLORS.gray, lineHeight: 17, marginBottom: 12 },
 
-  /* ratings */
   ratingsCard: {
     backgroundColor: COLORS.card,
     borderRadius: 14,
@@ -326,7 +333,6 @@ const s = StyleSheet.create({
   starTouch: { padding: 2 },
   ratingDivider: { height: 1, backgroundColor: COLORS.border },
 
-  /* photos */
   photoScroll: { marginBottom: 24 },
   photoAdd: {
     width: 82, height: 82, borderRadius: 10,
@@ -345,7 +351,6 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 
-  /* text */
   textarea: {
     minHeight: 120,
     backgroundColor: COLORS.card,

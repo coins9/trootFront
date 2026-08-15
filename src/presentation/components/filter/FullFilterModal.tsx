@@ -9,6 +9,7 @@ import {
   RegionIcon, GenreIcon, BodyPartIconSvg, SubjectIcon, WonIcon,
 } from '../icons';
 import { useFilterStore } from '../../store/filterStore';
+import { useTranslation } from '../../store/languageStore';
 import LocationFilter from './LocationFilter';
 import GenreFilter from './GenreFilter';
 import BodyPartFilter from './BodyPartFilter';
@@ -22,21 +23,9 @@ interface FullFilterModalProps {
 
 type SectionKey = 'region' | 'genre' | 'bodyPart' | 'subject' | 'budget';
 
-const SECTIONS: {
-  key: SectionKey;
-  title: string;
-  hint?: string;
-  Icon: React.FC<{ size?: number; color?: string }>;
-}[] = [
-  { key: 'region', title: '지역', Icon: RegionIcon },
-  { key: 'genre', title: '장르', hint: '다중 선택 가능', Icon: GenreIcon },
-  { key: 'bodyPart', title: '부위', hint: '다중 선택 가능', Icon: BodyPartIconSvg },
-  { key: 'subject', title: '주제 / 감성', hint: '다중 선택 가능', Icon: SubjectIcon },
-  { key: 'budget', title: '예산', Icon: WonIcon },
-];
-
 const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [openSections, setOpenSections] = useState<SectionKey[]>([
     'region', 'genre', 'bodyPart', 'subject', 'budget',
   ]);
@@ -46,6 +35,19 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
     setRegion, toggleGenre, toggleBodyPart, toggleSubject, toggleMood, setBudget,
     resetAll,
   } = useFilterStore();
+
+  const sections: {
+    key: SectionKey;
+    title: string;
+    hint?: string;
+    Icon: React.FC<{ size?: number; color?: string }>;
+  }[] = [
+    { key: 'region', title: t('filter.region'), Icon: RegionIcon },
+    { key: 'genre', title: t('filter.genre'), hint: t('filter.multiSelect'), Icon: GenreIcon },
+    { key: 'bodyPart', title: t('filter.bodyPart'), hint: t('filter.multiSelect'), Icon: BodyPartIconSvg },
+    { key: 'subject', title: t('filter.subject'), hint: t('filter.multiSelect'), Icon: SubjectIcon },
+    { key: 'budget', title: t('filter.budget'), Icon: WonIcon },
+  ];
 
   const toggleSection = (key: SectionKey) => {
     setOpenSections((prev) =>
@@ -103,12 +105,12 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
           >
             <XIcon size={22} color={COLORS.white} />
           </TouchableOpacity>
-          <Text style={styles.title}>상세 필터</Text>
+          <Text style={styles.title}>{t('filter.fullTitle')}</Text>
           <TouchableOpacity
             onPress={resetAll}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.resetAll}>전체 초기화</Text>
+            <Text style={styles.resetAll}>{t('filter.resetAll')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -118,7 +120,7 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {SECTIONS.map((section) => {
+          {sections.map((section) => {
             const isOpen = openSections.includes(section.key);
             const { Icon } = section;
             return (
@@ -158,7 +160,7 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
             activeOpacity={0.85}
           >
             <Text style={styles.applyText}>
-              선택한 조건으로 {totalCount}개 도안 보기
+              {t('filter.applyFull', { count: totalCount } as any)}
             </Text>
           </TouchableOpacity>
         </View>

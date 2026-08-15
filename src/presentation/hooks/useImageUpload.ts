@@ -1,22 +1,66 @@
 import { useCallback, useState } from 'react';
-import { launchImageLibrary, type PhotoQuality } from 'react-native-image-picker';
+import { Platform, PermissionsAndroid, Alert } from 'react-native';
+import {
+  launchImageLibrary,
+  launchCamera,
+  type PhotoQuality,
+} from 'react-native-image-picker';
 import { uploadImages, type LocalImage, type UploadScope } from '../../data/api/upload';
 import { ApiError } from '../../data/api/client';
 
 interface Options {
   scope: UploadScope;
-  /** 최대 장수 — 이미 담긴 수를 넘겨 남은 만큼만 고르게 한다 */
+  /** Maximum images — already-selected count is subtracted */
   max: number;
   current: number;
   onError?: (message: string) => void;
 }
 
+const requestAndroidCameraPermission = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android') return true;
+  try {
+    const result = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.CAMERA,
+      {
+        title: 'Camera Permission',
+        message: 'T:ROOT needs camera access to take photos.',
+        buttonPositive: 'Allow',
+        buttonNegative: 'Deny',
+      },
+    );
+    return result === PermissionsAndroid.RESULTS.GRANTED;
+  } catch {
+    return false;
+  }
+};
+
+type Asset = { uri?: string; type?: string; fileSize?: number };
+
+const toLocalImages = (assets: Asset[]): LocalImage[] =>
+  assets
+    .filter((a) => !!a.uri)
+    .map((a) => ({ uri: a.uri as string, type: a.type, fileSize: a.fileSize }));
+
 /**
- * 갤러리에서 이미지를 고르고 R2 로 업로드한 뒤 공개 URL 배열을 돌려준다.
- * 화면은 반환된 URL 을 그대로 상태에 넣기만 하면 된다.
+ * Pick images from gallery or camera and upload to R2.
+ * Returns public URLs — callers just store them in state.
  */
 export function useImageUpload({ scope, max, current, onError }: Options) {
   const [uploading, setUploading] = useState(false);
+
+  const upload = useCallback(async (images: LocalImage[]): Promise<string[]> => {
+    setUploading(true);
+    try {
+      return await uploadImages(scope, images);
+    } catch (e) {
+      onError?.(
+        e instanceof ApiError ? e.userMessage : '사진 업로드에 실패했습니다. 다시 시도해주세요.',
+      );
+      return [];
+    } finally {
+      setUploading(false);
+    }
+  }, [scope, onError]);
 
   const pickAndUpload = useCallback(async (): Promise<string[]> => {
     const remaining = max - current;
@@ -32,23 +76,57 @@ export function useImageUpload({ scope, max, current, onError }: Options) {
     });
 
     if (picked.didCancel || !picked.assets?.length) return [];
+    return upload(toLocalImages(picked.assets));
+  }, [max, current, onError, upload]);
 
-    const images: LocalImage[] = picked.assets
-      .filter((a) => !!a.uri)
-      .map((a) => ({ uri: a.uri as string, type: a.type, fileSize: a.fileSize }));
-
-    setUploading(true);
-    try {
-      return await uploadImages(scope, images);
-    } catch (e) {
-      onError?.(
-        e instanceof ApiError ? e.userMessage : '사진 업로드에 실패했습니다. 다시 시도해주세요.',
-      );
+  const pickFromCamera = useCallback(async (): Promise<string[]> => {
+    const remaining = max - current;
+    if (remaining <= 0) {
+      onError?.(`사진은 최대 ${max}장까지 첨부할 수 있어요`);
       return [];
-    } finally {
-      setUploading(false);
     }
-  }, [scope, max, current, onError]);
 
-  return { pickAndUpload, uploading };
+    const granted = await requestAndroidCameraPermission();
+    if (!granted) {
+      onError?.('카메라 권한이 필요합니다. 설정에서 권한을 허용해주세요.');
+      return [];
+    }
+
+    const picked = await launchCamera({
+      mediaType: 'photo',
+      quality: 0.85 as PhotoQuality,
+      saveToPhotos: false,
+    });
+
+    if (picked.didCancel || !picked.assets?.length) return [];
+    return upload(toLocalImages(picked.assets));
+  }, [max, current, onError, upload]);
+
+  /** Shows an action sheet to choose gallery or camera, then uploads. */
+  const pickWithChoice = useCallback((): Promise<string[]> => {
+    return new Promise((resolve) => {
+      Alert.alert(
+        '사진 추가',
+        '사진을 가져올 방법을 선택해주세요',
+        [
+          {
+            text: '카메라 촬영',
+            onPress: () => pickFromCamera().then(resolve),
+          },
+          {
+            text: '갤러리에서 선택',
+            onPress: () => pickAndUpload().then(resolve),
+          },
+          {
+            text: '취소',
+            style: 'cancel',
+            onPress: () => resolve([]),
+          },
+        ],
+        { cancelable: true, onDismiss: () => resolve([]) },
+      );
+    });
+  }, [pickFromCamera, pickAndUpload]);
+
+  return { pickAndUpload, pickFromCamera, pickWithChoice, uploading };
 }

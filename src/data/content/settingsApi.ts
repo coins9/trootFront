@@ -4,6 +4,7 @@ const TIMEOUT_MS = 8000;
 export interface PublicSettings {
   kakaoChannelUrl: string;
   kakaoChannelId: string;
+  kakaoOpenChatUrl: string;
   supportEmail: string;
   supportHours: string;
   noticeBanner: string;
@@ -36,6 +37,7 @@ export interface PublicSettings {
 export const DEFAULT_SETTINGS: PublicSettings = {
   kakaoChannelUrl: '',
   kakaoChannelId: '',
+  kakaoOpenChatUrl: '',
   supportEmail: 'contact@tattooroot.com',
   supportHours: '평일 10:00 ~ 18:00 (주말 · 공휴일 휴무)',
   noticeBanner: '',

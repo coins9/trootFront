@@ -10,6 +10,7 @@ import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import { BackArrowIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import { useTranslation } from '../../store/languageStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -94,42 +95,38 @@ const INITIAL_STATE: NotifState = {
   notice: true,
 };
 
-interface SectionSpec {
-  title: string;
-  items: { key: NotifKey; label: string }[];
-}
-
-const SECTIONS: SectionSpec[] = [
-  {
-    title: '예약 및 메시지 알림',
-    items: [
-      { key: 'chat', label: '1:1 채팅 메시지' },
-      { key: 'reservationStatus', label: '예약 상태 변경' },
-      { key: 'reservationConfirm', label: '예약 확정 알림' },
-      { key: 'reservationRemind', label: '예약 리마인드' },
-      { key: 'procedureDone', label: '시술 완료 알림' },
-      { key: 'newReply', label: '새로운 답변 알림' },
-    ],
-  },
-  {
-    title: '활동 및 혜택 알림',
-    items: [
-      { key: 'favoriteArtist', label: '찜한 타투이스트 새 소식' },
-      { key: 'favoriteWorkStock', label: '찜한 도안 소진 알림' },
-      { key: 'favoriteSupplyPrice', label: '찜한 용품 가격 변동 알림' },
-      { key: 'event', label: '이벤트 및 혜택' },
-      { key: 'point', label: '포인트 적립 및 사용 내역' },
-      { key: 'notice', label: 'T:ROOT 공지사항' },
-    ],
-  },
-];
-
 const NotificationSettingsScreen = () => {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [state, setState] = useState<NotifState>(INITIAL_STATE);
   const [initialState] = useState<NotifState>(INITIAL_STATE);
+
+  const sections = useMemo(() => [
+    {
+      title: t('notification.bookingGroup'),
+      items: [
+        { key: 'chat' as NotifKey, label: t('notification.chat') },
+        { key: 'reservationStatus' as NotifKey, label: t('notification.reservationStatus') },
+        { key: 'reservationConfirm' as NotifKey, label: t('notification.reservationConfirm') },
+        { key: 'reservationRemind' as NotifKey, label: t('notification.reservationRemind') },
+        { key: 'procedureDone' as NotifKey, label: t('notification.procedureDone') },
+        { key: 'newReply' as NotifKey, label: t('notification.newReply') },
+      ],
+    },
+    {
+      title: t('notification.activityGroup'),
+      items: [
+        { key: 'favoriteArtist' as NotifKey, label: t('notification.favoriteArtist') },
+        { key: 'favoriteWorkStock' as NotifKey, label: t('notification.favoriteWorkStock') },
+        { key: 'favoriteSupplyPrice' as NotifKey, label: t('notification.favoriteSupplyPrice') },
+        { key: 'event' as NotifKey, label: t('notification.event') },
+        { key: 'point' as NotifKey, label: t('notification.point') },
+        { key: 'notice' as NotifKey, label: t('notification.notice') },
+      ],
+    },
+  ], [t]);
 
   const handleToggle = useCallback((key: NotifKey) => {
     setState((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -148,9 +145,9 @@ const NotificationSettingsScreen = () => {
   );
 
   const handleSave = useCallback(() => {
-    toast(`알림 설정이 저장되었습니다. (${enabledCount}개 활성)`, { variant: 'success' });
+    toast(t('notification.savedMsg', { count: enabledCount } as any), { variant: 'success' });
     navigation.goBack();
-  }, [toast, navigation, enabledCount]);
+  }, [toast, navigation, enabledCount, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -165,7 +162,7 @@ const NotificationSettingsScreen = () => {
         >
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.title}>알림 설정</Text>
+        <Text style={styles.title}>{t('notification.title')}</Text>
       </View>
 
       <ScrollView
@@ -173,12 +170,9 @@ const NotificationSettingsScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.description}>
-          원하는 알림을 선택하여{'\n'}
-          T:ROOT 서비스를 더 편리하게 이용하세요.
-        </Text>
+        <Text style={styles.description}>{t('notification.description')}</Text>
 
-        {SECTIONS.map((section) => (
+        {sections.map((section) => (
           <View key={section.title} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
             <View style={styles.card}>
@@ -196,10 +190,8 @@ const NotificationSettingsScreen = () => {
         ))}
 
         <View style={styles.footNote}>
-          <Text style={styles.footText}>알림은 푸시 알림으로 제공됩니다.</Text>
-          <Text style={styles.footText}>
-            기기의 알림 권한 설정도 함께 확인해주세요.
-          </Text>
+          <Text style={styles.footText}>{t('notification.footNote')}</Text>
+          <Text style={styles.footText}>{t('notification.footPermission')}</Text>
         </View>
       </ScrollView>
 
@@ -210,7 +202,7 @@ const NotificationSettingsScreen = () => {
           style={styles.submitBtn}
         >
           <Text style={styles.submitText}>
-            {isDirty ? '설정 완료' : '완료'}
+            {isDirty ? t('notification.saveBtn') : t('notification.saveBtnDone')}
           </Text>
         </TouchableOpacity>
       </View>

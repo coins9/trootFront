@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { COLORS } from '../../theme/colors';
 import { XIcon, PlusIcon, RefreshIcon } from '../icons';
 import { useFilterStore } from '../../store/filterStore';
+import { useTranslation } from '../../store/languageStore';
 
 interface ActiveFilterRowProps {
   onAddPress?: () => void;
@@ -10,6 +11,7 @@ interface ActiveFilterRowProps {
 
 const ActiveFilterRow = memo(({ onAddPress }: ActiveFilterRowProps) => {
   const { getActiveFilterChips, removeFilterChip, resetAll } = useFilterStore();
+  const { t } = useTranslation();
   const chips = getActiveFilterChips();
 
   if (chips.length === 0) return null;
@@ -38,7 +40,7 @@ const ActiveFilterRow = memo(({ onAddPress }: ActiveFilterRowProps) => {
       </ScrollView>
       <TouchableOpacity onPress={resetAll} style={styles.resetBtn}>
         <RefreshIcon size={13} color={COLORS.gray} />
-        <Text style={styles.resetText}>필터 초기화</Text>
+        <Text style={styles.resetText}>{t('common.resetFilters')}</Text>
       </TouchableOpacity>
     </View>
   );

@@ -106,7 +106,7 @@ const RootsPickScreen = () => {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-        <LogoHeader />
+        <LogoHeader showSearch={false} />
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyText}>
             {loading ? t('common.loading') : t('rootsPick.empty')}
@@ -119,7 +119,7 @@ const RootsPickScreen = () => {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      <LogoHeader showSearch={false} />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} bounces>
         {/* ── Hero: image + overlay text ── */}

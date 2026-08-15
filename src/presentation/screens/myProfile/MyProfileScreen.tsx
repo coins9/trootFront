@@ -1,15 +1,14 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
-
-type Nav = NativeStackNavigationProp<RootStackParamList>;
 import {
   CalendarIcon, HeartIcon, StoreIcon, FolderIcon,
   ListIcon, UserOutlineIcon, BellIcon, LockIcon, GlobeIcon, ChatBubbleIcon, ChevronRightIcon,
@@ -18,6 +17,11 @@ import {
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
+import { useAuthStore } from '../../store/authStore';
+import { artistApi, type ArtistPage } from '../../../data/api';
+import { supplyVendorApi, type MyVendor } from '../../../data/api/vendor';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 interface MenuItem {
   Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
@@ -27,7 +31,6 @@ interface MenuItem {
   onPress?: () => void;
 }
 
-/** 프로필에서 전환 가능한 활동 모드 */
 type ProfileMode = 'user' | 'artist' | 'vendor';
 
 const MODE_TAB_KEYS: { key: ProfileMode; tKey: 'profile.modeUser' | 'profile.modeArtist' | 'profile.modeVendor' }[] = [
@@ -36,170 +39,148 @@ const MODE_TAB_KEYS: { key: ProfileMode; tKey: 'profile.modeUser' | 'profile.mod
   { key: 'vendor', tKey: 'profile.modeVendor' },
 ];
 
+const MODE_KEY = '@troot/profile_mode';
+
 const MyProfileScreen = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const session = useAuthStore((s) => s.session);
+
   const [mode, setMode] = useState<ProfileMode>('user');
-  const isArtistMode = mode === 'artist';
+  const [artistInfo, setArtistInfo] = useState<ArtistPage | null>(null);
+  const [vendorInfo, setVendorInfo] = useState<MyVendor | null>(null);
 
-  const notImplemented = useCallback((label: string) => () => {
-    toast(`${label} — 준비 중입니다`);
-  }, [toast]);
+  // Restore persisted mode on mount
+  useEffect(() => {
+    AsyncStorage.getItem(MODE_KEY)
+      .then((val) => {
+        if (val === 'artist' || val === 'vendor' || val === 'user') setMode(val);
+      })
+      .catch(() => {});
+  }, []);
 
-  const goToReservationManage = useCallback(() => {
-    navigation.navigate('ReservationManage');
-  }, [navigation]);
+  // Preload artist page & vendor profile
+  useEffect(() => {
+    if (!session) return;
+    artistApi.me()
+      .then(setArtistInfo)
+      .catch(() => setArtistInfo(null));
+    supplyVendorApi.me()
+      .then(setVendorInfo)
+      .catch(() => setVendorInfo(null));
+  }, [session]);
 
-  const goToFavoriteArtists = useCallback(() => {
-    navigation.navigate('FavoriteArtists');
-  }, [navigation]);
+  /* ── Navigation helpers ── */
+  const goTo = useCallback(
+    (screen: keyof RootStackParamList) => () => navigation.navigate(screen as any),
+    [navigation],
+  );
 
-  const goToFavoriteWorks = useCallback(() => {
-    navigation.navigate('FavoriteWorks');
-  }, [navigation]);
+  /* ── Mode switching with registration guards ── */
+  const handleTabPress = useCallback((next: ProfileMode) => {
+    if (next === mode) return;
 
-  const goToFavoritePhotoShops = useCallback(() => {
-    navigation.navigate('FavoritePhotoShops');
-  }, [navigation]);
+    if (next === 'artist') {
+      const isTattooist =
+        session?.user.role === 'TATTOOIST' ||
+        session?.user.roles?.includes('TATTOOIST');
+      if (!isTattooist || !artistInfo) {
+        navigation.navigate('ArtistMyPage');
+        return;
+      }
+    }
 
-  const goToFavoriteSupplies = useCallback(() => {
-    navigation.navigate('FavoriteSupplies');
-  }, [navigation]);
+    if (next === 'vendor') {
+      if (!vendorInfo) {
+        navigation.navigate('VendorApply');
+        return;
+      }
+    }
 
-  const goToTattooReview = useCallback(() => {
-    navigation.navigate('TattooReview');
-  }, [navigation]);
+    void AsyncStorage.setItem(MODE_KEY, next);
+    const entry = MODE_TAB_KEYS.find((m) => m.key === next);
+    const label = entry ? t(entry.tKey) : '';
+    toast(t('profile.modeSwitched').replace('{{mode}}', label), { variant: 'success' });
+    setMode(next);
+  }, [mode, session, artistInfo, vendorInfo, navigation, t, toast]);
 
-  const goToMyShopPosts = useCallback(() => {
-    navigation.navigate('MyShopPosts');
-  }, [navigation]);
+  /* ── Derived profile data ── */
+  const displayName = (() => {
+    if (mode === 'artist' && artistInfo) return artistInfo.pageName;
+    if (mode === 'vendor' && vendorInfo) return vendorInfo.name;
+    return session?.user.nickname ?? 'root_user';
+  })();
 
-  const goToReservationRequests = useCallback(() => {
-    navigation.navigate('ArtistReservationRequests');
-  }, [navigation]);
-
-  const goToAccountInfo = useCallback(() => {
-    navigation.navigate('AccountInfo');
-  }, [navigation]);
-
-  const goToNotificationSettings = useCallback(() => {
-    navigation.navigate('NotificationSettings');
-  }, [navigation]);
-
-  const goToPrivacySecurity = useCallback(() => {
-    navigation.navigate('PrivacySecurity');
-  }, [navigation]);
-
-  const goToLanguage = useCallback(() => {
-    navigation.navigate('Language');
-  }, [navigation]);
-
-  const goToSupport = useCallback(() => {
-    navigation.navigate('Support');
-  }, [navigation]);
-
-  const goToArtistReservation = useCallback(() => {
-    navigation.navigate('ArtistReservation');
-  }, [navigation]);
-
-
-  const goToArtistAdStats = useCallback(() => {
-    navigation.navigate('ArtistAdStats');
-  }, [navigation]);
-
-  const goToArtistMyPage = useCallback(() => {
-    navigation.navigate('ArtistMyPage');
-  }, [navigation]);
-
-  const goToMyProducts = useCallback(() => {
-    navigation.navigate('MyProducts');
-  }, [navigation]);
-
-  const goToProductForm = useCallback(() => {
-    navigation.navigate('ProductForm', {});
-  }, [navigation]);
-
-  const changeMode = useCallback((next: ProfileMode) => () => {
-    setMode((prev) => {
-      if (prev === next) return prev;
-      const tKey = MODE_TAB_KEYS.find((m) => m.key === next)?.tKey;
-      const label = tKey ? t(tKey) : '';
-      toast(t('profile.modeSwitched').replace('{{mode}}', label), { variant: 'success' });
-      return next;
-    });
-  }, [t, toast]);
-
-  /* ── 이용자 메뉴 ── */
+  /* ── Menu items ── */
   const userReservationItems: MenuItem[] = [
-    { Icon: CalendarIcon, label: t('profile.bookingManage'), badge: t('profile.reservationPending'), onPress: goToReservationManage },
-    { Icon: HeartIcon, label: t('profile.favArtists'), onPress: goToFavoriteArtists },
-    { Icon: PaletteIcon, label: t('profile.favWorks'), onPress: goToFavoriteWorks },
-    { Icon: StoreIcon, label: t('profile.favPhotoShops'), onPress: goToFavoritePhotoShops },
-    { Icon: FolderIcon, label: t('profile.favSupplies'), onPress: goToFavoriteSupplies },
+    { Icon: CalendarIcon, label: t('profile.bookingManage'), badge: t('profile.reservationPending'), onPress: goTo('ReservationManage') },
+    { Icon: HeartIcon, label: t('profile.favArtists'), onPress: goTo('FavoriteArtists') },
+    { Icon: PaletteIcon, label: t('profile.favWorks'), onPress: goTo('FavoriteWorks') },
+    { Icon: StoreIcon, label: t('profile.favPhotoShops'), onPress: goTo('FavoritePhotoShops') },
+    { Icon: FolderIcon, label: t('profile.favSupplies'), onPress: goTo('FavoriteSupplies') },
   ];
   const userPostItems: MenuItem[] = [
-    { Icon: ListIcon, label: t('profile.tattooReview'), onPress: goToTattooReview },
-    { Icon: HandshakeIcon, label: t('profile.shopPosts'), onPress: goToMyShopPosts },
+    { Icon: ListIcon, label: t('profile.tattooReview'), onPress: goTo('TattooReview') },
+    { Icon: HandshakeIcon, label: t('profile.shopPosts'), onPress: goTo('MyShopPosts') },
   ];
   const userSettingItems: MenuItem[] = [
-    { Icon: UserOutlineIcon, label: t('settings.accountInfo'), onPress: goToAccountInfo },
-    { Icon: BellIcon, label: t('settings.notification'), onPress: goToNotificationSettings },
-    { Icon: LockIcon, label: t('settings.privacySecurity'), onPress: goToPrivacySecurity },
-    { Icon: GlobeIcon, label: t('settings.language'), onPress: goToLanguage },
-    { Icon: ChatBubbleIcon, label: t('profile.support'), onPress: goToSupport },
+    { Icon: UserOutlineIcon, label: t('settings.accountInfo'), onPress: goTo('AccountInfo') },
+    { Icon: BellIcon, label: t('settings.notification'), onPress: goTo('NotificationSettings') },
+    { Icon: LockIcon, label: t('settings.privacySecurity'), onPress: goTo('PrivacySecurity') },
+    { Icon: GlobeIcon, label: t('settings.language'), onPress: goTo('Language') },
+    { Icon: ChatBubbleIcon, label: t('profile.support'), onPress: goTo('Support') },
   ];
 
-  /* ── 타투이스트 메뉴 ── */
   const artistMenuItems: (MenuItem & { description: string })[] = [
     {
       Icon: CheckCircleIcon,
       label: t('profile.reservationRequests'),
       description: t('profile.artistDescRequests'),
-      onPress: goToReservationRequests,
+      onPress: goTo('ArtistReservationRequests'),
     },
     {
       Icon: CalendarIcon,
       label: t('profile.bookingManage'),
       description: t('profile.artistDescSchedule'),
-      onPress: goToArtistReservation,
+      onPress: goTo('ArtistReservation'),
     },
     {
       Icon: BarChartIcon,
       label: t('profile.adStats'),
       description: t('profile.artistDescAdStats'),
-      onPress: goToArtistAdStats,
+      onPress: goTo('ArtistAdStats'),
     },
     {
       Icon: EditPenIcon,
       label: t('profile.portfolioReview'),
       description: t('profile.artistDescPortfolio'),
-      onPress: goToArtistMyPage,
+      onPress: goTo('ArtistMyPage'),
     },
   ];
 
-  /* ── 용품 판매자 메뉴 ── */
   const vendorMenuItems: (MenuItem & { description: string })[] = [
     {
       Icon: FolderIcon,
       label: t('profile.addProduct'),
       description: t('profile.vendorDescAddProduct'),
-      onPress: goToProductForm,
+      onPress: goTo('ProductForm'),
     },
     {
       Icon: StoreIcon,
       label: t('profile.manageProducts'),
       description: t('profile.vendorDescManage'),
-      onPress: goToMyProducts,
+      onPress: goTo('MyProducts'),
     },
     {
       Icon: BarChartIcon,
       label: t('profile.sellerInfo'),
       description: t('profile.vendorDescSeller'),
-      onPress: goToMyProducts,
+      onPress: goTo('MyProducts'),
     },
   ];
 
+  /* ── Render helpers ── */
   const renderCompactMenuItem = (item: MenuItem, isLast: boolean) => (
     <TouchableOpacity
       key={item.label}
@@ -260,47 +241,52 @@ const MyProfileScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Profile card ── */}
+        {/* Profile card */}
         <View style={styles.profileBlock}>
           <View style={styles.avatarCircle}>
             <PersonSilhouette size={72} color="#3a3a3a" />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.nickname}>
-              {isArtistMode ? 'MINSOO' : 'root_user'}
-            </Text>
-            {isArtistMode ? (
+            <Text style={styles.nickname} numberOfLines={1}>{displayName}</Text>
+            {mode === 'artist' && artistInfo ? (
               <>
                 <View style={styles.artistMetaRow}>
                   <LocationPinIcon size={13} color={COLORS.gray} />
-                  <Text style={styles.artistMetaText}>서울 · 강남</Text>
+                  <Text style={styles.artistMetaText}>
+                    {[artistInfo.regionSido, artistInfo.regionSigungu].filter(Boolean).join(' · ') || '—'}
+                  </Text>
                 </View>
                 <View style={styles.artistRatingRow}>
                   <StarIcon size={14} color={COLORS.gold} filled />
-                  <Text style={styles.artistRatingValue}>4.9</Text>
-                  <Text style={styles.artistRatingCount}>(356)</Text>
+                  <Text style={styles.artistRatingValue}>{Number(artistInfo.rating).toFixed(1)}</Text>
+                  <Text style={styles.artistRatingCount}>({artistInfo.reviewCount})</Text>
                 </View>
               </>
-            ) : (
-              <Text style={styles.bio}>
-                타투를 사랑하는 사화{'\n'}나만의 감성을 찾아가는 중
+            ) : mode === 'vendor' && vendorInfo ? (
+              <Text style={styles.vendorStatus}>
+                {vendorInfo.status === 'approved' ? t('profile.vendorApproved') :
+                 vendorInfo.status === 'pending' ? t('profile.vendorPending') :
+                 vendorInfo.status === 'rejected' ? t('profile.vendorRejected') :
+                 t('profile.vendorSuspended')}
               </Text>
+            ) : (
+              <Text style={styles.bio}>{session?.user.email ?? ''}</Text>
             )}
           </View>
         </View>
 
-        {/* 활동 모드 전환 — 손님 · 타투이스트 · 용품 판매자 */}
+        {/* Mode selector */}
         <View style={styles.modeTabs}>
           {MODE_TAB_KEYS.map((tab) => {
             const active = mode === tab.key;
             return (
               <TouchableOpacity
                 key={tab.key}
-                onPress={changeMode(tab.key)}
+                onPress={() => handleTabPress(tab.key)}
                 activeOpacity={0.8}
-                style={[styles.modeTab, active && styles.modeTabActive]}
+                style={[styles.modeTab, active ? styles.modeTabActive : styles.modeTabInactive]}
               >
-                <Text style={[styles.modeTabText, active && styles.modeTabTextActive]}>
+                <Text style={[styles.modeTabText, active && styles.modeTabTextActive]} numberOfLines={1}>
                   {t(tab.tKey)}
                 </Text>
               </TouchableOpacity>
@@ -310,7 +296,6 @@ const MyProfileScreen = () => {
 
         <View style={styles.headerDivider} />
 
-        {/* ── Body: 모드에 따라 분기 ── */}
         {mode === 'artist' && (
           <View style={styles.artistMenuList}>
             {artistMenuItems.map(renderArtistMenuCard)}
@@ -352,7 +337,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  /* Profile top */
   profileBlock: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -387,6 +371,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
+  vendorStatus: {
+    color: COLORS.gold,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 17,
+  },
   artistMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -397,6 +387,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontSize: 13,
     lineHeight: 18,
+    flexShrink: 1,
   },
   artistRatingRow: {
     flexDirection: 'row',
@@ -416,7 +407,6 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
 
-  /* 활동 모드 세그먼트 */
   modeTabs: {
     flexDirection: 'row',
     marginHorizontal: 20,
@@ -434,47 +424,23 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
   },
-  modeTabActive: { backgroundColor: COLORS.gold },
+  modeTabInactive: {
+    backgroundColor: 'transparent',
+  },
+  modeTabActive: {
+    backgroundColor: COLORS.gold,
+  },
   modeTabText: {
     color: COLORS.gray,
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '600',
     lineHeight: 17,
   },
-  modeTabTextActive: { color: COLORS.black, fontWeight: '700' },
-
-  artistToggleWrap: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  artistToggleLabel: {
-    color: COLORS.gray,
-    fontSize: 10,
-    lineHeight: 14,
-    textAlign: 'center',
-    maxWidth: 88,
-  },
-  switchTrack: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#333',
-    padding: 2,
-    justifyContent: 'center',
-  },
-  switchTrackOn: {
-    backgroundColor: COLORS.gold,
-  },
-  switchThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: COLORS.white,
-  },
-  switchThumbOn: {
-    transform: [{ translateX: 20 }],
-    backgroundColor: COLORS.black,
+  modeTabTextActive: {
+    color: COLORS.black,
+    fontWeight: '700',
   },
 
   headerDivider: {
@@ -484,7 +450,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  /* User section card */
   sectionCard: {
     marginHorizontal: 16,
     marginBottom: 14,
@@ -556,7 +521,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gold,
   },
 
-  /* Artist mode — 큰 카드 리스트 */
   artistMenuList: {
     paddingHorizontal: 16,
     gap: 12,

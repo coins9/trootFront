@@ -41,7 +41,7 @@ function toReservation(v: CustomerReservationView): Reservation {
       id: v.artist?.id ?? '',
       nickname: v.artist?.pageName ?? '',
       profileImage: v.artist?.profileImage ?? '',
-      location: regionParts.join(' ') || '지역 미설정',
+      location: regionParts.join(' ') || '',
     },
     dateTime: `${dt.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} ${dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`,
     bodyPart: v.bodyPart ?? '',
@@ -73,19 +73,19 @@ const ReservationManageScreen = () => {
   ), [all, tab]);
 
   const handleOpenChat = useCallback(async (r: Reservation) => {
-    if (r.artist.kakaoLink) {
-      const can = await Linking.canOpenURL(r.artist.kakaoLink);
+    if ((r.artist as any).kakaoLink) {
+      const can = await Linking.canOpenURL((r.artist as any).kakaoLink);
       if (can) {
-        Linking.openURL(r.artist.kakaoLink);
+        Linking.openURL((r.artist as any).kakaoLink);
         return;
       }
     }
-    toast(`${r.artist.nickname}의 오픈카톡을 연결할 수 없습니다.`, { variant: 'error' });
-  }, [toast]);
+    toast(t('reservation.chatCannotOpen').replace('{{name}}', r.artist.nickname), { variant: 'error' });
+  }, [toast, t]);
 
   const handleDetail = useCallback((r: Reservation) => {
-    toast(`${r.reservationNumber} 상세 내역 — 준비 중입니다`);
-  }, [toast]);
+    toast(t('reservation.detailComingSoon').replace('{{number}}', r.reservationNumber));
+  }, [toast, t]);
 
   const isOngoingTab = tab === '진행 중인 예약';
 
@@ -128,7 +128,7 @@ const ReservationManageScreen = () => {
           <Text style={styles.artistName}>{item.artist.nickname}</Text>
           <View style={styles.locationRow}>
             <LocationPinIcon size={13} color={COLORS.gray} />
-            <Text style={styles.locationText}>{item.artist.location}</Text>
+            <Text style={styles.locationText}>{item.artist.location || t('reservation.locationDefault')}</Text>
           </View>
         </View>
       </View>
@@ -150,8 +150,9 @@ const ReservationManageScreen = () => {
         <View style={styles.detailRow}>
           <WonIcon size={13} color={COLORS.gray} />
           <Text style={styles.detailText}>
-            {t('reservation.totalPrice')}   <Text style={styles.priceValue}>
-              {item.totalPrice.toLocaleString()}원
+            {t('reservation.totalPrice')}{'   '}
+            <Text style={styles.priceValue}>
+              {t('reservation.priceWon').replace('{{amount}}', item.totalPrice.toLocaleString())}
             </Text>
           </Text>
         </View>

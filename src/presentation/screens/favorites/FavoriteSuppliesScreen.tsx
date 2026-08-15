@@ -12,6 +12,7 @@ import {
   BackArrowIcon, HeartIcon, TattooPlaceholderIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import { useTranslation } from '../../store/languageStore';
 import {
   TattooSupply, SupplyCategory, SUPPLY_CATEGORIES,
   formatSupplyInquiryMessage,
@@ -69,10 +70,11 @@ interface SupplyCardProps {
   onToggleFavorite: () => void;
   onInquiry: () => void;
   onOpenDetail: () => void;
+  buyInquireLabel: string;
 }
 
 const SupplyCard = React.memo(({
-  supply, onToggleFavorite, onInquiry, onOpenDetail,
+  supply, onToggleFavorite, onInquiry, onOpenDetail, buyInquireLabel,
 }: SupplyCardProps) => (
   <View style={styles.card}>
     <TouchableOpacity
@@ -109,7 +111,7 @@ const SupplyCard = React.memo(({
         activeOpacity={0.75}
         style={styles.ctaBtn}
       >
-        <Text style={styles.ctaText}>1:1 구매 문의</Text>
+        <Text style={styles.ctaText}>{buyInquireLabel}</Text>
       </TouchableOpacity>
     </View>
   </View>
@@ -117,6 +119,7 @@ const SupplyCard = React.memo(({
 SupplyCard.displayName = 'SupplyCard';
 
 const FavoriteSuppliesScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const [category, setCategory] = useState<CategoryFilter>('전체');
@@ -142,7 +145,7 @@ const FavoriteSuppliesScreen = () => {
 
   const handleToggle = useCallback(async (supply: TattooSupply) => {
     setRemoved((prev) => new Set(prev).add(supply.id));
-    toast(`${supply.name} 찜을 해제했습니다.`);
+    toast(t('favorites.unfavorited').replace('{{name}}', supply.name));
     try {
       await favoriteApi.toggle('supply', supply.id);
     } catch {
@@ -151,9 +154,9 @@ const FavoriteSuppliesScreen = () => {
         next.delete(supply.id);
         return next;
       });
-      toast('처리에 실패했습니다.', { variant: 'error' });
+      toast(t('common.error'), { variant: 'error' });
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const handleInquiry = useCallback(async (supply: TattooSupply) => {
     if (supply.seller.kakaoLink) {
@@ -171,8 +174,8 @@ const FavoriteSuppliesScreen = () => {
         return;
       }
     }
-    toast(`${supply.seller.nickname}의 문의 채널을 연결할 수 없습니다.`, { variant: 'error' });
-  }, [toast]);
+    toast(t('favorites.inquiryChannelError').replace('{{name}}', supply.seller.nickname), { variant: 'error' });
+  }, [toast, t]);
 
   const handleOpenDetail = useCallback((supply: TattooSupply) => {
     navigation.navigate('TattooSupplyDetail', { supply });
@@ -192,8 +195,8 @@ const FavoriteSuppliesScreen = () => {
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
         <View style={styles.titleGroup}>
-          <Text style={styles.title}>찜한 타투용품</Text>
-          <Text style={styles.subHeaderText}>모아둔 머신·니들·잉크·소모품을 한 곳에서.</Text>
+          <Text style={styles.title}>{t('favorites.supplies')}</Text>
+          <Text style={styles.subHeaderText}>{t('favorites.suppliesSubtitle')}</Text>
         </View>
       </View>
 
@@ -230,6 +233,7 @@ const FavoriteSuppliesScreen = () => {
             onToggleFavorite={() => handleToggle(item)}
             onInquiry={() => handleInquiry(item)}
             onOpenDetail={() => handleOpenDetail(item)}
+            buyInquireLabel={t('common.buyInquire')}
           />
         )}
         numColumns={2}
@@ -249,11 +253,11 @@ const FavoriteSuppliesScreen = () => {
           ) : (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>
-                {error ?? (category === '전체' ? '찜한 용품이 없습니다.' : '해당 카테고리에 찜한 용품이 없습니다.')}
+                {error ?? (category === '전체' ? t('favorites.emptySupplies') : t('favorites.emptySuppliesCategory'))}
               </Text>
               {error && (
                 <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
-                  <Text style={styles.retryBtnText}>다시 시도</Text>
+                  <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
                 </TouchableOpacity>
               )}
             </View>

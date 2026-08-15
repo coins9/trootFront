@@ -13,6 +13,7 @@ import {
   PersonSilhouette, TattooPlaceholderIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import { useTranslation } from '../../store/languageStore';
 import { usePagedApi } from '../../hooks/useApi';
 import { favoriteApi, type FavoriteItem, type ArtistPage } from '../../../data/api';
 import { toArtist } from '../../../data/api/mappers';
@@ -37,10 +38,11 @@ interface FavoriteCardProps {
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onVisitProfile: () => void;
+  visitLabel: string;
 }
 
 const FavoriteCard = React.memo(({
-  artist, works, isFavorite, onToggleFavorite, onVisitProfile,
+  artist, works, isFavorite, onToggleFavorite, onVisitProfile, visitLabel,
 }: FavoriteCardProps) => (
   <View style={styles.card}>
     <View style={styles.headerRow}>
@@ -103,13 +105,14 @@ const FavoriteCard = React.memo(({
       activeOpacity={0.85}
       style={styles.visitBtn}
     >
-      <Text style={styles.visitText}>프로필 방문하기</Text>
+      <Text style={styles.visitText}>{visitLabel}</Text>
     </TouchableOpacity>
   </View>
 ));
 FavoriteCard.displayName = 'FavoriteCard';
 
 const FavoriteArtistsScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const [removed, setRemoved] = useState<Set<string>>(new Set());
@@ -128,7 +131,7 @@ const FavoriteArtistsScreen = () => {
 
   const handleToggle = useCallback(async (artist: Artist) => {
     setRemoved((prev) => new Set(prev).add(artist.id));
-    toast(`${artist.nickname} 찜을 해제했습니다.`);
+    toast(t('favorites.unfavorited').replace('{{name}}', artist.nickname));
     try {
       await favoriteApi.toggle('artist', artist.id);
     } catch {
@@ -137,9 +140,9 @@ const FavoriteArtistsScreen = () => {
         next.delete(artist.id);
         return next;
       });
-      toast('처리에 실패했습니다.', { variant: 'error' });
+      toast(t('common.error'), { variant: 'error' });
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const handleVisit = useCallback((artist: Artist) => {
     navigation.navigate('ArtistProfile', { artist });
@@ -159,8 +162,8 @@ const FavoriteArtistsScreen = () => {
           <BackArrowIcon size={22} color={COLORS.white} />
         </TouchableOpacity>
         <View style={styles.titleGroup}>
-          <Text style={styles.title}>찜한 타투이스트</Text>
-          <Text style={styles.subtitle}>저장한 작가를 한눈에 모아보세요.</Text>
+          <Text style={styles.title}>{t('favorites.artists')}</Text>
+          <Text style={styles.subtitle}>{t('favorites.artistsSubtitle')}</Text>
         </View>
       </View>
 
@@ -174,6 +177,7 @@ const FavoriteArtistsScreen = () => {
             isFavorite
             onToggleFavorite={() => handleToggle(item)}
             onVisitProfile={() => handleVisit(item)}
+            visitLabel={t('favorites.visitProfile')}
           />
         )}
         contentContainerStyle={styles.listContent}
@@ -190,10 +194,10 @@ const FavoriteArtistsScreen = () => {
             <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>{error ?? '아직 찜한 타투이스트가 없습니다.'}</Text>
+              <Text style={styles.emptyText}>{error ?? t('favorites.emptyArtists')}</Text>
               {error && (
                 <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
-                  <Text style={styles.retryBtnText}>다시 시도</Text>
+                  <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
                 </TouchableOpacity>
               )}
             </View>
