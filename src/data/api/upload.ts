@@ -67,3 +67,16 @@ export const uploadImages = async (
   const results = await Promise.all(images.map((img) => uploadImage(scope, img)));
   return results;
 };
+
+/**
+ * 업로드된 이미지를 R2 에서 삭제한다.
+ * 실패해도 UX 흐름을 막지 않는다 — 조용히 무시.
+ */
+export const deleteUpload = async (publicUrl: string): Promise<void> => {
+  if (!publicUrl) return;
+  try {
+    await api.delete('/app/uploads', { url: publicUrl });
+  } catch {
+    // 삭제 실패는 스토리지 정리 문제이므로 사용자 흐름을 막지 않는다
+  }
+};

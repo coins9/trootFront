@@ -13,6 +13,7 @@ import {
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useImageUpload } from '../../hooks/useImageUpload';
+import { deleteUpload } from '../../../data/api/upload';
 import {
   ReviewRatings, RATING_LABELS, RATING_GUIDES,
 } from '../../../domain/entities/reviewTypes';
@@ -101,7 +102,11 @@ const ReviewWriteScreen = () => {
   }, [pickWithChoice]);
 
   const removePhoto = useCallback((i: number) => {
-    setPhotos((prev) => prev.filter((_, idx) => idx !== i));
+    setPhotos((prev) => {
+      const url = prev[i];
+      if (url) deleteUpload(url);
+      return prev.filter((_, idx) => idx !== i);
+    });
   }, []);
 
   const allRated = useMemo(

@@ -12,6 +12,7 @@ import {
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useImageUpload } from '../../hooks/useImageUpload';
+import { deleteUpload } from '../../../data/api/upload';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import {
   ShopMatchingCategory,
@@ -524,7 +525,10 @@ const ShopWriteScreen = () => {
   }, [pickAndUpload]);
 
   const handleRemoveImage = useCallback((i: number) => {
-    setImages(p => p.filter((_, idx) => idx !== i));
+    setImages(p => {
+      deleteUpload(p[i]);
+      return p.filter((_, idx) => idx !== i);
+    });
   }, []);
 
   const isValid = useCallback((): boolean => {

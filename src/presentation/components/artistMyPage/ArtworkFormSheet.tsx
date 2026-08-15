@@ -16,6 +16,7 @@ import {
 import BilingualSection from '../common/BilingualSection';
 import { useTranslation } from '../../store/languageStore';
 import { useImageUpload } from '../../hooks/useImageUpload';
+import { deleteUpload } from '../../../data/api/upload';
 
 interface Props {
   visible: boolean;
@@ -90,8 +91,12 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
 
   const handlePickThumbnail = useCallback(async () => {
     const urls = await pickWithChoice();
-    if (urls[0]) setSingle('thumbnailUri', urls[0]);
-  }, [pickWithChoice, setSingle]);
+    if (urls[0]) {
+      // 이전 썸네일은 이미 R2 에 올라간 상태이므로 교체 시 삭제한다
+      if (form.thumbnailUri) deleteUpload(form.thumbnailUri);
+      setSingle('thumbnailUri', urls[0]);
+    }
+  }, [pickWithChoice, setSingle, form.thumbnailUri]);
 
   const handleSubmit = useCallback(() => {
     if (!canSubmit) return;

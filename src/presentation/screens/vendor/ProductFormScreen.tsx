@@ -15,6 +15,7 @@ import {
 } from '../../../data/api/vendor';
 import type { ProductCategory } from '../../../data/api';
 import { useImageUpload } from '../../hooks/useImageUpload';
+import { deleteUpload } from '../../../data/api/upload';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -176,7 +177,7 @@ const ProductFormScreen = () => {
                   <Image source={{ uri }} style={s.thumbFill} resizeMode="cover" />
                   <TouchableOpacity
                     style={s.thumbRemove}
-                    onPress={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
+                    onPress={() => setImages((prev) => { deleteUpload(prev[i]); return prev.filter((_, idx) => idx !== i); })}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
                     <XIcon size={10} color={COLORS.white} strokeWidth={2.5} />
