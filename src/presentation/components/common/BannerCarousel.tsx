@@ -3,8 +3,10 @@ import {
   Dimensions, FlatList, Image, StyleSheet, TouchableOpacity, View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 import { BannerImageItem } from '../../../data/content/settingsApi';
 import { handleBannerLink } from '../../utils/bannerNavigation';
+import type { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 const { width: W } = Dimensions.get('window');
 const H_PAD = 16;
@@ -19,7 +21,7 @@ const BannerCarousel = memo(({ items }: Props) => {
   const valid = items.filter((x) => x.imageUrl);
   if (valid.length === 0) return null;
 
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [active, setActive] = useState(0);
   const listRef = useRef<FlatList>(null);
 
@@ -33,7 +35,7 @@ const BannerCarousel = memo(({ items }: Props) => {
     <TouchableOpacity
       activeOpacity={0.9}
       style={styles.slide}
-      onPress={() => handleBannerLink(item.linkUrl, (screen) => navigation.navigate(screen as never))}
+      onPress={() => handleBannerLink(item.linkUrl, navigation)}
     >
       <Image source={{ uri: item.imageUrl }} style={styles.img} resizeMode="cover" />
     </TouchableOpacity>
