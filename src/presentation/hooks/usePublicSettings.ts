@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import {
   DEFAULT_SETTINGS,
   fetchPublicSettings,
   type PublicSettings,
 } from '../../data/content/settingsApi';
+import { useLanguageStore } from '../store/languageStore';
 
 let cache: PublicSettings | null = null;
 let inflight: Promise<PublicSettings> | null = null;
-// 마운트된 모든 usePublicSettings 인스턴스에 새 값을 전파한다
 const subscribers = new Set<(s: PublicSettings) => void>();
 
 const load = (): Promise<PublicSettings> => {
@@ -30,32 +30,32 @@ const refresh = () => {
   });
 };
 
-// AppState 리스너는 앱 전체에서 한 번만 등록한다
 let appStateListenerReady = false;
 function ensureAppStateListener() {
   if (appStateListenerReady) return;
   appStateListenerReady = true;
   let prev: AppStateStatus = AppState.currentState;
   AppState.addEventListener('change', (next) => {
-    // 백그라운드/인액티브 → 포그라운드 복귀 시에만 캐시 무효화
     if (prev !== 'active' && next === 'active') refresh();
     prev = next;
   });
 }
 
-/** 공개 설정(카톡 채널·배너 URL 등)을 캐시와 함께 제공한다.
- *  앱이 포그라운드로 돌아올 때마다 자동으로 갱신된다. */
+/**
+ * 공개 설정을 캐시와 함께 제공한다.
+ * bannerXxxImages 필드는 현재 앱 언어에 맞는 KO/EN 슬롯으로 자동 주입된다.
+ */
 export const usePublicSettings = (): PublicSettings => {
-  const [settings, setSettings] = useState<PublicSettings>(cache ?? DEFAULT_SETTINGS);
+  const [raw, setRaw] = useState<PublicSettings>(cache ?? DEFAULT_SETTINGS);
+  const lang = useLanguageStore((s) => s.language);
 
   useEffect(() => {
     ensureAppStateListener();
 
     let alive = true;
-    const cb = (s: PublicSettings) => { if (alive) setSettings(s); };
+    const cb = (s: PublicSettings) => { if (alive) setRaw(s); };
     subscribers.add(cb);
-
-    void load().then((s) => { if (alive) setSettings(s); });
+    void load().then((s) => { if (alive) setRaw(s); });
 
     return () => {
       alive = false;
@@ -63,5 +63,16 @@ export const usePublicSettings = (): PublicSettings => {
     };
   }, []);
 
-  return settings;
+  return useMemo(() => {
+    const isKo = (lang as string) === 'ko';
+    return {
+      ...raw,
+      bannerBeginnerImages: isKo ? raw.bannerBeginnerImagesKo : raw.bannerBeginnerImagesEn,
+      bannerSupplyImages:   isKo ? raw.bannerSupplyImagesKo   : raw.bannerSupplyImagesEn,
+      bannerBoothImages:    isKo ? raw.bannerBoothImagesKo    : raw.bannerBoothImagesEn,
+      bannerMediaImages:    isKo ? raw.bannerMediaImagesKo    : raw.bannerMediaImagesEn,
+      bannerAdImages:       isKo ? raw.bannerAdImagesKo       : raw.bannerAdImagesEn,
+      bannerPartnerImages:  isKo ? raw.bannerPartnerImagesKo  : raw.bannerPartnerImagesEn,
+    };
+  }, [raw, lang]);
 };

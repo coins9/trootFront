@@ -36,7 +36,20 @@ export interface PublicSettings {
   /** 용품샵 배너 */
   suppliesBannerImage: string;
   suppliesBannerUrl: string;
-  /** 배너 이미지 슬롯 — 관리자에서 복수 이미지 관리 */
+  /** 배너 이미지 슬롯 — 언어별 분리, 앱은 현재 언어 슬롯을 읽음 */
+  bannerBeginnerImagesKo: BannerImageItem[];
+  bannerBeginnerImagesEn: BannerImageItem[];
+  bannerSupplyImagesKo: BannerImageItem[];
+  bannerSupplyImagesEn: BannerImageItem[];
+  bannerBoothImagesKo: BannerImageItem[];
+  bannerBoothImagesEn: BannerImageItem[];
+  bannerMediaImagesKo: BannerImageItem[];
+  bannerMediaImagesEn: BannerImageItem[];
+  bannerAdImagesKo: BannerImageItem[];
+  bannerAdImagesEn: BannerImageItem[];
+  bannerPartnerImagesKo: BannerImageItem[];
+  bannerPartnerImagesEn: BannerImageItem[];
+  /** 현재 언어로 해석된 슬롯 — usePublicSettings 가 주입, 직접 쓰지 말 것 */
   bannerBeginnerImages: BannerImageItem[];
   bannerSupplyImages: BannerImageItem[];
   bannerBoothImages: BannerImageItem[];
@@ -72,6 +85,18 @@ export const DEFAULT_SETTINGS: PublicSettings = {
   shopMediaBannerUrl: '',
   suppliesBannerImage: '',
   suppliesBannerUrl: '',
+  bannerBeginnerImagesKo: [],
+  bannerBeginnerImagesEn: [],
+  bannerSupplyImagesKo: [],
+  bannerSupplyImagesEn: [],
+  bannerBoothImagesKo: [],
+  bannerBoothImagesEn: [],
+  bannerMediaImagesKo: [],
+  bannerMediaImagesEn: [],
+  bannerAdImagesKo: [],
+  bannerAdImagesEn: [],
+  bannerPartnerImagesKo: [],
+  bannerPartnerImagesEn: [],
   bannerBeginnerImages: [],
   bannerSupplyImages: [],
   bannerBoothImages: [],
