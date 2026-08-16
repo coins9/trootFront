@@ -87,7 +87,7 @@ android {
         applicationId "com.troot.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
+        versionCode 3
         versionName "1.0.1"
 
         // 카카오 SDK가 요구하는 리다이렉트 스킴(kakao{네이티브앱키})에 주입.
