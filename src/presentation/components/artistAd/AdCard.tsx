@@ -14,10 +14,11 @@ interface Props {
   onUp: () => void;
   onSuperUp: () => void;
   onCardAd: () => void;
+  onBannerAd: () => void;
 }
 
 const AdCard = memo(({
-  ad, onOpenDetail, onUp, onSuperUp, onCardAd,
+  ad, onOpenDetail, onUp, onSuperUp, onCardAd, onBannerAd,
 }: Props) => (
   <View style={styles.card}>
     {/* Top row */}
@@ -84,6 +85,13 @@ const AdCard = memo(({
         style={[styles.actionBtn, styles.actionCard]}
       >
         <Text style={styles.actionCardText}>카드광고</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={onBannerAd}
+        activeOpacity={0.85}
+        style={[styles.actionBtn, styles.actionBanner]}
+      >
+        <Text style={styles.actionBannerText}>배너광고</Text>
       </TouchableOpacity>
     </View>
   </View>
@@ -216,6 +224,17 @@ const styles = StyleSheet.create({
   },
   actionCardText: {
     color: COLORS.black,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  actionBanner: {
+    backgroundColor: COLORS.elevated,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+  },
+  actionBannerText: {
+    color: COLORS.gold,
     fontSize: 13,
     fontWeight: '800',
     lineHeight: 18,

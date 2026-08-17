@@ -8,6 +8,7 @@ export interface AdStatMetric {
 
 export interface ArtistAdItem {
   id: string;
+  artworkId: string;
   title: string;
   thumbnailUri: string;
   status: ArtistAdStatus;

@@ -17,6 +17,7 @@ import { usePublicSettings } from '../../hooks/usePublicSettings';
 import AdCard from '../../components/artistAd/AdCard';
 import SuperUpBottomSheet, { SuperUpPlan } from '../../components/artistAd/SuperUpBottomSheet';
 import CardAdBottomSheet, { CardAdPlan } from '../../components/artistAd/CardAdBottomSheet';
+import BannerAdBottomSheet, { BannerAdPlan } from '../../components/artistAd/BannerAdBottomSheet';
 import { useMemo } from 'react';
 import { MOCK_PROMO_BANNERS } from '../../../data/mock/artistAdMockData';
 import { ArtistAdItem, ArtistAdStatus } from '../../../domain/entities/artistAdTypes';
@@ -24,12 +25,13 @@ import { useApi, usePagedApi } from '../../hooks/useApi';
 import { artistApi, adApi, type Artwork, type AdCampaign } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
+import { adaptyService } from '../../../infrastructure/adapty/adaptyService';
 
 const FMT_DATE = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '-';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-type SheetKind = 'superUp' | 'cardAd';
+type SheetKind = 'superUp' | 'cardAd' | 'bannerAd';
 
 // 프로모 배너 id → 관리자에서 관리하는 문의 링크 키
 const PROMO_URL_KEY: Record<string, 'adInquiryUrl' | 'partnerInquiryUrl'> = {
@@ -43,10 +45,13 @@ const AdStatsScreen = () => {
   const { toast } = useToast();
   const settings = usePublicSettings();
   const [sheet, setSheet] = useState<SheetKind | null>(null);
+  const [activeItem, setActiveItem] = useState<ArtistAdItem | null>(null);
+  const [purchasing, setPurchasing] = useState(false);
   const bottomTabHeight = useBottomTabHeight();
 
   const { items: artworks } = usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
   const { data: campaigns } = useApi(() => adApi.mine(), []);
+  const { data: artistProfile } = useApi(() => artistApi.me(), []);
 
   const adItems = useMemo(() => {
     const campaignMap = new Map((campaigns ?? []).map((c) => [c.targetId, c]));
@@ -59,6 +64,7 @@ const AdStatsScreen = () => {
         : 'idle';
       return {
         id: campaign?.id ?? aw.id,
+        artworkId: aw.id,
         title: aw.title || t('adStats.noTitle'),
         thumbnailUri: aw.thumbnail ?? (aw.images[0] ?? ''),
         status,
@@ -110,37 +116,57 @@ const AdStatsScreen = () => {
     );
   }, [toast, t]);
 
-  const handleSuperUp = useCallback((_item: ArtistAdItem) => () => {
+  const handleSuperUp = useCallback((item: ArtistAdItem) => () => {
+    setActiveItem(item);
     openBottomSheet('superUp');
   }, [openBottomSheet]);
 
-  const handleCardAd = useCallback((_item: ArtistAdItem) => () => {
+  const handleCardAd = useCallback((item: ArtistAdItem) => () => {
+    setActiveItem(item);
     openBottomSheet('cardAd');
   }, [openBottomSheet]);
 
-  const handleSuperUpPurchase = useCallback((plan: SuperUpPlan) => {
+  const handleBannerAd = useCallback((item: ArtistAdItem) => () => {
+    setActiveItem(item);
+    openBottomSheet('bannerAd');
+  }, [openBottomSheet]);
+
+  const executePurchase = useCallback(async (
+    productCode: string,
+    type: 'superup' | 'cardad' | 'banner',
+    targetId?: string,
+    regionKey?: string,
+  ) => {
+    if (purchasing) return;
+    setPurchasing(true);
     closeBottomSheet();
-    setTimeout(() => {
-      toast(
-        t('adStats.superUpComingSoon')
-          .replace('{{label}}', plan.label)
-          .replace('{{price}}', plan.price.toLocaleString()),
-        { variant: 'success' },
-      );
-    }, 200);
-  }, [closeBottomSheet, toast, t]);
+    try {
+      await adaptyService.purchaseAdProduct(productCode);
+      await adApi.purchase({ placement: 'artwork', type, productCode, targetId, regionKey });
+      toast(t('adStats.purchaseSuccess'), { variant: 'success' });
+    } catch {
+      toast(t('adStats.purchaseFailed'), { variant: 'error' });
+    } finally {
+      setPurchasing(false);
+    }
+  }, [purchasing, closeBottomSheet, toast, t]);
+
+  const handleSuperUpPurchase = useCallback((plan: SuperUpPlan) => {
+    executePurchase(plan.id, 'superup', activeItem?.artworkId);
+  }, [executePurchase, activeItem]);
 
   const handleCardAdPurchase = useCallback((plan: CardAdPlan) => {
-    closeBottomSheet();
-    setTimeout(() => {
-      toast(
-        t('adStats.cardAdComingSoon')
-          .replace('{{label}}', plan.label)
-          .replace('{{price}}', plan.price.toLocaleString()),
-        { variant: 'success' },
-      );
-    }, 200);
-  }, [closeBottomSheet, toast, t]);
+    const regionKey = artistProfile?.regionSido ?? undefined;
+    if (!regionKey) {
+      toast(t('adStats.regionRequired'), { variant: 'error' });
+      return;
+    }
+    executePurchase(plan.id, 'cardad', activeItem?.artworkId, regionKey);
+  }, [executePurchase, activeItem, artistProfile, toast, t]);
+
+  const handleBannerAdPurchase = useCallback((plan: BannerAdPlan) => {
+    executePurchase(plan.id, 'banner');
+  }, [executePurchase]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -199,6 +225,7 @@ const AdStatsScreen = () => {
               onUp={handleUp(ad)}
               onSuperUp={handleSuperUp(ad)}
               onCardAd={handleCardAd(ad)}
+              onBannerAd={handleBannerAd(ad)}
             />
           ))
         )}
@@ -215,6 +242,11 @@ const AdStatsScreen = () => {
         visible={sheet === 'cardAd'}
         onClose={closeBottomSheet}
         onPurchase={handleCardAdPurchase}
+      />
+      <BannerAdBottomSheet
+        visible={sheet === 'bannerAd'}
+        onClose={closeBottomSheet}
+        onPurchase={handleBannerAdPurchase}
       />
     </SafeAreaView>
   );

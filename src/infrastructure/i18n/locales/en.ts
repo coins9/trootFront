@@ -358,6 +358,10 @@ export const en: TranslationSchema = {
     toastUp: '{{title}} has been boosted to the top.',
     superUpComingSoon: 'Super UP {{label}} · ₩{{price}} payment — coming soon',
     cardAdComingSoon: 'Card Ad {{label}} · ₩{{price}} payment — coming soon',
+    bannerAdComingSoon: 'Feed Banner Ad {{label}} · ₩{{price}} payment — coming soon',
+    purchaseSuccess: 'Your ad is now live.',
+    purchaseFailed: 'Payment failed. Please try again.',
+    regionRequired: 'Please set your region first.',
   },
 
   reservation: {

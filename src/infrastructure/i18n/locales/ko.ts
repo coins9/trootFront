@@ -355,6 +355,10 @@ export const ko = {
     toastUp: '{{title}} 이(가) 상단으로 UP 되었습니다.',
     superUpComingSoon: '슈퍼UP {{label}} · {{price}}원 결제 — 준비 중입니다',
     cardAdComingSoon: '카드광고 {{label}} · {{price}}원 결제 — 준비 중입니다',
+    bannerAdComingSoon: '피드 배너광고 {{label}} · {{price}}원 결제 — 준비 중입니다',
+    purchaseSuccess: '광고가 성공적으로 시작되었습니다.',
+    purchaseFailed: '결제에 실패했습니다. 다시 시도해주세요.',
+    regionRequired: '지역 정보를 먼저 설정해주세요.',
   },
 
   reservation: {

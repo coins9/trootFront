@@ -6,6 +6,7 @@ const ADAPTY_PUBLIC_KEY = 'public_live_YLLFYbPA.g4p8MsY3aNxee3Ustser';
 
 /** Adapty 대시보드에서 생성할 페이월 ID */
 const PAYWALL_ID = 'troot_pro_paywall';
+const AD_PAYWALL_ID = 'troot_ad_products';
 
 /** Adapty Access Level ID */
 const ACCESS_LEVEL = 'premium';
@@ -80,6 +81,15 @@ export const adaptyService = {
     const profile = (result as any).profile;
     const isActive = profile?.accessLevels?.[ACCESS_LEVEL]?.isActive ?? false;
     return { isActive };
+  },
+
+  /** 광고 소모품 구매 — Adapty ad products 페이월에서 productId로 제품 찾아 결제 */
+  async purchaseAdProduct(productId: string): Promise<void> {
+    const paywall = await adapty.getPaywall(AD_PAYWALL_ID);
+    const products = await adapty.getPaywallProducts(paywall);
+    const product = products.find((p: AdaptyProduct) => p.vendorProductId === productId);
+    if (!product) throw new Error(`Ad product not found: ${productId}`);
+    await adapty.makePurchase(product);
   },
 
   /** 구매 복원 (iOS 정책상 필수) */
