@@ -10,7 +10,7 @@ import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import {
   BackArrowIcon, StarIcon, PersonSilhouette, TattooPlaceholderIcon,
-  LocationPinIcon, CalendarIcon, PaletteIcon, ShieldCheckIcon,
+  LocationPinIcon, CalendarIcon, PaletteIcon,
   CameraSolidIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
@@ -147,23 +147,6 @@ const WritableCard = React.memo(({ review, onWrite }: WritableCardProps) => {
       </Text>
     </View>
 
-    <Text style={styles.sectionTitle}>{t('review.guideTitle')}</Text>
-    <View style={styles.guideBox}>
-      <View style={styles.guideRow}>
-        <CalendarIcon size={18} color={COLORS.gold} strokeWidth={1.6} />
-        <View style={styles.guideText}>
-          <Text style={styles.guideLabel}>{t('review.guidePeriodLabel')}</Text>
-          <Text style={styles.guideDesc}>{t('review.guidePeriodDesc')}</Text>
-        </View>
-      </View>
-      <View style={styles.guideRow}>
-        <ShieldCheckIcon size={18} color={COLORS.gold} strokeWidth={1.6} />
-        <View style={styles.guideText}>
-          <Text style={styles.guideLabel}>{t('review.guidePolicyLabel')}</Text>
-          <Text style={styles.guideDesc}>{t('review.guidePolicyDesc')}</Text>
-        </View>
-      </View>
-    </View>
 
     <TouchableOpacity
       onPress={onWrite}
@@ -347,10 +330,6 @@ const TattooReviewScreen = () => {
       >
         {tab === 'writable' ? (
           <>
-            <Text style={styles.leadText}>
-              {t('review.leadText')}{'\n'}
-              <Text style={styles.leadHighlight}>{t('review.leadHighlight')}</Text>
-            </Text>
             {writableLoading ? (
               <View style={styles.empty}>
                 <Text style={styles.emptyText}>{t('common.loading')}</Text>
@@ -489,17 +468,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: H_PAD,
     paddingVertical: 20,
     gap: 14,
-  },
-
-  leadText: {
-    color: COLORS.gray,
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  leadHighlight: {
-    color: COLORS.white,
-    fontWeight: '700',
   },
 
   /* Card shell */
