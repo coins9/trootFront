@@ -131,6 +131,16 @@ workflows:
         script: |
           echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/TRootApp/GoogleService-Info.plist
 
+      - name: .env 생성 (소셜 로그인 키 주입)
+        script: |
+          cat > .env <<EOF
+          GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
+          GOOGLE_IOS_URL_SCHEME=$GOOGLE_IOS_URL_SCHEME
+          GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID
+          KAKAO_NATIVE_APP_KEY=$KAKAO_NATIVE_APP_KEY
+          GOOGLE_PLACES_API_KEY=$GOOGLE_PLACES_API_KEY
+          EOF
+
       - name: CocoaPods 설치
         script: |
           cd ios
@@ -233,6 +243,16 @@ workflows:
       - name: Firebase 설정 파일 복사
         script: |
           echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/TRootApp/GoogleService-Info.plist
+
+      - name: .env 생성 (소셜 로그인 키 주입)
+        script: |
+          cat > .env <<EOF
+          GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
+          GOOGLE_IOS_URL_SCHEME=$GOOGLE_IOS_URL_SCHEME
+          GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID
+          KAKAO_NATIVE_APP_KEY=$KAKAO_NATIVE_APP_KEY
+          GOOGLE_PLACES_API_KEY=$GOOGLE_PLACES_API_KEY
+          EOF
 
       - name: CocoaPods 설치 (강제 초기화)
         script: |
