@@ -66,7 +66,7 @@ export type RootStackParamList = {
   DepositManagement: undefined;
   ArtistAdStats: undefined;
   ArtistMyPage: undefined;
-  ShopWrite: { initialCategory?: ShopMatchingCategory } | undefined;
+  ShopWrite: { initialCategory?: ShopMatchingCategory; boothKind?: 'domestic' | 'overseas' } | undefined;
   MyShopPosts: undefined;
   SafetyPolicy: undefined;
   ReviewWrite: { review: WritableReview };

@@ -37,6 +37,10 @@ const CATEGORIES: ShopMatchingCategory[] = [
 const REGION_OPTS = SHARE_REGION_OPTIONS.filter(r => r !== '전체');
 const STYLE_OPTS = ['블랙워크', '라인워크', '올드스쿨', '뉴스쿨', '이레즈미', '수채화', '미니타투', '커버업'];
 
+/* ── 해외 부스쉐어 옵션 ── */
+const OVERSEAS_COUNTRY_OPTS = ['일본', '미국', '프랑스', '독일', '영국', '태국', '싱가포르', '홍콩', '대만', '호주', '캐나다', '이탈리아', '기타'];
+const OVERSEAS_CURRENCY_OPTS = ['USD', 'JPY', 'EUR', 'GBP', 'THB', 'SGD', 'HKD', 'TWD', 'AUD', 'KRW'];
+
 /* ── 칩 선택 컴포넌트 ── */
 const ChipSelect = React.memo(({
   options, selected, onToggle, multi = false,
@@ -182,6 +186,122 @@ const BoothShareForm = ({ form, setForm }: {
         onChangeDescEn={v => setForm(p => ({ ...p, descriptionEn: v }))}
         descPlaceholder="Space features, amenities, rules, etc."
         descMaxLength={500}
+      />
+    </>
+  );
+};
+
+/* ─────────────────────────────────────────────────────
+ * 해외 부스 쉐어 폼
+ * ───────────────────────────────────────────────────── */
+interface OverseasBoothForm {
+  title: string;
+  country: string;
+  city: string;
+  pricePerDay: string;
+  currency: string;
+  bedCount: ShareBedCount | '';
+  lighting: ShareLighting | '';
+  description: string;
+  contact: string;
+}
+
+const EMPTY_OVERSEAS_BOOTH: OverseasBoothForm = {
+  title: '', country: '', city: '', pricePerDay: '', currency: 'USD',
+  bedCount: '', lighting: '', description: '', contact: '',
+};
+
+const OverseasBoothShareForm = ({ form, setForm }: {
+  form: OverseasBoothForm;
+  setForm: React.Dispatch<React.SetStateAction<OverseasBoothForm>>;
+}) => {
+  const toggle = useCallback((field: keyof OverseasBoothForm) => (v: string) => {
+    setForm(p => ({ ...p, [field]: p[field] === v ? '' : v }));
+  }, [setForm]);
+
+  return (
+    <>
+      <SectionLabel label="제목 (Title)" required />
+      <TextInput
+        style={s.input}
+        placeholder="e.g. Tokyo Shinjuku Booth Share – 1 Bed Available"
+        placeholderTextColor={COLORS.gray2}
+        value={form.title}
+        onChangeText={v => setForm(p => ({ ...p, title: v }))}
+        maxLength={60}
+      />
+
+      <SectionLabel label="국가 (Country)" required />
+      <ChipSelect
+        options={OVERSEAS_COUNTRY_OPTS}
+        selected={form.country ? [form.country] : []}
+        onToggle={toggle('country')}
+      />
+
+      <SectionLabel label="도시 (City)" required />
+      <TextInput
+        style={s.input}
+        placeholder="예: Tokyo / Paris / New York"
+        placeholderTextColor={COLORS.gray2}
+        value={form.city}
+        onChangeText={v => setForm(p => ({ ...p, city: v }))}
+        maxLength={40}
+      />
+
+      <SectionLabel label="1일 가격" required />
+      <View style={s.row}>
+        <TextInput
+          style={[s.input, s.flex1]}
+          placeholder="예: 80"
+          placeholderTextColor={COLORS.gray2}
+          value={form.pricePerDay}
+          onChangeText={v => setForm(p => ({ ...p, pricePerDay: v.replace(/[^0-9]/g, '') }))}
+          keyboardType="numeric"
+        />
+        <View style={s.currencyWrap}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <ChipSelect
+              options={OVERSEAS_CURRENCY_OPTS}
+              selected={[form.currency]}
+              onToggle={v => setForm(p => ({ ...p, currency: v }))}
+            />
+          </ScrollView>
+        </View>
+      </View>
+
+      <SectionLabel label="베드 수" required />
+      <ChipSelect
+        options={['1대', '2대', '3대', '4대 이상']}
+        selected={form.bedCount ? [form.bedCount] : []}
+        onToggle={toggle('bedCount')}
+      />
+
+      <SectionLabel label="조명 환경" />
+      <ChipSelect
+        options={['LED (백색광)', '자연광', '조도 조절 (디밍)', '촬영용 조명 구비']}
+        selected={form.lighting ? [form.lighting] : []}
+        onToggle={toggle('lighting')}
+      />
+
+      <SectionLabel label="공간 소개 (Description)" required />
+      <TextInput
+        style={[s.input, s.textarea]}
+        placeholder="Space features, amenities, rules, etc."
+        placeholderTextColor={COLORS.gray2}
+        value={form.description}
+        onChangeText={v => setForm(p => ({ ...p, description: v }))}
+        multiline
+        maxLength={600}
+      />
+
+      <SectionLabel label="연락처 (Contact)" required />
+      <TextInput
+        style={s.input}
+        placeholder="Instagram @username / Email / WhatsApp"
+        placeholderTextColor={COLORS.gray2}
+        value={form.contact}
+        onChangeText={v => setForm(p => ({ ...p, contact: v }))}
+        autoCapitalize="none"
       />
     </>
   );
@@ -506,8 +626,12 @@ const ShopWriteScreen = () => {
   const [category, setCategory] = useState<ShopMatchingCategory>(
     route.params?.initialCategory ?? '부스 쉐어',
   );
+  const [boothKind, setBoothKind] = useState<'domestic' | 'overseas'>(
+    route.params?.boothKind ?? 'domestic',
+  );
   const [images, setImages] = useState<string[]>([]);
   const [boothForm, setBoothForm] = useState<BoothForm>(EMPTY_BOOTH);
+  const [overseasBoothForm, setOverseasBoothForm] = useState<OverseasBoothForm>(EMPTY_OVERSEAS_BOOTH);
   const [modelForm, setModelForm] = useState<ModelForm>(EMPTY_MODEL);
   const [mediaForm, setMediaForm] = useState<MediaForm>(EMPTY_MEDIA);
   const [submitting, setSubmitting] = useState(false);
@@ -533,13 +657,16 @@ const ShopWriteScreen = () => {
 
   const isValid = useCallback((): boolean => {
     if (category === '부스 쉐어') {
+      if (boothKind === 'overseas') {
+        return !!(overseasBoothForm.title.trim() && overseasBoothForm.country && overseasBoothForm.city.trim() && overseasBoothForm.pricePerDay && overseasBoothForm.currency && overseasBoothForm.bedCount && overseasBoothForm.description.trim() && overseasBoothForm.contact.trim());
+      }
       return !!(boothForm.title.trim() && boothForm.region && boothForm.pricePerDay && boothForm.bedCount && boothForm.description.trim() && boothForm.contact.trim());
     }
     if (category === '타투 모델 구인 (비기너)') {
       return !!(modelForm.title.trim() && modelForm.region && modelForm.styles.length > 0 && modelForm.workPeriod.trim() && modelForm.description.trim() && modelForm.contact.trim());
     }
     return !!(mediaForm.specialty && mediaForm.nickname.trim() && mediaForm.region && mediaForm.experience && mediaForm.workKinds.length > 0 && mediaForm.description.trim() && mediaForm.contact.trim());
-  }, [category, boothForm, modelForm, mediaForm]);
+  }, [category, boothKind, boothForm, overseasBoothForm, modelForm, mediaForm]);
 
   const categoryToApi: Record<ShopMatchingCategory, ShopCategory> = {
     '부스 쉐어': 'booth_share',
@@ -549,6 +676,28 @@ const ShopWriteScreen = () => {
 
   const buildBody = useCallback(() => {
     if (category === '부스 쉐어') {
+      if (boothKind === 'overseas') {
+        const f = overseasBoothForm;
+        return {
+          category: 'booth_share_overseas' as ShopCategory,
+          title: f.title.trim(),
+          titleEn: f.title.trim(),
+          description: f.description.trim(),
+          descriptionEn: f.description.trim(),
+          region: `${f.city.trim()}, ${f.country}`,
+          images,
+          contact: f.contact.trim() || null,
+          priceKrw: null,
+          attributes: {
+            country: f.country,
+            city: f.city.trim(),
+            pricePerDay: f.pricePerDay ? Number(f.pricePerDay) : null,
+            currency: f.currency,
+            bedCount: f.bedCount,
+            lighting: f.lighting || null,
+          },
+        };
+      }
       return {
         category: 'booth_share' as ShopCategory,
         title: boothForm.title.trim(),
@@ -602,7 +751,7 @@ const ShopWriteScreen = () => {
         instagramUrl: mediaForm.instagramUrl.trim() || null,
       },
     };
-  }, [category, boothForm, modelForm, mediaForm, images]);
+  }, [category, boothKind, boothForm, overseasBoothForm, modelForm, mediaForm, images]);
 
   const handleSubmit = useCallback(async () => {
     if (!isValid()) {
@@ -670,6 +819,30 @@ const ShopWriteScreen = () => {
         ))}
       </View>
 
+      {/* 부스 쉐어 국내/해외 서브탭 */}
+      {category === '부스 쉐어' && (
+        <View style={s.boothKindBar}>
+          <TouchableOpacity
+            onPress={() => setBoothKind('domestic')}
+            style={[s.boothKindTab, boothKind === 'domestic' && s.boothKindTabActive]}
+            activeOpacity={0.75}
+          >
+            <Text style={[s.boothKindText, boothKind === 'domestic' && s.boothKindTextActive]}>
+              국내 부스쉐어
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setBoothKind('overseas')}
+            style={[s.boothKindTab, boothKind === 'overseas' && s.boothKindTabActive]}
+            activeOpacity={0.75}
+          >
+            <Text style={[s.boothKindText, boothKind === 'overseas' && s.boothKindTextActive]}>
+              해외 부스쉐어
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <KeyboardAvoidingView
         style={s.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -687,7 +860,10 @@ const ShopWriteScreen = () => {
           <View style={s.divider} />
 
           {/* 카테고리별 폼 */}
-          {category === '부스 쉐어' && (
+          {category === '부스 쉐어' && boothKind === 'overseas' && (
+            <OverseasBoothShareForm form={overseasBoothForm} setForm={setOverseasBoothForm} />
+          )}
+          {category === '부스 쉐어' && boothKind === 'domestic' && (
             <BoothShareForm form={boothForm} setForm={setBoothForm} />
           )}
           {category === '타투 모델 구인 (비기너)' && (
@@ -783,6 +959,27 @@ const s = StyleSheet.create({
   tabActive: { borderBottomColor: COLORS.gold },
   tabText: { fontSize: 13, color: COLORS.gray, fontWeight: '500' },
   tabTextActive: { color: COLORS.gold, fontWeight: '700' },
+
+  /* 국내/해외 서브탭 */
+  boothKindBar: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  boothKindTab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  boothKindTabActive: { borderBottomColor: COLORS.gold },
+  boothKindText: { fontSize: 13, color: COLORS.gray, fontWeight: '500', lineHeight: 18 },
+  boothKindTextActive: { color: COLORS.gold, fontWeight: '700' },
+
+  /* 통화 선택 */
+  currencyWrap: { flex: 1 },
 
   /* 섹션 레이블 */
   sectionLabelRow: { flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 8 },

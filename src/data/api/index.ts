@@ -253,7 +253,7 @@ export const reviewApi = {
 };
 
 // ── 샵 & 매칭 ─────────────────────────────────────────────
-export type ShopCategory = 'booth_share' | 'model_recruit' | 'media_expert';
+export type ShopCategory = 'booth_share' | 'booth_share_overseas' | 'model_recruit' | 'media_expert';
 
 export interface ShopPost {
   id: string;

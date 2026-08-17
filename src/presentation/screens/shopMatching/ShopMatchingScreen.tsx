@@ -188,6 +188,7 @@ const ShopMatchingScreen = () => {
   const navigation = useNavigation<Nav>();
   const settings = usePublicSettings();
   const [category, setCategory] = useState<ShopMatchingCategory>('부스 쉐어');
+  const [boothTab, setBoothTab] = useState<'domestic' | 'overseas'>('domestic');
   const [expertTab, setExpertTab] = useState<MediaSpecialty>('photo');
   const [searchVisible, setSearchVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -208,6 +209,10 @@ const ShopMatchingScreen = () => {
     (cursor) => shopApi.list({ category: 'booth_share', keyword: debouncedKeyword || undefined, cursor }),
     [debouncedKeyword],
   );
+  const { items: rawOverseasBooth } = usePagedApi(
+    (cursor) => shopApi.list({ category: 'booth_share_overseas', keyword: debouncedKeyword || undefined, cursor }),
+    [debouncedKeyword],
+  );
   const { items: rawModel } = usePagedApi(
     (cursor) => shopApi.list({ category: 'model_recruit', keyword: debouncedKeyword || undefined, cursor }),
     [debouncedKeyword],
@@ -218,6 +223,7 @@ const ShopMatchingScreen = () => {
   );
 
   const boothPosts = useMemo(() => rawBooth.map(toShareShop), [rawBooth]);
+  const overseasBoothPosts = useMemo(() => rawOverseasBooth.map(toShareShop), [rawOverseasBooth]);
   const modelPosts = useMemo(() => rawModel.map(toModelRecruit), [rawModel]);
   const mediaPosts = useMemo(() => rawMedia.map(toMediaExpert), [rawMedia]);
 
@@ -373,6 +379,30 @@ const ShopMatchingScreen = () => {
         </Text>
       </View>
 
+      {/* 부스 쉐어 국내/해외 서브탭 */}
+      {isShareCategory && (
+        <View style={styles.subTabRow}>
+          <TouchableOpacity
+            onPress={() => setBoothTab('domestic')}
+            activeOpacity={0.8}
+            style={[styles.subTabBtn, boothTab === 'domestic' && styles.subTabBtnActive]}
+          >
+            <Text style={[styles.subTabText, boothTab === 'domestic' && styles.subTabTextActive]}>
+              {t('shop.boothDomestic')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setBoothTab('overseas')}
+            activeOpacity={0.8}
+            style={[styles.subTabBtn, boothTab === 'overseas' && styles.subTabBtnActive]}
+          >
+            <Text style={[styles.subTabText, boothTab === 'overseas' && styles.subTabTextActive]}>
+              {t('shop.boothOverseas')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* 탭별 메인 배너 — 다중 이미지 우선, 없으면 단일 이미지 폴백 */}
       {isShareCategory && (
         settings.bannerBoothImages.length > 0
@@ -448,7 +478,7 @@ const ShopMatchingScreen = () => {
           contentContainerStyle={styles.filterScroll}
           style={{ flex: 1 }}
         >
-          {isShareCategory
+          {isShareCategory && boothTab === 'domestic'
             ? shareFilterButtons.map((f) => (
                 <TouchableOpacity
                   key={f.kind}
@@ -468,19 +498,27 @@ const ShopMatchingScreen = () => {
                   <ChevronDownIcon size={11} color={f.active ? COLORS.gold : COLORS.gray} />
                 </TouchableOpacity>
               ))
-            : nonShareFilters.map((f) => (
-                <TouchableOpacity key={f.label} style={styles.filterBtn} activeOpacity={0.8}>
-                  <f.Icon size={13} color={COLORS.gray} />
-                  <Text style={styles.filterText}>{f.label}</Text>
-                  <ChevronDownIcon size={11} color={COLORS.gray} />
-                </TouchableOpacity>
-              ))
+            : isShareCategory && boothTab === 'overseas'
+              ? (
+                  <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8}>
+                    <RegionIcon size={13} color={COLORS.gray} />
+                    <Text style={styles.filterText}>{t('shop.filter.country')}</Text>
+                    <ChevronDownIcon size={11} color={COLORS.gray} />
+                  </TouchableOpacity>
+                )
+              : nonShareFilters.map((f) => (
+                  <TouchableOpacity key={f.label} style={styles.filterBtn} activeOpacity={0.8}>
+                    <f.Icon size={13} color={COLORS.gray} />
+                    <Text style={styles.filterText}>{f.label}</Text>
+                    <ChevronDownIcon size={11} color={COLORS.gray} />
+                  </TouchableOpacity>
+                ))
           }
         </ScrollView>
         <TouchableOpacity
           style={styles.sortBtn}
           activeOpacity={0.8}
-          onPress={isShareCategory ? () => setActiveFilterSheet('sort') : undefined}
+          onPress={(isShareCategory && boothTab === 'domestic') ? () => setActiveFilterSheet('sort') : undefined}
         >
           <Text style={styles.sortText}>{sortLabel}</Text>
           <ChevronDownIcon size={11} color={COLORS.gray} />
@@ -527,6 +565,20 @@ const ShopMatchingScreen = () => {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
+      ) : boothTab === 'overseas' ? (
+        <FlatList
+          data={overseasBoothPosts}
+          keyExtractor={(item) => item.id}
+          renderItem={renderShopItem}
+          ListHeaderComponent={Header}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>{t('shop.emptyOverseas')}</Text>
+            </View>
+          }
+        />
       ) : (
         <FlatList
           data={filteredShops}
@@ -537,7 +589,7 @@ const ShopMatchingScreen = () => {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>조건에 맞는 공간이 없습니다.</Text>
+              <Text style={styles.emptyText}>{t('shop.emptyDomestic')}</Text>
             </View>
           }
         />
@@ -553,7 +605,10 @@ const ShopMatchingScreen = () => {
           if (wallaUrl) {
             Linking.openURL(wallaUrl).catch(() => {});
           } else {
-            navigation.navigate('ShopWrite', { initialCategory: category });
+            navigation.navigate('ShopWrite', {
+              initialCategory: category,
+              boothKind: isShareCategory ? boothTab : undefined,
+            });
           }
         }}
       >
