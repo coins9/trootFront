@@ -30,9 +30,11 @@ const FilterBottomSheet = memo(({ visible, filterType, onClose }: FilterBottomSh
   const { t } = useTranslation();
 
   const {
-    region, genres, bodyParts, subjects, moods, budgetMin, budgetMax,
+    region, regionMode, overseasCountryCode,
+    genres, bodyParts, subjects, moods, budgetMin, budgetMax,
     totalCount,
-    setRegion, toggleGenre, toggleBodyPart, toggleSubject, toggleMood, setBudget,
+    setRegion, setRegionMode, setOverseas,
+    toggleGenre, toggleBodyPart, toggleSubject, toggleMood, setBudget,
     resetRegion, resetGenres, resetBodyParts, resetSubjectsMoods, resetBudget,
   } = useFilterStore();
 
@@ -92,9 +94,13 @@ const FilterBottomSheet = memo(({ visible, filterType, onClose }: FilterBottomSh
       case 'region':
         return (
           <LocationFilter
+            regionMode={regionMode}
             selectedCity={region.city}
             selectedDistrict={region.district}
+            selectedCountryCode={overseasCountryCode}
+            onModeChange={setRegionMode}
             onSelect={setRegion}
+            onSelectOverseas={setOverseas}
           />
         );
       case 'genre':

@@ -13,10 +13,7 @@ import {
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
-import {
-  FAVORITE_WORK_CATEGORIES,
-  FavoriteWork, FavoriteWorkCategory,
-} from '../../../data/mock/favoriteWorksMockData';
+import { FavoriteWork } from '../../../data/mock/favoriteWorksMockData';
 import { usePagedApi } from '../../hooks/useApi';
 import { favoriteApi, type FavoriteItem, type Artwork } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
@@ -92,7 +89,6 @@ const FavoriteWorksScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
-  const [category, setCategory] = useState<FavoriteWorkCategory>('전체');
   const [removed, setRemoved] = useState<Set<string>>(new Set());
 
   const {
@@ -141,24 +137,6 @@ const FavoriteWorksScreen = () => {
           <Text style={styles.title}>{t('favorites.works')}</Text>
           <Text style={styles.subtitle}>{t('favorites.worksSubtitle')}</Text>
         </View>
-      </View>
-
-      <View style={styles.categoryRow}>
-        {FAVORITE_WORK_CATEGORIES.map((c) => {
-          const active = c === category;
-          return (
-            <TouchableOpacity
-              key={c}
-              onPress={() => setCategory(c)}
-              activeOpacity={0.75}
-              style={[styles.categoryChip, active && styles.categoryChipActive]}
-            >
-              <Text style={[styles.categoryText, active && styles.categoryTextActive]}>
-                {c}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
       </View>
 
       <FlatList
@@ -239,38 +217,6 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontSize: 12,
     lineHeight: 17,
-  },
-
-  /* Category */
-  categoryRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 16,
-    backgroundColor: COLORS.black,
-  },
-  categoryChip: {
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.chipBorder,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    backgroundColor: COLORS.elevated,
-  },
-  categoryChipActive: {
-    borderColor: COLORS.gold,
-    backgroundColor: 'transparent',
-  },
-  categoryText: {
-    color: COLORS.gray,
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 18,
-  },
-  categoryTextActive: {
-    color: COLORS.gold,
-    fontWeight: '700',
   },
 
   /* List */

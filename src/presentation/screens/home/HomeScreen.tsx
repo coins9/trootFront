@@ -22,6 +22,7 @@ import { artistApi, favoriteApi } from '../../../data/api';
 import { toTattoo } from '../../../data/api/mappers';
 import { FilterType, Tattoo, Artist } from '../../../domain/entities/types';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useFilterStore } from '../../store/filterStore';
 
 const COLUMN_GAP = 8;
 const SIDE_PAD = 16;
@@ -42,6 +43,8 @@ const HomeScreen = () => {
   const [noticeDismissed, setNoticeDismissed] = useState(false);
   const debouncedKeyword = useDebounce(keyword, 400);
 
+  const { regionMode, region, overseasCountryCode } = useFilterStore();
+
   const {
     items: artworks, loading, loadingMore, error, loadMore, reload,
   } = usePagedApi(
@@ -49,8 +52,11 @@ const HomeScreen = () => {
       cursor,
       limit: PAGE_SIZE,
       keyword: debouncedKeyword || undefined,
+      countryCode: regionMode === 'overseas' ? (overseasCountryCode ?? undefined) : undefined,
+      regionSido: regionMode === 'domestic' ? (region.city ?? undefined) : undefined,
+      regionSigungu: regionMode === 'domestic' ? (region.district ?? undefined) : undefined,
     }),
-    [debouncedKeyword],
+    [debouncedKeyword, regionMode, overseasCountryCode, region.city, region.district],
   );
 
   const handleSearchPress = useCallback(() => {

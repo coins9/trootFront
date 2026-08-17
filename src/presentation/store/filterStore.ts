@@ -7,6 +7,8 @@ interface FilterStore extends FilterState {
 
   setActiveSheet: (sheet: FilterType | null) => void;
   setRegion: (city: string | null, district: string | null) => void;
+  setRegionMode: (mode: 'domestic' | 'overseas') => void;
+  setOverseas: (code: string | null, name: string | null) => void;
   toggleGenre: (genre: string) => void;
   toggleBodyPart: (part: string) => void;
   toggleSubject: (subject: string) => void;
@@ -23,9 +25,12 @@ interface FilterStore extends FilterState {
 }
 
 const DEFAULT_STATE: FilterState = {
-  region: { city: '서울', district: '강남' },
-  genres: ['블랙앤그레이'],
-  bodyParts: ['팔'],
+  regionMode: 'domestic',
+  region: { city: null, district: null },
+  overseasCountryCode: null,
+  overseasCountryName: null,
+  genres: [],
+  bodyParts: [],
   subjects: [],
   moods: [],
   budgetMin: 0,
@@ -33,7 +38,10 @@ const DEFAULT_STATE: FilterState = {
 };
 
 const EMPTY_STATE: FilterState = {
+  regionMode: 'domestic',
   region: { city: null, district: null },
+  overseasCountryCode: null,
+  overseasCountryName: null,
   genres: [],
   bodyParts: [],
   subjects: [],
@@ -51,6 +59,17 @@ export const useFilterStore = create<FilterStore>((set, get) => ({
 
   setRegion: (city, district) =>
     set({ region: { city, district } }),
+
+  setRegionMode: (mode) =>
+    set({
+      regionMode: mode,
+      region: { city: null, district: null },
+      overseasCountryCode: null,
+      overseasCountryName: null,
+    }),
+
+  setOverseas: (code, name) =>
+    set({ overseasCountryCode: code, overseasCountryName: name }),
 
   toggleGenre: (genre) =>
     set((state) => ({
@@ -83,7 +102,11 @@ export const useFilterStore = create<FilterStore>((set, get) => ({
   setBudget: (min, max) => set({ budgetMin: min, budgetMax: max }),
 
   resetAll: () => set({ ...EMPTY_STATE }),
-  resetRegion: () => set({ region: { city: null, district: null } }),
+  resetRegion: () => set({
+    region: { city: null, district: null },
+    overseasCountryCode: null,
+    overseasCountryName: null,
+  }),
   resetGenres: () => set({ genres: [] }),
   resetBodyParts: () => set({ bodyParts: [] }),
   resetSubjectsMoods: () => set({ subjects: [], moods: [] }),
@@ -92,8 +115,13 @@ export const useFilterStore = create<FilterStore>((set, get) => ({
   getActiveFilterChips: () => {
     const state = get();
     const chips: { label: string; type: string }[] = [];
-    if (state.region.district) chips.push({ label: state.region.district, type: 'region' });
-    else if (state.region.city) chips.push({ label: state.region.city, type: 'region' });
+    if (state.regionMode === 'overseas' && state.overseasCountryName) {
+      chips.push({ label: state.overseasCountryName, type: 'region' });
+    } else if (state.region.district) {
+      chips.push({ label: state.region.district, type: 'region' });
+    } else if (state.region.city) {
+      chips.push({ label: state.region.city, type: 'region' });
+    }
     state.genres.forEach((g) => chips.push({ label: g, type: 'genre' }));
     state.bodyParts.forEach((b) => chips.push({ label: b, type: 'bodyPart' }));
     state.subjects.forEach((s) => chips.push({ label: s, type: 'subject' }));
@@ -105,7 +133,11 @@ export const useFilterStore = create<FilterStore>((set, get) => ({
     const state = get();
     switch (type) {
       case 'region':
-        set({ region: { city: null, district: null } });
+        set({
+          region: { city: null, district: null },
+          overseasCountryCode: null,
+          overseasCountryName: null,
+        });
         break;
       case 'genre':
         set({ genres: state.genres.filter((g) => g !== label) });

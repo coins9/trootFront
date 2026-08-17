@@ -1,8 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, StatusBar, Image, ActivityIndicator,
 } from 'react-native';
+import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
+import Config from 'react-native-config';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -215,6 +217,7 @@ const OverseasBoothShareForm = ({ form, setForm }: {
   form: OverseasBoothForm;
   setForm: React.Dispatch<React.SetStateAction<OverseasBoothForm>>;
 }) => {
+  const cityRef = useRef<GooglePlacesAutocompleteRef>(null);
   const toggle = useCallback((field: keyof OverseasBoothForm) => (v: string) => {
     setForm(p => ({ ...p, [field]: p[field] === v ? '' : v }));
   }, [setForm]);
@@ -238,15 +241,36 @@ const OverseasBoothShareForm = ({ form, setForm }: {
         onToggle={toggle('country')}
       />
 
-      <SectionLabel label="도시 (City)" required />
-      <TextInput
-        style={s.input}
-        placeholder="예: Tokyo / Paris / New York"
-        placeholderTextColor={COLORS.gray2}
-        value={form.city}
-        onChangeText={v => setForm(p => ({ ...p, city: v }))}
-        maxLength={40}
-      />
+      <SectionLabel label="도시 / 위치 (City)" required />
+      <View style={s.placesWrap}>
+        <GooglePlacesAutocomplete
+          ref={cityRef}
+          placeholder="도시 검색 (예: Tokyo, Paris, New York)"
+          query={{
+            key: Config.GOOGLE_PLACES_API_KEY ?? '',
+            language: 'en',
+            types: '(cities)',
+          }}
+          fetchDetails={false}
+          onPress={(data) => {
+            setForm(p => ({ ...p, city: data.description }));
+          }}
+          textInputProps={{
+            placeholderTextColor: COLORS.gray2,
+            onChangeText: v => setForm(p => ({ ...p, city: v })),
+          }}
+          enablePoweredByContainer={false}
+          styles={{
+            container: { flex: 1 },
+            textInputContainer: { backgroundColor: 'transparent' },
+            textInput: s.placesInput,
+            listView: s.placesList,
+            row: s.placesRow,
+            description: s.placesDescription,
+            separator: { height: 1, backgroundColor: COLORS.border },
+          }}
+        />
+      </View>
 
       <SectionLabel label="1일 가격" required />
       <View style={s.row}>
@@ -1060,4 +1084,42 @@ const s = StyleSheet.create({
   /* 레이아웃 헬퍼 */
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rangeSep: { fontSize: 16, color: COLORS.gray, fontWeight: '500' },
+
+  /* Places Autocomplete */
+  placesWrap: {
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    zIndex: 50,
+  },
+  placesInput: {
+    backgroundColor: 'transparent',
+    color: COLORS.white,
+    fontSize: 14,
+    lineHeight: 20,
+    height: 44,
+    margin: 0,
+    paddingHorizontal: 14,
+  },
+  placesList: {
+    position: 'absolute' as any,
+    top: 46,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.elevated,
+    borderRadius: 10,
+    zIndex: 200,
+    elevation: 10,
+  },
+  placesRow: {
+    backgroundColor: COLORS.elevated,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  placesDescription: {
+    color: COLORS.white,
+    fontSize: 14,
+    lineHeight: 20,
+  },
 });

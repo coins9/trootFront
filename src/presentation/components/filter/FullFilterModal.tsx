@@ -31,8 +31,10 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
   ]);
 
   const {
-    region, genres, bodyParts, subjects, moods, budgetMin, budgetMax, totalCount,
-    setRegion, toggleGenre, toggleBodyPart, toggleSubject, toggleMood, setBudget,
+    region, regionMode, overseasCountryCode,
+    genres, bodyParts, subjects, moods, budgetMin, budgetMax, totalCount,
+    setRegion, setRegionMode, setOverseas,
+    toggleGenre, toggleBodyPart, toggleSubject, toggleMood, setBudget,
     resetAll,
   } = useFilterStore();
 
@@ -60,9 +62,13 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
       case 'region':
         return (
           <LocationFilter
+            regionMode={regionMode}
             selectedCity={region.city}
             selectedDistrict={region.district}
+            selectedCountryCode={overseasCountryCode}
+            onModeChange={setRegionMode}
             onSelect={setRegion}
+            onSelectOverseas={setOverseas}
           />
         );
       case 'genre':

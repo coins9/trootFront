@@ -16,6 +16,11 @@ export interface ArtistPage {
   isSelectedMaster: boolean;
   regionSido: string | null;
   regionSigungu: string | null;
+  regionType?: 'domestic' | 'overseas';
+  countryCode?: string | null;
+  countryName?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   genres: string[];
   rating: string;
   reviewCount: number;
@@ -58,7 +63,10 @@ export const artistApi = {
   artworks: (id: string, p: { cursor?: string; limit?: number } = {}) =>
     api.get<CursorPage<Artwork>>(`/app/artists/${id}/artworks${qs(p)}`),
 
-  feed: (p: { cursor?: string; limit?: number; sort?: 'recent' | 'popular'; keyword?: string } = {}) =>
+  feed: (p: {
+    cursor?: string; limit?: number; sort?: 'recent' | 'popular'; keyword?: string;
+    countryCode?: string; regionSido?: string; regionSigungu?: string;
+  } = {}) =>
     api.get<CursorPage<Artwork>>(`/app/artists/feed${qs(p)}`),
 
   // 타투이스트 본인

@@ -45,7 +45,10 @@ export interface Tattoo {
 }
 
 export interface FilterState {
+  regionMode: 'domestic' | 'overseas';
   region: { city: string | null; district: string | null };
+  overseasCountryCode: string | null;
+  overseasCountryName: string | null;
   genres: string[];
   bodyParts: string[];
   subjects: string[];

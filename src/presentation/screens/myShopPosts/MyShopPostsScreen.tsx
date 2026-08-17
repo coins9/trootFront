@@ -56,6 +56,7 @@ const FILTER_TABS: { key: 'all' | ShopMatchingCategory; label: string }[] = [
 
 const API_TO_CATEGORY: Record<ShopCategory, ShopMatchingCategory> = {
   booth_share: '부스 쉐어',
+  booth_share_overseas: '부스 쉐어',
   model_recruit: '타투 모델 구인 (비기너)',
   media_expert: '사진/영상 편집자',
 };

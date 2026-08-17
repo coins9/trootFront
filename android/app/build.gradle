@@ -87,8 +87,8 @@ android {
         applicationId "com.troot.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4
-        versionName "1.0.1"
+        versionCode 5
+        versionName "1.0.0"
 
         // 카카오 SDK가 요구하는 리다이렉트 스킴(kakao{네이티브앱키})에 주입.
         // 키가 없으면 빈 문자열 → 카카오 로그인만 비활성, 빌드는 통과.

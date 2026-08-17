@@ -15,7 +15,6 @@ import {
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
 import {
-  PHOTO_SHOP_CATEGORIES,
   FavoritePhotoShop, PhotoShopCategory,
 } from '../../../data/mock/favoritePhotoShopsMockData';
 import { usePagedApi } from '../../hooks/useApi';
@@ -128,7 +127,6 @@ const FavoritePhotoShopsScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
-  const [category, setCategory] = useState<PhotoShopCategory>('사진 촬영');
   const [removed, setRemoved] = useState<Set<string>>(new Set());
 
   const {
@@ -188,24 +186,6 @@ const FavoritePhotoShopsScreen = () => {
           <Text style={styles.title}>{t('favorites.photoShops')}</Text>
           <Text style={styles.subtitle}>{t('favorites.photoShopsSubtitle')}</Text>
         </View>
-      </View>
-
-      <View style={styles.categoryRow}>
-        {PHOTO_SHOP_CATEGORIES.map((c) => {
-          const active = c === category;
-          return (
-            <TouchableOpacity
-              key={c}
-              onPress={() => setCategory(c)}
-              activeOpacity={0.75}
-              style={[styles.categoryChip, active && styles.categoryChipActive]}
-            >
-              <Text style={[styles.categoryText, active && styles.categoryTextActive]}>
-                {c}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
       </View>
 
       <FlatList
@@ -277,38 +257,6 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontSize: 12,
     lineHeight: 17,
-  },
-
-  /* Category */
-  categoryRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 16,
-    backgroundColor: COLORS.black,
-  },
-  categoryChip: {
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.chipBorder,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    backgroundColor: COLORS.elevated,
-  },
-  categoryChipActive: {
-    borderColor: COLORS.gold,
-    backgroundColor: 'transparent',
-  },
-  categoryText: {
-    color: COLORS.gray,
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 18,
-  },
-  categoryTextActive: {
-    color: COLORS.gold,
-    fontWeight: '700',
   },
 
   /* List */

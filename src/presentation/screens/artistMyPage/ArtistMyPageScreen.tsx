@@ -147,7 +147,9 @@ const ArtistMyPageScreen = () => {
   const artistPageId = apiProfile?.id ?? '';
   const { items: apiReviews, setItems: setApiReviews } =
     usePagedApi(
-      (cursor) => reviewApi.byArtist(artistPageId, { cursor }),
+      (cursor) => artistPageId
+        ? reviewApi.byArtist(artistPageId, { cursor })
+        : Promise.resolve({ items: [], nextCursor: null, hasNext: false }),
       [artistPageId],
     );
 
@@ -202,14 +204,18 @@ const ArtistMyPageScreen = () => {
       await artistApi.updateMe({
         pageName: next.nickname,
         bio: next.intro,
-        regionSido: next.location?.split(' ')[0],
-        regionSigungu: next.location?.split(' ')[1],
+        regionSido: next.regionSido ?? undefined,
+        regionSigungu: next.regionSigungu ?? undefined,
+        countryCode: next.countryCode ?? undefined,
+        countryName: next.countryName ?? undefined,
+        regionType: next.countryCode ? 'overseas' : 'domestic',
+        lat: next.lat ?? undefined,
+        lng: next.lng ?? undefined,
         tags: next.tags,
       } as any);
       setProfileOverride((prev) => ({ ...prev, ...next }));
       reloadProfile();
     } catch {
-      // 실패해도 로컬 오버라이드 적용
       setProfileOverride((prev) => ({ ...prev, ...next }));
     }
     setEditProfileOpen(false);

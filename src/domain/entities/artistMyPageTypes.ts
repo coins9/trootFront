@@ -3,6 +3,12 @@ export interface ArtistSelfProfile {
   nickname: string;
   handle: string;
   location: string;
+  lat?: number | null;
+  lng?: number | null;
+  countryCode?: string | null;
+  countryName?: string | null;
+  regionSido?: string | null;
+  regionSigungu?: string | null;
   intro: string;
   avatarUri: string;
   rating: number;
