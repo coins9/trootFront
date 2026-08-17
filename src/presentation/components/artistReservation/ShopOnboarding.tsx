@@ -1,39 +1,52 @@
-import React, { memo, useCallback, useState } from 'react';
+import React, { memo, useCallback, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
+import {
+  GooglePlacesAutocomplete,
+  GooglePlacesAutocompleteRef,
+} from 'react-native-google-places-autocomplete';
+import Config from 'react-native-config';
 import { COLORS } from '../../theme/colors';
 import {
-  StoreIcon, LocationPinIcon, CheckCircleIcon, UserPlusIcon,
+  StoreIcon, CheckCircleIcon, UserPlusIcon,
 } from '../icons';
 import { useToast } from '../common/Toast';
 
+interface LocationMeta {
+  address: string;
+  lat?: number;
+  lng?: number;
+}
+
 interface Props {
-  onRegister: (shopName: string, location: string) => void;
+  onRegister: (shopName: string, address: string, lat?: number, lng?: number) => void;
   onJoinCode: (code: string) => void;
 }
 
 const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
   const { toast } = useToast();
+  const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
   const [shopName, setShopName] = useState('');
-  const [location, setLocation] = useState('');
+  const [locationMeta, setLocationMeta] = useState<LocationMeta | null>(null);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState<null | 'register' | 'join'>(null);
 
-  const canRegister = shopName.trim().length >= 2 && location.trim().length >= 2;
+  const canRegister = shopName.trim().length >= 2 && locationMeta !== null;
   const canJoin = code.trim().length === 6;
 
   const handleRegister = useCallback(() => {
-    if (!canRegister) {
+    if (!canRegister || !locationMeta) {
       toast('샵 이름과 위치를 모두 입력해주세요.', { variant: 'error' });
       return;
     }
     setLoading('register');
     setTimeout(() => {
       setLoading(null);
-      onRegister(shopName.trim(), location.trim());
-    }, 500);
-  }, [canRegister, shopName, location, onRegister, toast]);
+      onRegister(shopName.trim(), locationMeta.address, locationMeta.lat, locationMeta.lng);
+    }, 300);
+  }, [canRegister, shopName, locationMeta, onRegister, toast]);
 
   const handleJoin = useCallback(() => {
     if (!canJoin) {
@@ -44,11 +57,14 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
     setTimeout(() => {
       setLoading(null);
       onJoinCode(code.trim().toUpperCase());
-    }, 500);
+    }, 300);
   }, [canJoin, code, onJoinCode, toast]);
 
   return (
-    <View style={{ gap: 16 }}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ gap: 16 }}
+    >
       {/* Hero */}
       <View style={styles.heroCard}>
         <View style={styles.heroIconWrap}>
@@ -69,9 +85,7 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>샵 등록하기</Text>
-            <Text style={styles.cardDesc}>
-              오너로 새로운 샵을 개설합니다.
-            </Text>
+            <Text style={styles.cardDesc}>오너로 새로운 샵을 개설합니다.</Text>
           </View>
         </View>
 
@@ -92,27 +106,82 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
 
         <View style={styles.fieldWrap}>
           <Text style={styles.fieldLabel}>위치</Text>
-          <View style={styles.inputRow}>
-            <LocationPinIcon size={16} color={COLORS.gray} />
-            <TextInput
-              value={location}
-              onChangeText={setLocation}
-              placeholder="예: 서울 · 성수"
-              placeholderTextColor={COLORS.gray2}
-              style={styles.textInput}
-              maxLength={30}
+          <View style={styles.placesWrap}>
+            <GooglePlacesAutocomplete
+              ref={placesRef}
+              placeholder="도시·주소 검색 (예: 서울 성수동, Tokyo...)"
+              query={{
+                key: Config.GOOGLE_PLACES_API_KEY ?? '',
+                language: 'ko',
+              }}
+              fetchDetails
+              onPress={(data: any, details: any) => {
+                const address: string =
+                  details?.formatted_address ?? data.description;
+                const lat: number | undefined = details?.geometry?.location?.lat;
+                const lng: number | undefined = details?.geometry?.location?.lng;
+                setLocationMeta({ address, lat, lng });
+              }}
+              enablePoweredByContainer={false}
+              keepResultsAfterBlur
+              styles={{
+                container: { flex: 0 },
+                textInputContainer: {
+                  backgroundColor: 'transparent',
+                  borderWidth: 0,
+                  paddingHorizontal: 0,
+                },
+                textInput: {
+                  color: COLORS.white,
+                  fontSize: 14,
+                  fontWeight: '500',
+                  lineHeight: 19,
+                  backgroundColor: COLORS.elevated,
+                  borderWidth: 1,
+                  borderColor: locationMeta ? COLORS.gold : COLORS.border,
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: Platform.OS === 'ios' ? 12 : 8,
+                  height: undefined,
+                  margin: 0,
+                },
+                listView: {
+                  backgroundColor: COLORS.card,
+                  borderWidth: 1,
+                  borderColor: COLORS.border,
+                  borderRadius: 10,
+                  marginTop: 4,
+                  zIndex: 999,
+                },
+                row: {
+                  backgroundColor: COLORS.card,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                },
+                description: {
+                  color: COLORS.white,
+                  fontSize: 13,
+                  lineHeight: 18,
+                },
+                separator: {
+                  height: 1,
+                  backgroundColor: COLORS.border,
+                },
+              }}
             />
           </View>
+          {locationMeta && (
+            <Text style={styles.locationConfirmed}>
+              {locationMeta.address}
+            </Text>
+          )}
         </View>
 
         <TouchableOpacity
           onPress={handleRegister}
           activeOpacity={0.85}
           disabled={loading === 'register'}
-          style={[
-            styles.primaryBtn,
-            !canRegister && styles.primaryBtnDisabled,
-          ]}
+          style={[styles.primaryBtn, !canRegister && styles.primaryBtnDisabled]}
         >
           <CheckCircleIcon size={16} color={COLORS.black} />
           <Text style={styles.primaryBtnText}>
@@ -150,10 +219,7 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
             onPress={handleJoin}
             activeOpacity={0.85}
             disabled={loading === 'join'}
-            style={[
-              styles.joinBtn,
-              !canJoin && styles.joinBtnDisabled,
-            ]}
+            style={[styles.joinBtn, !canJoin && styles.joinBtnDisabled]}
           >
             <Text style={styles.joinBtnText}>
               {loading === 'join' ? '요청중…' : '합류하기'}
@@ -161,7 +227,7 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 });
 ShopOnboarding.displayName = 'ShopOnboarding';
@@ -200,7 +266,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: 'center',
   },
-
   card: {
     borderRadius: 14,
     borderWidth: 1,
@@ -208,6 +273,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     padding: 16,
     gap: 14,
+    zIndex: 1,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -235,8 +301,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 3,
   },
-
-  fieldWrap: { gap: 6 },
+  fieldWrap: { gap: 6, zIndex: 10 },
   fieldLabel: {
     color: COLORS.gray,
     fontSize: 12,
@@ -262,7 +327,15 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     padding: 0,
   },
-
+  placesWrap: {
+    zIndex: 100,
+  },
+  locationConfirmed: {
+    color: COLORS.gold,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 2,
+  },
   primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -272,16 +345,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
   },
-  primaryBtnDisabled: {
-    opacity: 0.5,
-  },
+  primaryBtnDisabled: { opacity: 0.5 },
   primaryBtnText: {
     color: COLORS.black,
     fontSize: 14,
     fontWeight: '800',
     lineHeight: 19,
   },
-
   joinRow: {
     flexDirection: 'row',
     gap: 8,
@@ -308,9 +378,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  joinBtnDisabled: {
-    opacity: 0.45,
-  },
+  joinBtnDisabled: { opacity: 0.45 },
   joinBtnText: {
     color: COLORS.black,
     fontSize: 13,

@@ -193,6 +193,61 @@ export const reservationApi = {
     api.patch<Reservation>(`/app/reservations/${id}/deposit/confirm`, {}),
 };
 
+// ── 스튜디오(공용 샵) 관리 ────────────────────────────────────
+export interface Studio {
+  id: string;
+  name: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  inviteCode: string;
+  inviteCodeExpiresAt: string | null;
+  ownerId: string;
+  createdAt: string;
+}
+
+export interface StudioMember {
+  id: string;
+  userId: string;
+  studioId: string;
+  role: 'owner' | 'artist' | 'pending';
+  bedName: string | null;
+  nickname: string;
+  profileImage: string | null;
+  joinedAt: string;
+}
+
+export interface StudioScheduleEntry {
+  memberId: string;
+  nickname: string;
+  bedName: string | null;
+  reservations: {
+    id: string;
+    scheduledAt: string;
+    durationMinutes: number;
+    bodyPart: string | null;
+    customerName: string | null;
+    status: ReservationStatus;
+    memo: string | null;
+  }[];
+}
+
+export const studioApi = {
+  mine: () => api.get<Studio | null>('/app/studios/me'),
+  register: (body: { name: string; address: string; lat?: number; lng?: number }) =>
+    api.post<Studio>('/app/studios', body),
+  join: (code: string) =>
+    api.post<{ studio: Studio; member: StudioMember }>('/app/studios/join', { code }),
+  members: (studioId: string) =>
+    api.get<StudioMember[]>(`/app/studios/${studioId}/members`),
+  refreshCode: (studioId: string) =>
+    api.post<{ inviteCode: string; inviteCodeExpiresAt: string }>(
+      `/app/studios/${studioId}/invite-code/refresh`,
+    ),
+  schedule: (studioId: string, date: string) =>
+    api.get<StudioScheduleEntry[]>(`/app/studios/${studioId}/schedule${qs({ date })}`),
+};
+
 // ── 리뷰 ──────────────────────────────────────────────────
 /** 카드 렌더용 작가 요약 (백엔드 조인) */
 export interface ArtistMini {

@@ -1,7 +1,7 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, Share, Alert,
-  Platform,
+  Platform, ActivityIndicator,
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import {
@@ -9,51 +9,53 @@ import {
   ChevronRightIcon,
 } from '../icons';
 import { useToast } from '../common/Toast';
-
-/** 6자리 대문자+숫자 코드 */
-const genCode = () => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for (let i = 0; i < 6; i += 1) {
-    out += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return out;
-};
-
-interface ShopMember {
-  id: string;
-  nickname: string;
-  role: '오너' | '아티스트' | '초대 대기';
-  joinedAt: string;
-}
-
-const MOCK_MEMBERS: ShopMember[] = [
-  { id: 'm1', nickname: 'MINSOO',    role: '오너',      joinedAt: '2024.03.01' },
-  { id: 'm2', nickname: 'RIN.INK',   role: '아티스트', joinedAt: '2024.03.14' },
-  { id: 'm3', nickname: 'ZERO_ART',  role: '아티스트', joinedAt: '2024.04.02' },
-  { id: 'm4', nickname: 'YURI',      role: '초대 대기', joinedAt: '2024.08.02' },
-];
+import { studioApi, type StudioMember } from '../../../data/api';
+import { ApiError } from '../../../data/api/client';
 
 const EXPIRY_DAYS = 7;
 
+const roleLabel = (role: StudioMember['role']) => {
+  switch (role) {
+    case 'owner':   return '오너';
+    case 'artist':  return '아티스트';
+    case 'pending': return '초대 대기';
+  }
+};
+
 interface Props {
+  studioId: string;
   shopName?: string;
+  inviteCode: string;
+  inviteCodeExpiresAt: string | null;
+  onCodeRefreshed: (code: string, expiresAt: string) => void;
 }
 
-const ShopInviteSection = memo(({ shopName = 'T:ROOT Studio' }: Props) => {
+const ShopInviteSection = memo(({
+  studioId, shopName = '', inviteCode, inviteCodeExpiresAt, onCodeRefreshed,
+}: Props) => {
   const { toast } = useToast();
-  const [code, setCode] = useState<string>(() => genCode());
-  const [input, setInput] = useState<string>('');
+  const [members, setMembers] = useState<StudioMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(true);
+  const [input, setInput] = useState('');
   const [joining, setJoining] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    studioApi.members(studioId)
+      .then(setMembers)
+      .catch(() => setMembers([]))
+      .finally(() => setMembersLoading(false));
+  }, [studioId]);
 
   const expiryLabel = useMemo(() => {
+    if (inviteCodeExpiresAt) {
+      const d = new Date(inviteCodeExpiresAt);
+      return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 만료`;
+    }
     const d = new Date();
     d.setDate(d.getDate() + EXPIRY_DAYS);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}.${m}.${day} 만료`;
-  }, []);
+    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 만료`;
+  }, [inviteCodeExpiresAt]);
 
   const regenerate = useCallback(() => {
     Alert.alert(
@@ -64,44 +66,58 @@ const ShopInviteSection = memo(({ shopName = 'T:ROOT Studio' }: Props) => {
         {
           text: '재발급',
           style: 'destructive',
-          onPress: () => {
-            setCode(genCode());
-            toast('새 초대코드가 발급되었습니다.', { variant: 'success' });
+          onPress: async () => {
+            setRefreshing(true);
+            try {
+              const res = await studioApi.refreshCode(studioId);
+              onCodeRefreshed(res.inviteCode, res.inviteCodeExpiresAt);
+              toast('새 초대코드가 발급되었습니다.', { variant: 'success' });
+            } catch (e) {
+              toast(e instanceof ApiError ? e.userMessage : '재발급 중 오류가 발생했습니다.', { variant: 'error' });
+            } finally {
+              setRefreshing(false);
+            }
           },
         },
       ],
       { cancelable: true },
     );
-  }, [toast]);
+  }, [studioId, onCodeRefreshed, toast]);
 
   const shareCode = useCallback(async () => {
     try {
       await Share.share({
-        message: `[${shopName}] 아티스트 초대\n초대코드: ${code}\n${EXPIRY_DAYS}일간 유효합니다.`,
+        message: `[${shopName}] 아티스트 초대\n초대코드: ${inviteCode}\n${EXPIRY_DAYS}일간 유효합니다.`,
       });
     } catch {
       toast('공유를 완료하지 못했습니다.', { variant: 'error' });
     }
-  }, [shopName, code, toast]);
+  }, [shopName, inviteCode, toast]);
 
   const copyCode = useCallback(() => {
-    // 실제 환경에서는 @react-native-clipboard/clipboard 를 활용
-    toast(`코드 ${code} 를 클립보드에 복사했습니다.`, { variant: 'success' });
-  }, [code, toast]);
+    toast(`코드 ${inviteCode} 를 클립보드에 복사했습니다.`, { variant: 'success' });
+  }, [inviteCode, toast]);
 
-  const handleJoin = useCallback(() => {
+  const handleJoin = useCallback(async () => {
     const val = input.trim().toUpperCase();
     if (val.length !== 6) {
       toast('초대코드는 6자리 대문자·숫자 조합입니다.', { variant: 'error' });
       return;
     }
     setJoining(true);
-    setTimeout(() => {
-      setJoining(false);
+    try {
+      await studioApi.join(val);
       toast(`${val} 코드로 샵 합류 요청이 전송되었습니다.`, { variant: 'success' });
       setInput('');
-    }, 600);
-  }, [input, toast]);
+      // Refresh members
+      const updated = await studioApi.members(studioId);
+      setMembers(updated);
+    } catch (e) {
+      toast(e instanceof ApiError ? e.userMessage : '합류 요청 중 오류가 발생했습니다.', { variant: 'error' });
+    } finally {
+      setJoining(false);
+    }
+  }, [input, studioId, toast]);
 
   return (
     <View style={{ gap: 16 }}>
@@ -120,7 +136,7 @@ const ShopInviteSection = memo(({ shopName = 'T:ROOT Studio' }: Props) => {
         </View>
 
         <View style={styles.codeBox}>
-          <Text style={styles.codeText} selectable>{code}</Text>
+          <Text style={styles.codeText} selectable>{inviteCode}</Text>
           <Text style={styles.codeExpiry}>{expiryLabel}</Text>
         </View>
 
@@ -128,9 +144,13 @@ const ShopInviteSection = memo(({ shopName = 'T:ROOT Studio' }: Props) => {
           <TouchableOpacity
             onPress={regenerate}
             activeOpacity={0.85}
+            disabled={refreshing}
             style={[styles.actionBtn, styles.actionGhost]}
           >
-            <RefreshIcon size={14} color={COLORS.white} strokeWidth={1.8} />
+            {refreshing
+              ? <ActivityIndicator size="small" color={COLORS.white} />
+              : <RefreshIcon size={14} color={COLORS.white} strokeWidth={1.8} />
+            }
             <Text style={styles.actionGhostText}>재발급</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -187,7 +207,7 @@ const ShopInviteSection = memo(({ shopName = 'T:ROOT Studio' }: Props) => {
             activeOpacity={0.85}
             style={[
               styles.joinBtn,
-              input.trim().length !== 6 && styles.joinBtnDisabled,
+              (input.trim().length !== 6 || joining) && styles.joinBtnDisabled,
             ]}
             disabled={joining || input.trim().length !== 6}
           >
@@ -202,41 +222,58 @@ const ShopInviteSection = memo(({ shopName = 'T:ROOT Studio' }: Props) => {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>샵 멤버 ({MOCK_MEMBERS.length})</Text>
+            <Text style={styles.cardTitle}>
+              샵 멤버 ({membersLoading ? '…' : members.length})
+            </Text>
             <Text style={styles.cardDesc}>{shopName}</Text>
           </View>
         </View>
 
-        <View style={styles.memberList}>
-          {MOCK_MEMBERS.map((m, i) => (
-            <View
-              key={m.id}
-              style={[styles.memberRow, i === MOCK_MEMBERS.length - 1 && styles.memberRowLast]}
-            >
-              <View style={styles.memberAvatar}>
-                <Text style={styles.memberAvatarText}>{m.nickname.slice(0, 1)}</Text>
-              </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.memberName} numberOfLines={1}>{m.nickname}</Text>
-                <Text style={styles.memberDate}>{m.joinedAt} 합류</Text>
-              </View>
-              <View style={[
-                styles.rolePill,
-                m.role === '오너' && styles.rolePillOwner,
-                m.role === '초대 대기' && styles.rolePillPending,
-              ]}>
-                <Text style={[
-                  styles.rolePillText,
-                  m.role === '오너' && styles.rolePillOwnerText,
-                  m.role === '초대 대기' && styles.rolePillPendingText,
-                ]}>
-                  {m.role}
-                </Text>
-              </View>
-              <ChevronRightIcon size={14} color={COLORS.gray} />
-            </View>
-          ))}
-        </View>
+        {membersLoading ? (
+          <ActivityIndicator size="small" color={COLORS.gold} style={{ paddingVertical: 20 }} />
+        ) : members.length === 0 ? (
+          <Text style={styles.emptyText}>멤버가 없습니다.</Text>
+        ) : (
+          <View style={styles.memberList}>
+            {members.map((m, i) => {
+              const rLabel = roleLabel(m.role);
+              return (
+                <View
+                  key={m.id}
+                  style={[styles.memberRow, i === members.length - 1 && styles.memberRowLast]}
+                >
+                  <View style={styles.memberAvatar}>
+                    <Text style={styles.memberAvatarText}>
+                      {(m.nickname || '?').slice(0, 1).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.memberName} numberOfLines={1}>
+                      {m.nickname || '(미등록)'}
+                    </Text>
+                    <Text style={styles.memberDate}>
+                      {new Date(m.joinedAt).toLocaleDateString('ko-KR')} 합류
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.rolePill,
+                    m.role === 'owner'   && styles.rolePillOwner,
+                    m.role === 'pending' && styles.rolePillPending,
+                  ]}>
+                    <Text style={[
+                      styles.rolePillText,
+                      m.role === 'owner'   && styles.rolePillOwnerText,
+                      m.role === 'pending' && styles.rolePillPendingText,
+                    ]}>
+                      {rLabel}
+                    </Text>
+                  </View>
+                  <ChevronRightIcon size={14} color={COLORS.gray} />
+                </View>
+              );
+            })}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -279,8 +316,13 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 3,
   },
-
-  /* Code display */
+  emptyText: {
+    color: COLORS.gray,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
   codeBox: {
     borderRadius: 12,
     borderWidth: 1.2,
@@ -303,7 +345,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
   },
-
   actionRow: {
     flexDirection: 'row',
     gap: 8,
@@ -338,7 +379,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 17,
   },
-
   hintRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -350,8 +390,6 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     flexShrink: 1,
   },
-
-  /* Input */
   inputRow: {
     flexDirection: 'row',
     gap: 8,
@@ -379,20 +417,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  joinBtnDisabled: {
-    opacity: 0.45,
-  },
+  joinBtnDisabled: { opacity: 0.45 },
   joinBtnText: {
     color: COLORS.black,
     fontSize: 13,
     fontWeight: '800',
     lineHeight: 17,
   },
-
-  /* Members */
-  memberList: {
-    gap: 0,
-  },
+  memberList: { gap: 0 },
   memberRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -401,9 +433,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  memberRowLast: {
-    borderBottomWidth: 0,
-  },
+  memberRowLast: { borderBottomWidth: 0 },
   memberAvatar: {
     width: 34, height: 34,
     borderRadius: 17,
@@ -448,14 +478,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.gold,
     backgroundColor: 'rgba(212,168,67,0.14)',
   },
-  rolePillOwnerText: {
-    color: COLORS.gold,
-  },
+  rolePillOwnerText: { color: COLORS.gold },
   rolePillPending: {
     borderColor: COLORS.gray3,
     backgroundColor: COLORS.elevated,
   },
-  rolePillPendingText: {
-    color: COLORS.gray,
-  },
+  rolePillPendingText: { color: COLORS.gray },
 });

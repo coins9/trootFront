@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar,
-  LayoutAnimation, Platform, UIManager,
+  LayoutAnimation, Platform, UIManager, Modal, Pressable, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -22,12 +22,10 @@ import {
   PersonalTimelineItem, MonthlyCellSummary, MonthlyCellEvent,
 } from '../../../domain/entities/artistScheduleTypes';
 import {
-  getShopBookingsForRange,
   getMultiDayEvents,
-  MOCK_ARTIST_COLUMNS,
 } from '../../../data/mock/artistScheduleMockData';
 import { useApi } from '../../hooks/useApi';
-import { reservationApi } from '../../../data/api';
+import { reservationApi, studioApi, type Studio, type StudioScheduleEntry } from '../../../data/api';
 import { MultiDayEvent } from '../../../domain/entities/artistScheduleTypes';
 import ReservationDetailModal, {
   ReservationDetail,
@@ -592,7 +590,11 @@ const ArtistReservationScreen = () => {
   const [topTab, setTopTab] = useState<TopTab>('my');
   const [view, setView] = useState<ViewKey>('timeline');
   const [selectedDate, setSelectedDate] = useState<Date>(today);
-  const [shopInfo, setShopInfo] = useState<{ name: string; location: string } | null>(null);
+  const [studio, setStudio] = useState<Studio | null>(null);
+  const [studioLoading, setStudioLoading] = useState(true);
+  const [shopSchedule, setShopSchedule] = useState<StudioScheduleEntry[]>([]);
+  const [shopScheduleLoading, setShopScheduleLoading] = useState(false);
+  const [dayPopupDate, setDayPopupDate] = useState<Date | null>(null);
   const [customItems, setCustomItems] = useState<Record<string, PersonalTimelineItem[]>>({});
   const [reservationSheetOpen, setReservationSheetOpen] = useState(false);
   const [reservationSheetEditing, setReservationSheetEditing] = useState<PersonalTimelineItem | null>(null);
@@ -600,6 +602,28 @@ const ArtistReservationScreen = () => {
   const bottomTabHeight = useBottomTabHeight();
   const [statusOverride, setStatusOverride] = useState<Record<string, BookingStatus>>({});
   const [detail, setDetail] = useState<ReservationDetail | null>(null);
+
+  // 스튜디오 로드
+  useEffect(() => {
+    studioApi.mine()
+      .then((s) => setStudio(s))
+      .catch(() => setStudio(null))
+      .finally(() => setStudioLoading(false));
+  }, []);
+
+  // 샵 일정 탭 진입 시 API 로드
+  const loadShopSchedule = useCallback(() => {
+    if (!studio) return;
+    setShopScheduleLoading(true);
+    studioApi.schedule(studio.id, toISODate(today))
+      .then(setShopSchedule)
+      .catch(() => setShopSchedule([]))
+      .finally(() => setShopScheduleLoading(false));
+  }, [studio, today]);
+
+  useEffect(() => {
+    if (topTab === 'shop_schedule' && studio) loadShopSchedule();
+  }, [topTab, studio, loadShopSchedule]);
 
   const monthStart = useMemo(() => startOfMonth(selectedDate), [selectedDate]);
   const isSelectedToday = isSameDate(selectedDate, today);
@@ -778,6 +802,41 @@ const ArtistReservationScreen = () => {
     });
   }, [setStatus, toast, t]);
 
+  const requestCancel = useCallback((id: string) => {
+    setConfirm({
+      title: '예약 취소',
+      message: '이 예약을 취소하시겠습니까?\n앱 연동 예약인 경우 고객에게 알림이 전송됩니다.',
+      cancelLabel: t('common.cancel'),
+      confirmLabel: '취소하기',
+      variant: 'danger',
+      onConfirm: async () => {
+        const iso = toISODate(selectedDate);
+        const isAppLinked = (scheduleByDate[iso] ?? []).some((b) => b.id === id);
+        try {
+          if (isAppLinked) {
+            await reservationApi.changeStatus(id, 'cancelled');
+          }
+          setCustomItems((prev) => {
+            const next = { ...prev };
+            Object.keys(next).forEach((d) => {
+              next[d] = next[d].filter((c) => c.id !== id);
+            });
+            return next;
+          });
+          setStatusOverride((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+          setDetail(null);
+          toast('예약이 취소되었습니다.', { variant: 'success' });
+        } catch {
+          toast('취소 처리 중 오류가 발생했습니다.', { variant: 'error' });
+        }
+      },
+    });
+  }, [selectedDate, scheduleByDate, toast, t]);
+
   /* FAB → 새 예약 등록 시트 오픈 */
   const handleFab = useCallback(() => {
     setReservationSheetEditing(null);
@@ -820,33 +879,62 @@ const ArtistReservationScreen = () => {
   }, [selectedDate, reservationSheetEditing, toast, t]);
 
   /* Shop registration */
-  const handleShopRegister = useCallback((name: string, location: string) => {
+  const handleShopRegister = useCallback((name: string, address: string, lat?: number, lng?: number) => {
     setConfirm({
       title: t('reservation.shopRegisterTitle'),
       message: t('reservation.shopRegisterMsg')
         .replace('{{name}}', name)
-        .replace('{{location}}', location),
+        .replace('{{location}}', address),
       cancelLabel: t('common.cancel'),
       confirmLabel: t('reservation.shopRegisterConfirm'),
-      onConfirm: () => {
-        easeLayoutAnim();
-        setShopInfo({ name, location });
-        toast(t('reservation.toastShopRegistered').replace('{{name}}', name), { variant: 'success' });
+      onConfirm: async () => {
+        try {
+          const s = await studioApi.register({ name, address, lat, lng });
+          easeLayoutAnim();
+          setStudio(s);
+          toast(t('reservation.toastShopRegistered').replace('{{name}}', name), { variant: 'success' });
+        } catch {
+          toast('샵 등록 중 오류가 발생했습니다.', { variant: 'error' });
+        }
       },
     });
   }, [toast, t]);
 
-  const handleShopJoin = useCallback((code: string) => {
-    easeLayoutAnim();
-    setShopInfo({ name: t('reservation.shopJoinedName').replace('{{code}}', code), location: '-' });
-    toast(t('reservation.toastShopJoined').replace('{{code}}', code), { variant: 'success' });
+  const handleShopJoin = useCallback(async (code: string) => {
+    try {
+      const res = await studioApi.join(code);
+      easeLayoutAnim();
+      setStudio(res.studio);
+      toast(t('reservation.toastShopJoined').replace('{{code}}', code), { variant: 'success' });
+    } catch {
+      toast('초대코드가 올바르지 않거나 만료되었습니다.', { variant: 'error' });
+    }
   }, [toast, t]);
 
-  /* Calendar cell tap → 날짜만 변경, 뷰 유지 */
+  const handleCodeRefreshed = useCallback((code: string, expiresAt: string) => {
+    setStudio((prev) => prev ? { ...prev, inviteCode: code, inviteCodeExpiresAt: expiresAt } : prev);
+  }, []);
+
+  /* Calendar cell tap → 날짜 변경 + 팝업 표시 */
   const handleCalendarSelect = useCallback((d: Date) => {
     easeLayoutAnim();
     setSelectedDate(d);
+    setDayPopupDate(d);
   }, []);
+
+  const closeDayPopup = useCallback(() => setDayPopupDate(null), []);
+
+  const dayPopupItems = useMemo(() => {
+    if (!dayPopupDate) return [];
+    const iso = toISODate(dayPopupDate);
+    const apiBase = scheduleByDate[iso] ?? [];
+    const extras = customItems[iso] ?? [];
+    const editedIds = new Set(extras.map((e) => e.id));
+    return [
+      ...apiBase.filter((b) => !editedIds.has(b.id)),
+      ...extras,
+    ].sort((a, b) => a.startHour - b.startHour);
+  }, [dayPopupDate, scheduleByDate, customItems]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -883,7 +971,7 @@ const ArtistReservationScreen = () => {
           {topTab === 'my' && <View style={styles.topTabUnderline} />}
         </TouchableOpacity>
 
-        {shopInfo && (
+        {studio && (
           <TouchableOpacity
             onPress={() => {
               easeLayoutAnim();
@@ -909,9 +997,9 @@ const ArtistReservationScreen = () => {
         >
           <View style={styles.topTabLabelWrap}>
             <Text style={[styles.topTabText, topTab === 'shop' && styles.topTabTextActive]}>
-              {shopInfo ? t('reservation.tabShopManage') : t('reservation.tabShopRegister')}
+              {studio ? t('reservation.tabShopManage') : t('reservation.tabShopRegister')}
             </Text>
-            {!shopInfo && <View style={styles.topTabDot} />}
+            {!studio && !studioLoading && <View style={styles.topTabDot} />}
           </View>
           {topTab === 'shop' && <View style={styles.topTabUnderline} />}
         </TouchableOpacity>
@@ -927,8 +1015,16 @@ const ArtistReservationScreen = () => {
       >
         {topTab === 'shop' ? (
           <View style={styles.shopWrap}>
-            {shopInfo ? (
-              <ShopInviteSection shopName={shopInfo.name} />
+            {studioLoading ? (
+              <ActivityIndicator size="large" color={COLORS.gold} style={{ marginTop: 40 }} />
+            ) : studio ? (
+              <ShopInviteSection
+                studioId={studio.id}
+                shopName={studio.name}
+                inviteCode={studio.inviteCode}
+                inviteCodeExpiresAt={studio.inviteCodeExpiresAt}
+                onCodeRefreshed={handleCodeRefreshed}
+              />
             ) : (
               <ShopOnboarding
                 onRegister={handleShopRegister}
@@ -936,61 +1032,78 @@ const ArtistReservationScreen = () => {
               />
             )}
           </View>
-        ) : topTab === 'shop_schedule' && shopInfo ? (
+        ) : topTab === 'shop_schedule' && studio ? (
           <View style={styles.shopWrap}>
             <View style={styles.shopScheduleHeader}>
-              <Text style={styles.shopScheduleTitle}>{shopInfo.name} {t('reservation.shopTodaySchedule')}</Text>
+              <Text style={styles.shopScheduleTitle}>
+                {studio.name} {t('reservation.shopTodaySchedule')}
+              </Text>
               <Text style={styles.shopScheduleSub}>
-                {formatDateLabel(today, language)} · {shopInfo.location}
+                {formatDateLabel(today, language)} · {studio.address}
               </Text>
             </View>
-            {MOCK_ARTIST_COLUMNS.map((col) => {
-              const todayBookings = getShopBookingsForRange(startOfWeek(today), 1)
-                .filter((b) => b.columnId === col.id && b.dateISO === toISODate(today));
-              return (
-                <View key={col.id} style={styles.shopColCard}>
+            {shopScheduleLoading ? (
+              <ActivityIndicator size="large" color={COLORS.gold} style={{ marginTop: 20 }} />
+            ) : shopSchedule.length === 0 ? (
+              <View style={styles.shopColCard}>
+                <Text style={styles.shopColEmpty}>
+                  {t('reservation.shopColEmpty')}
+                </Text>
+              </View>
+            ) : (
+              shopSchedule.map((entry) => (
+                <View key={entry.memberId} style={styles.shopColCard}>
                   <View style={styles.shopColHeader}>
-                    <Text style={styles.shopColName}>{col.artistName}</Text>
-                    <Text style={styles.shopColBed}>{col.bedName}</Text>
+                    <Text style={styles.shopColName}>{entry.nickname}</Text>
+                    {entry.bedName ? (
+                      <Text style={styles.shopColBed}>{entry.bedName}</Text>
+                    ) : null}
                     <View style={styles.shopColCount}>
-                      <Text style={styles.shopColCountText}>{t('reservation.countSuffix').replace('{{count}}', String(todayBookings.length))}</Text>
+                      <Text style={styles.shopColCountText}>
+                        {t('reservation.countSuffix').replace('{{count}}', String(entry.reservations.length))}
+                      </Text>
                     </View>
                   </View>
-                  {todayBookings.length === 0 ? (
+                  {entry.reservations.length === 0 ? (
                     <Text style={styles.shopColEmpty}>{t('reservation.shopColEmpty')}</Text>
                   ) : (
                     <View style={styles.shopColList}>
-                      {todayBookings.map((b) => (
-                        <View key={b.id} style={styles.shopColItem}>
-                          <Text style={styles.shopColTime}>
-                            {formatHalfHour(b.startHour)} - {formatHalfHour(b.endHour)}
-                          </Text>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.shopColCustomer} numberOfLines={1}>
-                              {b.customerName}
+                      {entry.reservations.map((r) => {
+                        const d = new Date(r.scheduledAt);
+                        const startH = d.getHours() + d.getMinutes() / 60;
+                        const endH = startH + r.durationMinutes / 60;
+                        return (
+                          <View key={r.id} style={styles.shopColItem}>
+                            <Text style={styles.shopColTime}>
+                              {formatHalfHour(startH)} - {formatHalfHour(endH)}
                             </Text>
-                            <Text style={styles.shopColKind} numberOfLines={1}>
-                              {b.tattooType}
-                            </Text>
-                          </View>
-                          <View style={[
-                            styles.shopColChip,
-                            b.kind === 'consulting' && styles.shopColChipConsult,
-                          ]}>
-                            <Text style={[
-                              styles.shopColChipText,
-                              b.kind === 'consulting' && styles.shopColChipTextConsult,
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.shopColCustomer} numberOfLines={1}>
+                                {r.customerName ?? '고객명 미등록'}
+                              </Text>
+                              <Text style={styles.shopColKind} numberOfLines={1}>
+                                {r.bodyPart ?? '시술'}
+                              </Text>
+                            </View>
+                            <View style={[
+                              styles.shopColChip,
+                              r.status === 'requested' && styles.shopColChipConsult,
                             ]}>
-                              {b.kind === 'consulting' ? t('reservation.shopConsult') : t('reservation.shopProcedure')}
-                            </Text>
+                              <Text style={[
+                                styles.shopColChipText,
+                                r.status === 'requested' && styles.shopColChipTextConsult,
+                              ]}>
+                                {r.status === 'requested' ? t('reservation.shopConsult') : t('reservation.shopProcedure')}
+                              </Text>
+                            </View>
                           </View>
-                        </View>
-                      ))}
+                        );
+                      })}
                     </View>
                   )}
                 </View>
-              );
-            })}
+              ))
+            )}
           </View>
         ) : (
           <>
@@ -1047,8 +1160,8 @@ const ArtistReservationScreen = () => {
         )}
       </ScrollView>
 
-      {/* FAB — 내 예약/샵 일정에서만 표시 (바텀탭 위) */}
-      {(topTab === 'my' || topTab === 'shop_schedule') && (
+      {/* FAB — 내 예약에서만 표시 (바텀탭 위) */}
+      {topTab === 'my' && (
         <TouchableOpacity
           onPress={handleFab}
           activeOpacity={0.85}
@@ -1067,6 +1180,7 @@ const ArtistReservationScreen = () => {
         onClose={closeDetail}
         onRequestNoShow={requestNoShow}
         onRequestComplete={requestComplete}
+        onRequestCancel={requestCancel}
         onEdit={handleEditFromModal}
       />
 
@@ -1084,6 +1198,74 @@ const ArtistReservationScreen = () => {
 
       {/* 커스텀 컨펌 모달 */}
       <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
+
+      {/* 월간 캘린더 날짜 클릭 팝업 */}
+      <Modal
+        visible={dayPopupDate !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeDayPopup}
+        statusBarTranslucent
+      >
+        <Pressable style={styles.popupBackdrop} onPress={closeDayPopup}>
+          <Pressable onPress={() => {}}>
+            <View style={styles.popupCard}>
+              <View style={styles.popupHeader}>
+                <Text style={styles.popupTitle}>
+                  {dayPopupDate ? formatDateLabel(dayPopupDate, language) : ''}
+                </Text>
+                <TouchableOpacity onPress={closeDayPopup} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <XIcon size={20} color={COLORS.gray} />
+                </TouchableOpacity>
+              </View>
+              {dayPopupItems.length === 0 ? (
+                <Text style={styles.popupEmpty}>이날 예약이 없습니다.</Text>
+              ) : (
+                dayPopupItems.map((it) => {
+                  const currentStatus = statusOverride[it.id] ?? it.status;
+                  return (
+                    <TouchableOpacity
+                      key={it.id}
+                      onPress={() => {
+                        closeDayPopup();
+                        setTimeout(() => openDetail(it), 120);
+                      }}
+                      activeOpacity={0.8}
+                      style={styles.popupEventRow}
+                    >
+                      <Text style={styles.popupEventTime}>
+                        {formatHalfHour(it.startHour)}
+                        {'\n'}
+                        {formatHalfHour(it.startHour + it.durationH)}
+                      </Text>
+                      <View style={[styles.popupEventBar, { backgroundColor: kindBarColor(it.kind) }]} />
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={styles.popupEventTitle} numberOfLines={1}>{it.title}</Text>
+                        <Text style={styles.popupEventSub} numberOfLines={1}>{it.subtitle}</Text>
+                      </View>
+                      <View style={[
+                        styles.evChip,
+                        currentStatus === '대기'  && styles.evChipPending,
+                        currentStatus === '노쇼'  && styles.evChipDanger,
+                        currentStatus === '완료'  && styles.evChipDone,
+                      ]}>
+                        <Text style={[
+                          styles.evChipText,
+                          currentStatus === '대기' && styles.evChipTextPending,
+                          currentStatus === '노쇼' && styles.evChipTextDanger,
+                          currentStatus === '완료' && styles.evChipTextDone,
+                        ]}>
+                          {currentStatus}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1852,6 +2034,81 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 16,
+  },
+
+  /* Calendar Day Popup */
+  popupBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  popupCard: {
+    width: '100%',
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingBottom: 8,
+    overflow: 'hidden',
+  },
+  popupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  popupTitle: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 20,
+    flexShrink: 1,
+  },
+  popupEmpty: {
+    color: COLORS.gray,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    paddingVertical: 28,
+  },
+  popupEventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  popupEventTime: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
+    width: 40,
+    textAlign: 'right',
+  },
+  popupEventBar: {
+    width: 3,
+    alignSelf: 'stretch',
+    borderRadius: 2,
+    minHeight: 28,
+  },
+  popupEventTitle: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 17,
+  },
+  popupEventSub: {
+    color: COLORS.gray,
+    fontSize: 11,
+    lineHeight: 15,
   },
 
   /* FAB */

@@ -31,6 +31,7 @@ interface Props {
   onClose: () => void;
   onRequestNoShow: (id: string, customerName?: string) => void;
   onRequestComplete: (id: string) => void;
+  onRequestCancel: (id: string) => void;
   onEdit: (id: string) => void;
 }
 
@@ -47,7 +48,7 @@ const kindIcon = (kind: ReservationDetail['kind']) => {
 };
 
 const ReservationDetailModal = memo(({
-  detail, onClose, onRequestNoShow, onRequestComplete, onEdit,
+  detail, onClose, onRequestNoShow, onRequestComplete, onRequestCancel, onEdit,
 }: Props) => {
   const visible = detail !== null;
   const translate = useRef(new Animated.Value(SH)).current;
@@ -76,11 +77,17 @@ const ReservationDetailModal = memo(({
     onEdit(detail.id);
   }, [detail, onEdit]);
 
+  const handleCancel = useCallback(() => {
+    if (!detail) return;
+    onRequestCancel(detail.id);
+  }, [detail, onRequestCancel]);
+
   if (!detail) return null;
 
   const KindIcon = kindIcon(detail.kind);
   const isNoShow = detail.status === '노쇼';
   const isDone = detail.status === '완료';
+  const isCancelled = detail.status === '취소';
 
   return (
     <Modal
@@ -199,17 +206,17 @@ const ReservationDetailModal = memo(({
               </View>
             )}
 
-            {/* Actions */}
-            <View style={styles.actionsRow}>
+            {/* Actions — row 1 */}
+            <View style={[styles.actionsRow, { marginBottom: 8 }]}>
               <TouchableOpacity
                 onPress={handleNoShow}
                 activeOpacity={0.85}
                 style={[styles.actionBtn, styles.actionDanger]}
-                disabled={isNoShow}
+                disabled={isNoShow || isCancelled}
               >
                 <Text style={[
                   styles.actionDangerText,
-                  isNoShow && styles.actionDisabledText,
+                  (isNoShow || isCancelled) && styles.actionDisabledText,
                 ]}>
                   {isNoShow ? '노쇼 처리됨' : '노쇼 처리'}
                 </Text>
@@ -217,18 +224,40 @@ const ReservationDetailModal = memo(({
               <TouchableOpacity
                 onPress={handleEdit}
                 activeOpacity={0.85}
+                disabled={isCancelled}
                 style={[styles.actionBtn, styles.actionGhost]}
               >
-                <Text style={styles.actionGhostText}>수정</Text>
+                <Text style={[styles.actionGhostText, isCancelled && styles.actionDisabledText]}>
+                  수정
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {/* Actions — row 2 */}
+            <View style={styles.actionsRow}>
+              <TouchableOpacity
+                onPress={handleCancel}
+                activeOpacity={0.85}
+                disabled={isCancelled || isDone}
+                style={[styles.actionBtn, styles.actionCancel]}
+              >
+                <Text style={[
+                  styles.actionCancelText,
+                  (isCancelled || isDone) && styles.actionDisabledText,
+                ]}>
+                  {isCancelled ? '취소됨' : '예약 취소'}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleConfirmDone}
                 activeOpacity={0.85}
                 style={[styles.actionBtn, styles.actionPrimary]}
-                disabled={isDone}
+                disabled={isDone || isCancelled}
               >
                 <CheckCircleIcon size={16} color={COLORS.black} />
-                <Text style={styles.actionPrimaryText}>
+                <Text style={[
+                  styles.actionPrimaryText,
+                  (isDone || isCancelled) && styles.actionDisabledText,
+                ]}>
                   {isDone ? '완료됨' : '시술 완료'}
                 </Text>
               </TouchableOpacity>
@@ -453,7 +482,19 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 18,
   },
+  actionCancel: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.elevated,
+  },
+  actionCancelText: {
+    color: COLORS.gray,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
   actionDisabledText: {
-    opacity: 0.55,
+    opacity: 0.45,
   },
 });

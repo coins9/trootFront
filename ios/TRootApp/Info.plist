@@ -30,9 +30,7 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<!-- 소셜 로그인 리다이렉트 수신 스킴.
-	     값은 .env 의 키로 치환된다 (react-native-config → xcconfig).
-	     ※ 클라이언트 식별자만 노출되며, 서버 시크릿은 여기에 넣지 않는다. -->
+	<!-- 소셜 로그인 리다이렉트 수신 스킴 -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -40,7 +38,7 @@
 			<string>kakao</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>kakao$(KAKAO_NATIVE_APP_KEY)</string>
+				<string>kakao03ee03e5d371ace79e87ceef570d55d1</string>
 			</array>
 		</dict>
 		<dict>
@@ -48,7 +46,7 @@
 			<string>google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>$(GOOGLE_IOS_URL_SCHEME)</string>
+				<string>com.googleusercontent.apps.524083699015-pab2ei7ddeu1gnjeil1aofsm8bboo7q8</string>
 			</array>
 		</dict>
 	</array>
