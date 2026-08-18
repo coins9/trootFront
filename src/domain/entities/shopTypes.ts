@@ -362,6 +362,98 @@ export const formatWorkInquiryMessage = (
 };
 
 /* ─────────────────────────────────────────────────────
+ * 타투 모델 구인 필터
+ * ───────────────────────────────────────────────────── */
+export type BeginnerStyle = '전체' | '블랙앤그레이' | '라인워크' | '미니타투' | '일러스트' | '올드스쿨' | '수채화' | '뉴스쿨' | '기호/문양';
+export type BeginnerPriceRange = '전체' | '무료' | '5만원 이하' | '10만원 이하' | '20만원 이하';
+export type BeginnerSort = '최신순' | '가격 낮은 순' | '마감 임박순';
+
+export interface BeginnerFilterState {
+  region: ShareRegion;
+  style: BeginnerStyle;
+  price: BeginnerPriceRange;
+  sort: BeginnerSort;
+}
+
+export const INITIAL_BEGINNER_FILTER: BeginnerFilterState = {
+  region: '전체',
+  style: '전체',
+  price: '전체',
+  sort: '최신순',
+};
+
+export const BEGINNER_STYLE_OPTIONS: BeginnerStyle[] = [
+  '전체', '블랙앤그레이', '라인워크', '미니타투', '일러스트', '올드스쿨', '수채화', '뉴스쿨', '기호/문양',
+];
+export const BEGINNER_PRICE_OPTIONS: BeginnerPriceRange[] = [
+  '전체', '무료', '5만원 이하', '10만원 이하', '20만원 이하',
+];
+export const BEGINNER_SORT_OPTIONS: BeginnerSort[] = ['최신순', '가격 낮은 순', '마감 임박순'];
+
+export const matchBeginnerStyle = (tags: string[], filter: BeginnerStyle): boolean => {
+  if (filter === '전체') return true;
+  return tags.some((t) => t.includes(filter) || filter.includes(t));
+};
+
+export const matchBeginnerPrice = (fee: number, filter: BeginnerPriceRange): boolean => {
+  switch (filter) {
+    case '전체': return true;
+    case '무료': return fee === 0;
+    case '5만원 이하': return fee <= 50000;
+    case '10만원 이하': return fee <= 100000;
+    case '20만원 이하': return fee <= 200000;
+  }
+};
+
+export const applyBeginnerSort = (list: BeginnerModelRecruit[], sort: BeginnerSort): BeginnerModelRecruit[] => {
+  const copy = list.slice();
+  if (sort === '가격 낮은 순') return copy.sort((a, b) => a.materialFee - b.materialFee);
+  return copy;
+};
+
+/* ─────────────────────────────────────────────────────
+ * 사진/영상 전문가 필터
+ * ───────────────────────────────────────────────────── */
+export type ExpertCareer = '전체' | '1년 미만' | '1~3년' | '3~5년' | '5년 이상';
+export type ExpertWorkKind = '전체' | '사진 촬영' | '사진 보정' | '영상 촬영' | '영상 편집';
+export type ExpertSort = '추천순' | '가격 낮은 순' | '가격 높은 순';
+
+export interface ExpertFilterState {
+  region: ShareRegion;
+  career: ExpertCareer;
+  workKind: ExpertWorkKind;
+  sort: ExpertSort;
+}
+
+export const INITIAL_EXPERT_FILTER: ExpertFilterState = {
+  region: '전체',
+  career: '전체',
+  workKind: '전체',
+  sort: '추천순',
+};
+
+export const EXPERT_CAREER_OPTIONS: ExpertCareer[] = ['전체', '1년 미만', '1~3년', '3~5년', '5년 이상'];
+export const EXPERT_WORK_KIND_OPTIONS: ExpertWorkKind[] = ['전체', '사진 촬영', '사진 보정', '영상 촬영', '영상 편집'];
+export const EXPERT_SORT_OPTIONS: ExpertSort[] = ['추천순', '가격 낮은 순', '가격 높은 순'];
+
+export const matchExpertCareer = (experience: string, filter: ExpertCareer): boolean => {
+  if (filter === '전체') return true;
+  return experience.includes(filter.replace('년 이상', '').replace('년 미만', '').split('~')[0]);
+};
+
+export const matchExpertWorkKind = (tags: string[], filter: ExpertWorkKind): boolean => {
+  if (filter === '전체') return true;
+  return tags.includes(filter);
+};
+
+export const applyExpertSort = (list: MediaExpert[], sort: ExpertSort): MediaExpert[] => {
+  const copy = list.slice();
+  if (sort === '가격 낮은 순') return copy.sort((a, b) => a.priceMin - b.priceMin);
+  if (sort === '가격 높은 순') return copy.sort((a, b) => b.priceMax - a.priceMax);
+  return copy;
+};
+
+/* ─────────────────────────────────────────────────────
  * 부스 쉐어 예약 문의
  * ───────────────────────────────────────────────────── */
 

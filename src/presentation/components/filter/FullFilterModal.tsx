@@ -1,6 +1,7 @@
 import React, { memo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
@@ -32,7 +33,7 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
 
   const {
     region, regionMode, overseasCountryCode,
-    genres, bodyParts, subjects, moods, budgetMin, budgetMax, totalCount,
+    genres, bodyParts, subjects, moods, budgetMin, budgetMax,
     setRegion, setRegionMode, setOverseas,
     toggleGenre, toggleBodyPart, toggleSubject, toggleMood, setBudget,
     resetAll,
@@ -120,56 +121,59 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          style={styles.flex1}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          {sections.map((section) => {
-            const isOpen = openSections.includes(section.key);
-            const { Icon } = section;
-            return (
-              <View key={section.key} style={styles.card}>
-                <TouchableOpacity
-                  style={styles.cardHeader}
-                  onPress={() => toggleSection(section.key)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.cardHeaderLeft}>
-                    <Icon size={18} color={COLORS.gold} />
-                    <Text style={styles.cardTitle}>{section.title}</Text>
-                    {section.hint && (
-                      <Text style={styles.cardHint}>({section.hint})</Text>
-                    )}
-                  </View>
-                  {isOpen
-                    ? <ChevronUpIcon size={18} color={COLORS.gray} />
-                    : <ChevronDownIcon size={18} color={COLORS.gray} />
-                  }
-                </TouchableOpacity>
-                {isOpen && (
-                  <View style={styles.cardContent}>
-                    {renderSectionContent(section.key)}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-          <View style={{ height: 110 }} />
-        </ScrollView>
-
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-          <TouchableOpacity
-            onPress={onClose}
-            style={styles.applyBtn}
-            activeOpacity={0.85}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.applyText}>
-              {t('filter.applyFull', { count: totalCount } as any)}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            {sections.map((section) => {
+              const isOpen = openSections.includes(section.key);
+              const { Icon } = section;
+              return (
+                <View key={section.key} style={styles.card}>
+                  <TouchableOpacity
+                    style={styles.cardHeader}
+                    onPress={() => toggleSection(section.key)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.cardHeaderLeft}>
+                      <Icon size={18} color={COLORS.gold} />
+                      <Text style={styles.cardTitle}>{section.title}</Text>
+                      {section.hint && (
+                        <Text style={styles.cardHint}>({section.hint})</Text>
+                      )}
+                    </View>
+                    {isOpen
+                      ? <ChevronUpIcon size={18} color={COLORS.gray} />
+                      : <ChevronDownIcon size={18} color={COLORS.gray} />
+                    }
+                  </TouchableOpacity>
+                  {isOpen && (
+                    <View style={styles.cardContent}>
+                      {renderSectionContent(section.key)}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+            <View style={{ height: 20 }} />
+          </ScrollView>
+
+          <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.applyBtn}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.applyText}>{t('filter.searchDesigns')}</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -201,6 +205,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  flex1: { flex: 1 },
   scroll: {
     flex: 1,
   },
@@ -246,10 +251,6 @@ const styles = StyleSheet.create({
     paddingTop: 2,
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     paddingHorizontal: 20,
     paddingTop: 12,
     backgroundColor: COLORS.bg,

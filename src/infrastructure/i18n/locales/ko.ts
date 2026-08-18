@@ -60,6 +60,8 @@ export const ko = {
     roleArtistDesc: '포트폴리오 · 예약 관리 · 광고',
     nicknameTitle: '닉네임을 정해주세요',
     nicknameSubtitle: '2~20자 이내로 입력해주세요',
+    nicknameHint: '영문, 한글, 숫자, 밑줄(_), 하이픈(-), 점(.) 사용 가능',
+    nicknameInvalidChars: '영문, 한글, 숫자, ._- 만 사용할 수 있어요',
     nicknamePlaceholder: '닉네임 입력',
     nicknameTaken: '이미 사용 중인 닉네임입니다',
     startApp: 'T:ROOT 시작하기',
@@ -119,11 +121,33 @@ export const ko = {
   },
 
   tabs: {
-    home: 'Home',
+    home: '일반고객',
     rootsPick: "Root's Pick",
-    shopMatching: '샵 & 매칭',
-    supplies: '타투용품',
-    profile: '프로필',
+    artist: '타투이스트',
+    shopMatching: '샵&매칭',
+    supplies: '용품샵',
+    profile: '마이',
+  },
+
+  tattooistHub: {
+    myStudio: '내 스튜디오',
+    myPage: '내 타투 페이지',
+    myPageDesc: '프로필, 포트폴리오 관리',
+    portfolio: '작품 관리',
+    portfolioDesc: '도안 및 시술 작품 업로드',
+    reservations: '예약',
+    reservationManage: '예약 일정',
+    reservationManageDesc: '예약 확인 및 일정 관리',
+    requests: '예약 요청함',
+    requestsDesc: '새 예약 요청 확인 및 처리',
+    business: '수입 & 광고',
+    deposit: '보증금 관리',
+    depositDesc: '예약 보증금 현황 확인',
+    adStats: '광고 통계',
+    adStatsDesc: '내 광고 노출 및 클릭 현황',
+    notArtistTitle: '타투이스트이신가요?',
+    notArtistDesc: '페이지를 만들고 고객과 연결하세요.\n예약 관리, 포트폴리오, 광고까지 한 곳에서.',
+    register: '타투이스트로 시작하기',
   },
 
   home: {
@@ -150,6 +174,7 @@ export const ko = {
     budgetHint: '원하는 예산 범위를 설정하면 해당 조건의 도안을 확인할 수 있습니다.',
     applyBudget: '이 예산으로 {{count}}개 도안 보기',
     applyFull: '선택한 조건으로 {{count}}개 도안 보기',
+    searchDesigns: '도안 검색',
     apply: '적용하기',
     reset: '초기화',
     resetAll: '전체 초기화',
@@ -296,6 +321,7 @@ export const ko = {
     totalSessions: '누적 시술',
     reviewScore: '(리뷰 {{count}})',
     reported: '신고가 접수되었습니다. 운영팀이 검토 후 조치합니다.',
+    noReviews: '아직 리뷰가 없습니다.',
   },
 
   artistMyPage: {

@@ -63,6 +63,8 @@ export const en: TranslationSchema = {
     roleArtistDesc: 'Portfolio, bookings, and promotion',
     nicknameTitle: 'Choose your nickname',
     nicknameSubtitle: 'Between 2 and 20 characters',
+    nicknameHint: 'Letters, Korean, numbers, underscore, hyphen, dot allowed',
+    nicknameInvalidChars: 'Only letters, Korean, numbers, and ._- are allowed',
     nicknamePlaceholder: 'Enter nickname',
     nicknameTaken: 'This nickname is already taken',
     startApp: 'Get started with T:ROOT',
@@ -122,11 +124,33 @@ export const en: TranslationSchema = {
   },
 
   tabs: {
-    home: 'Home',
+    home: 'Customer',
     rootsPick: "Root's Pick",
+    artist: 'Tattooist',
     shopMatching: 'Shop & Match',
     supplies: 'Supplies',
-    profile: 'Profile',
+    profile: 'My',
+  },
+
+  tattooistHub: {
+    myStudio: 'My Studio',
+    myPage: 'My Tattoo Page',
+    myPageDesc: 'Manage profile and portfolio',
+    portfolio: 'Artwork Management',
+    portfolioDesc: 'Upload designs and tattoo work',
+    reservations: 'Reservations',
+    reservationManage: 'Schedule',
+    reservationManageDesc: 'View and manage appointment schedule',
+    requests: 'Reservation Requests',
+    requestsDesc: 'Review and process new booking requests',
+    business: 'Revenue & Ads',
+    deposit: 'Deposit Management',
+    depositDesc: 'Check reservation deposit status',
+    adStats: 'Ad Statistics',
+    adStatsDesc: 'Track ad impressions and clicks',
+    notArtistTitle: 'Are you a tattooist?',
+    notArtistDesc: 'Create your page and connect with clients.\nReservations, portfolio, and ads — all in one place.',
+    register: 'Start as Tattooist',
   },
 
   home: {
@@ -153,6 +177,7 @@ export const en: TranslationSchema = {
     budgetHint: 'Set your preferred budget range to find matching designs.',
     applyBudget: 'View {{count}} designs in this budget',
     applyFull: 'View {{count}} designs with selected filters',
+    searchDesigns: 'Search Designs',
     apply: 'Apply',
     reset: 'Reset',
     resetAll: 'Clear all',
@@ -299,6 +324,7 @@ export const en: TranslationSchema = {
     totalSessions: 'Sessions',
     reviewScore: '({{count}} reviews)',
     reported: 'Report submitted. Our team will review and take action.',
+    noReviews: 'No reviews yet.',
   },
 
   artistMyPage: {

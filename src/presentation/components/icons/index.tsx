@@ -409,6 +409,20 @@ export const ListIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: 
   </Svg>
 );
 
+export const PaletteTabIcon = ({ size = 24, color = COLORS.gray, active = false }: IconProps & { active?: boolean }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill={active ? color : 'none'}>
+    <Path
+      d="M12 3a9 9 0 0 0 0 18c1 0 1.5-.8 1.5-1.5 0-.4-.2-.7-.4-1-.3-.3-.4-.6-.4-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8z"
+      stroke={color}
+      strokeWidth={1.8}
+      strokeLinejoin="round"
+    />
+    <Circle cx="7.5" cy="10.5" r="1.2" fill={color} />
+    <Circle cx="12" cy="7.5" r="1.2" fill={color} />
+    <Circle cx="16.5" cy="10.5" r="1.2" fill={color} />
+  </Svg>
+);
+
 export const PaletteIcon = ({ size = 22, color = COLORS.gold, strokeWidth = 1.7 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path

@@ -32,7 +32,6 @@ const FilterBottomSheet = memo(({ visible, filterType, onClose }: FilterBottomSh
   const {
     region, regionMode, overseasCountryCode,
     genres, bodyParts, subjects, moods, budgetMin, budgetMax,
-    totalCount,
     setRegion, setRegionMode, setOverseas,
     toggleGenre, toggleBodyPart, toggleSubject, toggleMood, setBudget,
     resetRegion, resetGenres, resetBodyParts, resetSubjectsMoods, resetBudget,
@@ -82,12 +81,7 @@ const FilterBottomSheet = memo(({ visible, filterType, onClose }: FilterBottomSh
     }
   }, [filterType, resetRegion, resetGenres, resetBodyParts, resetSubjectsMoods, resetBudget]);
 
-  const getApplyLabel = () => {
-    if (filterType === 'budget') {
-      return t('filter.applyBudget', { count: totalCount } as any);
-    }
-    return t('filter.apply');
-  };
+  const getApplyLabel = () => t('filter.apply');
 
   const renderContent = () => {
     switch (filterType) {

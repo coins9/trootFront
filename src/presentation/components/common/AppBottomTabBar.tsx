@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
-  HomeTabIcon, StarTabIcon, MatchingIcon, ShoppingBagIcon, PersonIcon,
+  HomeTabIcon, PaletteTabIcon, MatchingIcon, ShoppingBagIcon, PersonIcon,
 } from '../icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
@@ -14,7 +14,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 import { TranslationKey } from '../../../infrastructure/i18n';
 
-type TabKey = 'HomeTab' | 'RootsPickTab' | 'ShopMatchingTab' | 'TattooSuppliesTab' | 'ProfileTab';
+type TabKey = 'HomeTab' | 'ArtistTab' | 'TattooSuppliesTab' | 'ShopMatchingTab' | 'ProfileTab';
 
 interface TabItem {
   key: TabKey;
@@ -24,9 +24,9 @@ interface TabItem {
 
 const ITEMS: TabItem[] = [
   { key: 'HomeTab',           tKey: 'tabs.home',         Icon: HomeTabIcon },
-  { key: 'RootsPickTab',      tKey: 'tabs.rootsPick',    Icon: StarTabIcon },
-  { key: 'ShopMatchingTab',   tKey: 'tabs.shopMatching', Icon: MatchingIcon },
+  { key: 'ArtistTab',         tKey: 'tabs.artist',       Icon: PaletteTabIcon },
   { key: 'TattooSuppliesTab', tKey: 'tabs.supplies',     Icon: ShoppingBagIcon },
+  { key: 'ShopMatchingTab',   tKey: 'tabs.shopMatching', Icon: MatchingIcon },
   { key: 'ProfileTab',        tKey: 'tabs.profile',      Icon: PersonIcon },
 ];
 

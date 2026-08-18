@@ -43,7 +43,9 @@ const HomeScreen = () => {
   const [noticeDismissed, setNoticeDismissed] = useState(false);
   const debouncedKeyword = useDebounce(keyword, 400);
 
-  const { regionMode, region, overseasCountryCode } = useFilterStore();
+  const { regionMode, region, overseasCountryCode, genres, bodyParts, budgetMin, budgetMax } = useFilterStore();
+
+  const MAX_PRICE = 10000000;
 
   const {
     items: artworks, loading, loadingMore, error, loadMore, reload,
@@ -55,8 +57,13 @@ const HomeScreen = () => {
       countryCode: regionMode === 'overseas' ? (overseasCountryCode ?? undefined) : undefined,
       regionSido: regionMode === 'domestic' ? (region.city ?? undefined) : undefined,
       regionSigungu: regionMode === 'domestic' ? (region.district ?? undefined) : undefined,
+      genre: genres.length === 1 ? genres[0] : undefined,
+      bodyPart: bodyParts.length === 1 ? bodyParts[0] : undefined,
+      priceMin: budgetMin > 0 ? budgetMin : undefined,
+      priceMax: budgetMax < MAX_PRICE ? budgetMax : undefined,
     }),
-    [debouncedKeyword, regionMode, overseasCountryCode, region.city, region.district],
+    [debouncedKeyword, regionMode, overseasCountryCode, region.city, region.district,
+      genres, bodyParts, budgetMin, budgetMax],
   );
 
   const handleSearchPress = useCallback(() => {

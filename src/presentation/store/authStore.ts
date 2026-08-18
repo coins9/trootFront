@@ -102,8 +102,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ session });
       // 구독이 기기가 아닌 계정에 귀속되도록 Adapty에 userId 연결
       adaptyService.identify(session.user.id).catch(() => {});
-      // 온보딩 미완료면 닉네임·역할 설정 화면으로 보낸다
-      return { isNewUser: !session.user.onboarded };
+      // nickname이 있으면 기존 회원 — onboarded 플래그가 DB에 미갱신된 경우 대비
+      return { isNewUser: !session.user.onboarded && !session.user.nickname };
     } finally {
       set({ pendingProvider: null });
     }

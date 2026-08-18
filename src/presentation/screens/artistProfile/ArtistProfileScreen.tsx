@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View, Text, Image, TouchableOpacity, ScrollView,
-  StyleSheet, Dimensions, StatusBar,
+  StyleSheet, Dimensions, StatusBar, Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -13,8 +13,8 @@ import {
   CommentIcon, PersonSilhouette, TattooPlaceholderIcon,
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
-import { usePagedApi } from '../../hooks/useApi';
-import { artistApi } from '../../../data/api';
+import { usePagedApi, useApi } from '../../hooks/useApi';
+import { artistApi, favoriteApi, reviewApi, type ReviewByArtist } from '../../../data/api';
 import { toTattoo } from '../../../data/api/mappers';
 import { Tattoo } from '../../../domain/entities/types';
 import { artistTagLabels } from '../../../domain/entities/artistTags';
@@ -52,13 +52,49 @@ const ArtistProfileScreen = () => {
     { key: 'mini', label: t('filter.genreMini') },
   ], [t]);
   const [following, setFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const [showAllPortfolio, setShowAllPortfolio] = useState(false);
+
+  useEffect(() => {
+    favoriteApi.check('artist', [artist.id])
+      .then((map) => setFollowing(map[artist.id] ?? false))
+      .catch(() => {});
+  }, [artist.id]);
+
+  const handleFollowToggle = useCallback(async () => {
+    if (followLoading) return;
+    setFollowLoading(true);
+    const next = !following;
+    setFollowing(next);
+    try {
+      await favoriteApi.toggle('artist', artist.id);
+    } catch {
+      setFollowing(!next);
+      toast(t('common.error'), { variant: 'error' });
+    } finally {
+      setFollowLoading(false);
+    }
+  }, [following, followLoading, artist.id, toast, t]);
   const [bookingVisible, setBookingVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
 
   const handleReportSubmit = useCallback((_reason: ReportReason, _detail: string) => {
     toast(t('artistProfile.reported'), { variant: 'success' });
   }, [toast, t]);
+
+  const { data: reviewPage } = useApi(
+    () => reviewApi.byArtist(artist.id, { limit: 5 }),
+    [artist.id],
+  );
+  const recentReviews = reviewPage?.items ?? [];
+
+  const handleShare = useCallback(async () => {
+    try {
+      await Share.share({
+        message: `T:ROOT에서 ${artist.nickname} 타투이스트를 확인해보세요!\nhttps://tattooroot.com`,
+      });
+    } catch {}
+  }, [artist.nickname]);
 
   // 포트폴리오 — 실제 작가 작품 목록
   const { items: artworks, loadMore } = usePagedApi(
@@ -100,43 +136,49 @@ const ArtistProfileScreen = () => {
     </TouchableOpacity>
   );
 
-  const renderReviewCard = () => (
-    <View style={styles.reviewCard}>
-      <View style={styles.ratingStars}>
-        {[1, 2, 3, 4, 5].map((s) => (
-          <StarIcon key={s} size={15} color={COLORS.gold} filled={s <= 5} />
-        ))}
-        <Text style={styles.reviewScore}>5.0</Text>
-      </View>
-      <Text style={styles.reviewMeta}>jh_**** | 2024.05.21</Text>
-      <View style={styles.reviewBody}>
-        <View style={styles.reviewTextBlock}>
-          <Text style={styles.reviewText}>
-            너무 만족스러워요! 상담 때부터 꼼꼼하게{'\n'}
-            설명해주셔서 믿음이 갔고, 결과물도{'\n'}
-            상상 이상입니다. 다음 타투도 민수님께 받을게요 :)
-          </Text>
+  const renderReviewItem = (rv: ReviewByArtist) => {
+    const avg = (rv.painScore + rv.kindnessScore + rv.hygieneScore + rv.satisfactionScore) / 4;
+    const score = Math.round(avg * 10) / 10;
+    const date = new Date(rv.createdAt).toLocaleDateString('ko-KR', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    });
+    const customer = rv.customerNickname
+      ? `${rv.customerNickname.slice(0, 2)}${'*'.repeat(Math.max(rv.customerNickname.length - 2, 2))}`
+      : '익명';
+    return (
+      <View key={rv.id} style={styles.reviewCard}>
+        <View style={styles.ratingStars}>
+          {[1, 2, 3, 4, 5].map((s) => (
+            <StarIcon key={s} size={15} color={COLORS.gold} filled={s <= Math.round(avg)} />
+          ))}
+          <Text style={styles.reviewScore}>{score.toFixed(1)}</Text>
         </View>
-        <View style={styles.reviewImages}>
-          <View style={styles.reviewImage}>
-            <TattooPlaceholderIcon size={32} color="#2e2e2e" />
+        <Text style={styles.reviewMeta}>{customer} | {date}</Text>
+        <View style={styles.reviewBody}>
+          <View style={styles.reviewTextBlock}>
+            <Text style={styles.reviewText} numberOfLines={4}>{rv.body}</Text>
           </View>
-          <View style={styles.reviewImage}>
-            <TattooPlaceholderIcon size={32} color="#2e2e2e" />
-          </View>
+          {rv.images.length > 0 && (
+            <View style={styles.reviewImages}>
+              {rv.images.slice(0, 2).map((uri, i) => (
+                <Image key={i} source={{ uri }} style={styles.reviewImageReal} resizeMode="cover" />
+              ))}
+            </View>
+          )}
         </View>
       </View>
-      <View style={styles.reviewDots}>
-        {[0, 1, 2, 3, 4].map((d) => (
-          <View key={d} style={[styles.reviewDot, d === 0 && styles.reviewDotActive]} />
-        ))}
-      </View>
-    </View>
-  );
+    );
+  };
 
   const renderReviewsTab = () => (
     <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-      {renderReviewCard()}
+      {recentReviews.length === 0 ? (
+        <View style={styles.reviewEmpty}>
+          <Text style={styles.reviewEmptyText}>{t('artistProfile.noReviews')}</Text>
+        </View>
+      ) : (
+        recentReviews.map(renderReviewItem)
+      )}
     </View>
   );
 
@@ -189,6 +231,7 @@ const ArtistProfileScreen = () => {
               <TouchableOpacity
                 style={styles.topBtn}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={handleShare}
               >
                 <ShareIcon size={22} color={COLORS.white} />
               </TouchableOpacity>
@@ -266,7 +309,7 @@ const ArtistProfileScreen = () => {
 
             <View style={styles.actionsRow}>
               <TouchableOpacity
-                onPress={() => setFollowing((v) => !v)}
+                onPress={handleFollowToggle}
                 style={[styles.followBtn, following && styles.followBtnActive]}
                 activeOpacity={0.8}
               >
@@ -381,16 +424,23 @@ const ArtistProfileScreen = () => {
             )}
 
             {/* Latest Reviews */}
-            <View style={styles.latestReviewHeader}>
-              <Text style={styles.latestReviewTitle}>{t('artistProfile.latestReviews')}</Text>
-              <TouchableOpacity style={styles.moreReviews}>
-                <Text style={styles.moreReviewsText}>{t('artistProfile.moreReviews')}</Text>
-                <ChevronRightIcon size={13} color={COLORS.gray} />
-              </TouchableOpacity>
-            </View>
-            <View style={{ paddingHorizontal: 16 }}>
-              {renderReviewCard()}
-            </View>
+            {recentReviews.length > 0 && (
+              <>
+                <View style={styles.latestReviewHeader}>
+                  <Text style={styles.latestReviewTitle}>{t('artistProfile.latestReviews')}</Text>
+                  <TouchableOpacity
+                    style={styles.moreReviews}
+                    onPress={() => setActiveTab('reviews')}
+                  >
+                    <Text style={styles.moreReviewsText}>{t('artistProfile.moreReviews')}</Text>
+                    <ChevronRightIcon size={13} color={COLORS.gray} />
+                  </TouchableOpacity>
+                </View>
+                <View style={{ paddingHorizontal: 16 }}>
+                  {renderReviewItem(recentReviews[0])}
+                </View>
+              </>
+            )}
 
             {/* 하단 정보 3컬럼 */}
             <View style={styles.bottomInfoRow}>
@@ -920,6 +970,20 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.elevated,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  reviewImageReal: {
+    width: 68,
+    height: 68,
+    borderRadius: 8,
+  },
+  reviewEmpty: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  reviewEmptyText: {
+    color: COLORS.gray,
+    fontSize: 13,
+    lineHeight: 19,
   },
   reviewDots: {
     flexDirection: 'row',

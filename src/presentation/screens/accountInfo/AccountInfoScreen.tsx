@@ -114,10 +114,17 @@ const AccountInfoScreen = () => {
       t('auth.logoutConfirm'),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('auth.logout'), style: 'destructive', onPress: () => logout() },
+        {
+          text: t('auth.logout'),
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+          },
+        },
       ],
     );
-  }, [t, logout]);
+  }, [t, logout, navigation]);
 
   const handleNotifSettings = useCallback(() => {
     navigation.navigate('NotificationSettings');

@@ -66,6 +66,7 @@ export const artistApi = {
   feed: (p: {
     cursor?: string; limit?: number; sort?: 'recent' | 'popular'; keyword?: string;
     countryCode?: string; regionSido?: string; regionSigungu?: string;
+    genre?: string; bodyPart?: string; priceMin?: number; priceMax?: number;
   } = {}) =>
     api.get<CursorPage<Artwork>>(`/app/artists/feed${qs(p)}`),
 

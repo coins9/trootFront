@@ -236,9 +236,7 @@ const ArtistMyPageScreen = () => {
     try {
       const body = {
         title: next.title,
-        titleEn: next.titleEn?.trim() || null,
         description: next.description,
-        descriptionEn: next.descriptionEn?.trim() || null,
         genres: next.subjects,
         bodyPart: next.bodyPart,
         priceKrw: next.priceFrom || null,
@@ -252,15 +250,15 @@ const ArtistMyPageScreen = () => {
       }
       easeLayoutAnim();
       reloadArtworks();
+      setArtworkFormOpen(false);
+      setArtworkFormEditing(null);
+      toast(
+        artworkFormEditing ? t('artistMyPage.artworkSaved') : t('artistMyPage.artworkAdded'),
+        { variant: 'success' },
+      );
     } catch {
       toast(t('common.error'), { variant: 'error' });
     }
-    setArtworkFormOpen(false);
-    setArtworkFormEditing(null);
-    toast(
-      artworkFormEditing ? t('artistMyPage.artworkSaved') : t('artistMyPage.artworkAdded'),
-      { variant: 'success' },
-    );
   }, [artworkFormEditing, toast, reloadArtworks, t]);
   const handleDeleteArtwork = useCallback(async (id: string) => {
     try {

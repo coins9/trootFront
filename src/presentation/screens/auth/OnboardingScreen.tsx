@@ -16,6 +16,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const NICK_MIN = 2;
 const NICK_MAX = 20;
+const NICK_PATTERN = /^[a-zA-Z0-9가-힣._-]+$/;
 
 const OnboardingScreen = () => {
   const navigation = useNavigation<Nav>();
@@ -27,7 +28,9 @@ const OnboardingScreen = () => {
   const [nickname, setNickname] = useState('');
 
   const trimmed = nickname.trim();
-  const canSubmit = trimmed.length >= NICK_MIN && trimmed.length <= NICK_MAX;
+  const isValidLength = trimmed.length >= NICK_MIN && trimmed.length <= NICK_MAX;
+  const isValidChars = trimmed.length === 0 || NICK_PATTERN.test(trimmed);
+  const canSubmit = isValidLength && isValidChars;
 
   const handleStart = useCallback(async () => {
     if (!canSubmit) return;
@@ -55,7 +58,7 @@ const OnboardingScreen = () => {
           <Text style={styles.subtitle}>{t('onboarding.nicknameSubtitle')}</Text>
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, !isValidChars && trimmed.length > 0 && styles.inputError]}
             placeholder={t('onboarding.nicknamePlaceholder')}
             placeholderTextColor={COLORS.gray2}
             value={nickname}
@@ -66,7 +69,13 @@ const OnboardingScreen = () => {
             onSubmitEditing={handleStart}
             autoFocus
           />
-          <Text style={styles.counter}>{trimmed.length}/{NICK_MAX}</Text>
+          <View style={styles.inputFooter}>
+            {!isValidChars && trimmed.length > 0
+              ? <Text style={styles.errorText}>{t('onboarding.nicknameInvalidChars')}</Text>
+              : <Text style={styles.hintText}>{t('onboarding.nicknameHint')}</Text>
+            }
+            <Text style={styles.counter}>{trimmed.length}/{NICK_MAX}</Text>
+          </View>
         </View>
 
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
@@ -107,7 +116,11 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     lineHeight: 20,
   },
-  counter: { fontSize: 11, color: COLORS.gray2, lineHeight: 15, textAlign: 'right', marginTop: 6 },
+  inputError: { borderColor: '#E05252' },
+  inputFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  hintText: { fontSize: 11, color: COLORS.gray2, lineHeight: 15, flexShrink: 1 },
+  errorText: { fontSize: 11, color: '#E05252', lineHeight: 15, flexShrink: 1 },
+  counter: { fontSize: 11, color: COLORS.gray2, lineHeight: 15 },
 
   footer: { paddingHorizontal: 24, paddingTop: 12 },
   startBtn: {

@@ -3,7 +3,6 @@ import { FilterState, FilterType } from '../../domain/entities/types';
 
 interface FilterStore extends FilterState {
   activeSheet: FilterType | null;
-  totalCount: number;
 
   setActiveSheet: (sheet: FilterType | null) => void;
   setRegion: (city: string | null, district: string | null) => void;
@@ -53,7 +52,6 @@ const EMPTY_STATE: FilterState = {
 export const useFilterStore = create<FilterStore>((set, get) => ({
   ...DEFAULT_STATE,
   activeSheet: null,
-  totalCount: 142,
 
   setActiveSheet: (sheet) => set({ activeSheet: sheet }),
 

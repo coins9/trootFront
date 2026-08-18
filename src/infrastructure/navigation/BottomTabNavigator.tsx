@@ -4,20 +4,20 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../presentation/theme/colors';
 import {
-  HomeTabIcon, StarTabIcon, MatchingIcon, ShoppingBagIcon, PersonIcon,
+  HomeTabIcon, PaletteTabIcon, ShoppingBagIcon, MatchingIcon, PersonIcon,
 } from '../../presentation/components/icons';
 import { useTranslation } from '../../presentation/store/languageStore';
 import HomeScreen from '../../presentation/screens/home/HomeScreen';
-import RootsPickScreen from '../../presentation/screens/rootsPick/RootsPickScreen';
-import ShopMatchingScreen from '../../presentation/screens/shopMatching/ShopMatchingScreen';
+import TattooistHubScreen from '../../presentation/screens/tattooistHub/TattooistHubScreen';
 import TattooSuppliesScreen from '../../presentation/screens/tattooSupplies/TattooSuppliesScreen';
+import ShopMatchingScreen from '../../presentation/screens/shopMatching/ShopMatchingScreen';
 import MyProfileScreen from '../../presentation/screens/myProfile/MyProfileScreen';
 
 type TabParamList = {
   HomeTab: undefined;
-  RootsPickTab: undefined;
-  ShopMatchingTab: undefined;
+  ArtistTab: undefined;
   TattooSuppliesTab: undefined;
+  ShopMatchingTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -25,9 +25,9 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 const TAB_ICONS = [
   { name: 'HomeTab' as const, Icon: HomeTabIcon, tKey: 'tabs.home' as const },
-  { name: 'RootsPickTab' as const, Icon: StarTabIcon, tKey: 'tabs.rootsPick' as const },
-  { name: 'ShopMatchingTab' as const, Icon: MatchingIcon, tKey: 'tabs.shopMatching' as const },
+  { name: 'ArtistTab' as const, Icon: PaletteTabIcon, tKey: 'tabs.artist' as const },
   { name: 'TattooSuppliesTab' as const, Icon: ShoppingBagIcon, tKey: 'tabs.supplies' as const },
+  { name: 'ShopMatchingTab' as const, Icon: MatchingIcon, tKey: 'tabs.shopMatching' as const },
   { name: 'ProfileTab' as const, Icon: PersonIcon, tKey: 'tabs.profile' as const },
 ];
 
@@ -79,9 +79,9 @@ const BottomTabNavigator = () => (
     screenOptions={{ headerShown: false }}
   >
     <Tab.Screen name="HomeTab" component={HomeScreen} />
-    <Tab.Screen name="RootsPickTab" component={RootsPickScreen} />
-    <Tab.Screen name="ShopMatchingTab" component={ShopMatchingScreen} />
+    <Tab.Screen name="ArtistTab" component={TattooistHubScreen} />
     <Tab.Screen name="TattooSuppliesTab" component={TattooSuppliesScreen} />
+    <Tab.Screen name="ShopMatchingTab" component={ShopMatchingScreen} />
     <Tab.Screen name="ProfileTab" component={MyProfileScreen} />
   </Tab.Navigator>
 );
