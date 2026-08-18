@@ -87,13 +87,16 @@ android {
         applicationId "com.troot.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 8
+        versionCode 9
         versionName "1.0.0"
 
         // 카카오 SDK가 요구하는 리다이렉트 스킴(kakao{네이티브앱키})에 주입.
         // 키가 없으면 빈 문자열 → 카카오 로그인만 비활성, 빌드는 통과.
         manifestPlaceholders = [
-            KAKAO_NATIVE_APP_KEY: (project.env.get("KAKAO_NATIVE_APP_KEY") ?: "")
+            KAKAO_NATIVE_APP_KEY: (project.env.get("KAKAO_NATIVE_APP_KEY") ?: ""),
+            // AndroidManifest.xml 의 ${usesCleartextTraffic} 플레이스홀더 해결.
+            // 릴리즈는 항상 false — cleartext 허용 안 함.
+            usesCleartextTraffic: "false"
         ]
         buildConfigField "String", "KAKAO_NATIVE_APP_KEY", "\"${project.env.get("KAKAO_NATIVE_APP_KEY") ?: ""}\""
         resValue "string", "kakao_app_key", "${project.env.get("KAKAO_NATIVE_APP_KEY") ?: ""}"
