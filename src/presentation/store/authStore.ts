@@ -5,9 +5,11 @@ import {
   SocialAuthCancelled, type AuthProvider, type AuthSession, type AccountRole,
 } from '../../domain/entities/authTypes';
 import { adaptyService } from '../../infrastructure/adapty/adaptyService';
+import { logNet } from '../../infrastructure/debug/netLog';
 
 const SESSION_KEY = '@troot/session';
 const API_BASE = 'https://api.tattooroot.com/api/v1';
+const TIMEOUT_MS = 15_000;
 
 interface AuthStore {
   session: AuthSession | null;
@@ -50,22 +52,50 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const credential = await signInWith(provider);
 
       // 소셜 토큰을 백엔드가 검증하고 자체 세션을 발급한다
-      const res = await fetch(`${API_BASE}/app/auth/social`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, token: credential.token }),
-      });
+      const reqBody = JSON.stringify({ provider, token: credential.token });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      const started = Date.now();
+
+      let res: Response;
+      try {
+        res = await fetch(`${API_BASE}/app/auth/social`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: reqBody,
+          signal: controller.signal,
+        });
+      } catch (cause) {
+        logNet({
+          method: 'POST', path: '/app/auth/social', status: 0, ok: false,
+          durationMs: Date.now() - started, errorCode: 'NETWORK_ERROR',
+          reqBody, resBody: String(cause),
+        });
+        throw new Error('NETWORK_ERROR');
+      } finally {
+        clearTimeout(timer);
+      }
 
       const json = (await res.json().catch(() => null)) as
         | { success: true; data: AuthSession }
-        | { success: false; error: { code: string; message: string } }
+        | { success: false; error: { code: string; message: string; details?: unknown } }
         | null;
 
+      const errorCode = (json as { error?: { code?: string } } | null)?.error?.code;
+
       if (!res.ok || !json || json.success === false) {
-        throw new Error(
-          (json as { error?: { code?: string } } | null)?.error?.code ?? 'SOCIAL_LOGIN_FAILED',
-        );
+        logNet({
+          method: 'POST', path: '/app/auth/social', status: res.status, ok: false,
+          durationMs: Date.now() - started, errorCode,
+          reqBody, resBody: json,
+        });
+        throw new Error(errorCode ?? 'SOCIAL_LOGIN_FAILED');
       }
+
+      logNet({
+        method: 'POST', path: '/app/auth/social', status: res.status, ok: true,
+        durationMs: Date.now() - started, reqBody,
+      });
 
       const session = json.data;
       await persist(session);
