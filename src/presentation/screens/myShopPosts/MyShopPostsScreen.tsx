@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
@@ -19,6 +19,7 @@ import { shopApi, ShopPost, ShopCategory } from '../../../data/api';
 import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Route = RouteProp<RootStackParamList, 'MyShopPosts'>;
 
 type PostStatus = 'open' | 'closed';
 
@@ -166,10 +167,13 @@ const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete, onAd }: {
 const MyShopPostsScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
 
-  const [filter, setFilter] = useState<'all' | ShopMatchingCategory>('all');
+  const [filter, setFilter] = useState<'all' | ShopMatchingCategory>(
+    route.params?.defaultCategory ?? 'all',
+  );
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
 
   const {

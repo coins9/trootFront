@@ -40,6 +40,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
   const [nickname, setNickname] = useState(profile.nickname);
   const [coverImage, setCoverImage] = useState<string | null>(profile.coverImage ?? null);
+  const [avatarImage, setAvatarImage] = useState<string | null>((profile as any).avatarImage ?? null);
   const [location, setLocation] = useState(profile.location);
   const [locationMeta, setLocationMeta] = useState<LocationMeta>({});
   const [intro, setIntro] = useState(profile.intro);
@@ -55,6 +56,13 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
     }
   }, []);
 
+  const handlePickAvatar = useCallback(async () => {
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, selectionLimit: 1 });
+    if (result.assets?.[0]?.uri) {
+      setAvatarImage(result.assets[0].uri);
+    }
+  }, []);
+
   const toggleTag = useCallback((code: string) => {
     setTags((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
   }, []);
@@ -63,6 +71,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
     if (visible) {
       setNickname(profile.nickname);
       setCoverImage(profile.coverImage ?? null);
+      setAvatarImage((profile as any).avatarImage ?? null);
       setLocation(profile.location);
       setLocationMeta({});
       setIntro(profile.intro);
@@ -87,6 +96,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
     onSave({
       nickname: nickname.trim() || profile.nickname,
       coverImage,
+      ...(avatarImage !== null ? { avatarImage } : {}),
       location: addressText.trim() || profile.location,
       intro: intro.trim() || profile.intro,
       tags,
@@ -94,8 +104,8 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       availableHours: availableHours.trim() || null,
       closedDay: closedDay.trim() || null,
       ...locationMeta,
-    });
-  }, [nickname, coverImage, location, locationMeta, intro, tags, openChatUrl, availableHours, closedDay, profile, onSave]);
+    } as any);
+  }, [nickname, coverImage, avatarImage, location, locationMeta, intro, tags, openChatUrl, availableHours, closedDay, profile, onSave]);
 
   if (!visible) return null;
 
@@ -211,15 +221,23 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                 </TouchableOpacity>
 
                 {/* Avatar */}
-                <View style={styles.avatarBlock}>
+                <TouchableOpacity
+                  onPress={handlePickAvatar}
+                  activeOpacity={0.8}
+                  style={styles.avatarBlock}
+                >
                   <View style={styles.avatarCircle}>
-                    <PersonSilhouette size={72} color="#3a3a3a" />
+                    {avatarImage ? (
+                      <Image source={{ uri: avatarImage }} style={styles.avatarImg} resizeMode="cover" />
+                    ) : (
+                      <PersonSilhouette size={72} color="#3a3a3a" />
+                    )}
                     <View style={styles.avatarBadge}>
                       <CameraSolidIcon size={14} color={COLORS.black} strokeWidth={1.9} />
                     </View>
                   </View>
                   <Text style={styles.avatarHint}>프로필 사진 변경</Text>
-                </View>
+                </TouchableOpacity>
 
                 {/* Nickname */}
                 <View style={styles.field}>
@@ -434,6 +452,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+  },
+  avatarImg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   avatarBadge: {
     position: 'absolute',

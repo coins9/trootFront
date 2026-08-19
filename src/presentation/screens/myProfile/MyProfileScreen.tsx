@@ -128,7 +128,21 @@ const MyProfileScreen = () => {
     { Icon: ListIcon, label: t('profile.tattooReview'), onPress: goTo('TattooReview') },
   ];
   const shopMatchingItems: MenuItem[] = [
-    { Icon: HandshakeIcon, label: t('profile.shopPosts'), onPress: goTo('MyShopPosts') },
+    {
+      Icon: HandshakeIcon,
+      label: '부스 쉐어',
+      onPress: () => navigation.navigate('MyShopPosts', { defaultCategory: '부스 쉐어' }),
+    },
+    {
+      Icon: UserOutlineIcon,
+      label: '타투 모델 구인 (비기너)',
+      onPress: () => navigation.navigate('MyShopPosts', { defaultCategory: '타투 모델 구인 (비기너)' }),
+    },
+    {
+      Icon: PaletteIcon,
+      label: '사진/영상 편집자',
+      onPress: () => navigation.navigate('MyShopPosts', { defaultCategory: '사진/영상 편집자' }),
+    },
   ];
   const userSettingItems: MenuItem[] = [
     { Icon: UserOutlineIcon, label: t('settings.accountInfo'), onPress: goTo('AccountInfo') },
@@ -290,14 +304,12 @@ const MyProfileScreen = () => {
           {mode === 'artist' && (
               <>
                 {renderCompactSection(t('profile.modeArtist'), artistMenuItems)}
-                {renderCompactSection(t('settings.title'), userSettingItems)}
               </>
           )}
 
           {mode === 'vendor' && (
               <>
                 {renderCompactSection(t('profile.modeVendor'), vendorMenuItems)}
-                {renderCompactSection(t('settings.title'), userSettingItems)}
               </>
           )}
 
@@ -312,7 +324,6 @@ const MyProfileScreen = () => {
           {mode === 'shopMatching' && (
               <>
                 {renderCompactSection(t('profile.myPosts'), shopMatchingItems)}
-                {renderCompactSection(t('settings.title'), userSettingItems)}
               </>
           )}
         </ScrollView>
