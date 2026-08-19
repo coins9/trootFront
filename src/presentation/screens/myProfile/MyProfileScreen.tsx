@@ -55,27 +55,27 @@ const MyProfileScreen = () => {
   // Restore persisted mode on mount
   useEffect(() => {
     AsyncStorage.getItem(MODE_KEY)
-      .then((val) => {
-        if (val === 'artist' || val === 'vendor' || val === 'user') setMode(val);
-      })
-      .catch(() => {});
+        .then((val) => {
+          if (val === 'artist' || val === 'vendor' || val === 'user') setMode(val);
+        })
+        .catch(() => {});
   }, []);
 
   // Preload artist page & vendor profile
   useEffect(() => {
     if (!session) return;
     artistApi.me()
-      .then(setArtistInfo)
-      .catch(() => setArtistInfo(null));
+        .then(setArtistInfo)
+        .catch(() => setArtistInfo(null));
     supplyVendorApi.me()
-      .then(setVendorInfo)
-      .catch(() => setVendorInfo(null));
+        .then(setVendorInfo)
+        .catch(() => setVendorInfo(null));
   }, [session]);
 
   /* ── Navigation helpers ── */
   const goTo = useCallback(
-    (screen: keyof RootStackParamList) => () => navigation.navigate(screen as any),
-    [navigation],
+      (screen: keyof RootStackParamList) => () => navigation.navigate(screen as any),
+      [navigation],
   );
 
   /* ── Mode switching with registration guards ── */
@@ -84,8 +84,8 @@ const MyProfileScreen = () => {
 
     if (next === 'artist') {
       const isTattooist =
-        session?.user.role === 'TATTOOIST' ||
-        session?.user.roles?.includes('TATTOOIST');
+          session?.user.role === 'TATTOOIST' ||
+          session?.user.roles?.includes('TATTOOIST');
       if (!isTattooist || !artistInfo) {
         navigation.navigate('ArtistMyPage');
         return;
@@ -185,149 +185,138 @@ const MyProfileScreen = () => {
 
   /* ── Render helpers ── */
   const renderCompactMenuItem = (item: MenuItem, isLast: boolean) => (
-    <TouchableOpacity
-      key={item.label}
-      onPress={item.onPress}
-      activeOpacity={0.75}
-      style={[styles.menuRow, isLast && styles.menuRowLast]}
-    >
-      <View style={styles.menuIconWrap}>
-        <item.Icon size={22} color={COLORS.gold} strokeWidth={1.7} />
-      </View>
-      <Text style={styles.menuLabel}>{item.label}</Text>
-      <View style={styles.menuRight}>
-        {item.badge && (
-          <View style={styles.badgeWrap}>
-            <Text style={styles.badgeText}>{item.badge}</Text>
-            <View style={styles.badgeDot} />
-          </View>
-        )}
-        <ChevronRightIcon size={18} color={COLORS.gray} />
-      </View>
-    </TouchableOpacity>
+      <TouchableOpacity
+          key={item.label}
+          onPress={item.onPress}
+          activeOpacity={0.75}
+          style={[styles.menuRow, isLast && styles.menuRowLast]}
+      >
+        <View style={styles.menuIconWrap}>
+          <item.Icon size={22} color={COLORS.gold} strokeWidth={1.7} />
+        </View>
+        <View style={styles.menuLabelWrap}>
+          <Text style={styles.menuLabel}>{item.label}</Text>
+          {!!item.description && <Text style={styles.menuDesc}>{item.description}</Text>}
+        </View>
+        <View style={styles.menuRight}>
+          {item.badge && (
+              <View style={styles.badgeWrap}>
+                <Text style={styles.badgeText}>{item.badge}</Text>
+                <View style={styles.badgeDot} />
+              </View>
+          )}
+          <ChevronRightIcon size={18} color={COLORS.gray} />
+        </View>
+      </TouchableOpacity>
   );
 
   const renderCompactSection = (title: string, items: MenuItem[]) => (
-    <View style={styles.sectionCard}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionBody}>
-        {items.map((it, i) => renderCompactMenuItem(it, i === items.length - 1))}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <View style={styles.sectionBody}>
+          {items.map((it, i) => renderCompactMenuItem(it, i === items.length - 1))}
+        </View>
       </View>
-    </View>
   );
 
-  const renderArtistMenuCard = (item: MenuItem & { description: string }) => (
-    <TouchableOpacity
-      key={item.label}
-      onPress={item.onPress}
-      activeOpacity={0.75}
-      style={styles.artistCard}
-    >
-      <View style={styles.artistCardIconWrap}>
-        <item.Icon size={26} color={COLORS.gold} strokeWidth={1.7} />
-      </View>
-      <View style={styles.artistCardBody}>
-        <Text style={styles.artistCardLabel}>{item.label}</Text>
-        <Text style={styles.artistCardDesc}>{item.description}</Text>
-      </View>
-      <ChevronRightIcon size={18} color={COLORS.gray} />
-    </TouchableOpacity>
-  );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Profile card */}
-        <View style={styles.profileBlock}>
-          <View style={styles.avatarCircle}>
-            <PersonSilhouette size={72} color="#3a3a3a" />
-          </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.nickname} numberOfLines={1}>{displayName}</Text>
-            {mode === 'artist' && artistInfo ? (
-              <>
-                <View style={styles.artistMetaRow}>
-                  <LocationPinIcon size={13} color={COLORS.gray} />
-                  <Text style={styles.artistMetaText}>
-                    {[artistInfo.regionSido, artistInfo.regionSigungu].filter(Boolean).join(' · ') || '—'}
+        <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+        >
+          {/* Profile card */}
+          <View style={styles.profileBlock}>
+            <View style={styles.avatarCircle}>
+              <PersonSilhouette size={72} color="#3a3a3a" />
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.nickname} numberOfLines={1}>{displayName}</Text>
+              {mode === 'artist' && artistInfo ? (
+                  <>
+                    <View style={styles.artistMetaRow}>
+                      <LocationPinIcon size={13} color={COLORS.gray} />
+                      <Text style={styles.artistMetaText}>
+                        {[artistInfo.regionSido, artistInfo.regionSigungu].filter(Boolean).join(' · ') || '—'}
+                      </Text>
+                    </View>
+                    <View style={styles.artistRatingRow}>
+                      <StarIcon size={14} color={COLORS.gold} filled />
+                      <Text style={styles.artistRatingValue}>{Number(artistInfo.rating).toFixed(1)}</Text>
+                      <Text style={styles.artistRatingCount}>({artistInfo.reviewCount})</Text>
+                    </View>
+                  </>
+              ) : mode === 'vendor' && vendorInfo ? (
+                  <Text style={styles.vendorStatus}>
+                    {vendorInfo.status === 'approved' ? t('profile.vendorApproved') :
+                        vendorInfo.status === 'pending' ? t('profile.vendorPending') :
+                            vendorInfo.status === 'rejected' ? t('profile.vendorRejected') :
+                                t('profile.vendorSuspended')}
                   </Text>
-                </View>
-                <View style={styles.artistRatingRow}>
-                  <StarIcon size={14} color={COLORS.gold} filled />
-                  <Text style={styles.artistRatingValue}>{Number(artistInfo.rating).toFixed(1)}</Text>
-                  <Text style={styles.artistRatingCount}>({artistInfo.reviewCount})</Text>
-                </View>
+              ) : (
+                  <Text style={styles.bio}>{session?.user.email ?? ''}</Text>
+              )}
+            </View>
+          </View>
+
+          {/* Mode selector */}
+          <View style={styles.modeTabs}>
+            {MODE_TAB_KEYS.map((tab) => {
+              const active = mode === tab.key;
+              return (
+                  <TouchableOpacity
+                      key={tab.key}
+                      onPress={() => handleTabPress(tab.key)}
+                      activeOpacity={0.8}
+                      style={[styles.modeTab, active ? styles.modeTabActive : styles.modeTabInactive]}
+                  >
+                    <Text style={[styles.modeTabText, active && styles.modeTabTextActive]} numberOfLines={1}>
+                      {t(tab.tKey)}
+                    </Text>
+                  </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.headerDivider} />
+
+          {mode === 'artist' && (
+              <>
+                {renderCompactSection(t('profile.modeArtist'), artistMenuItems)}
+                {renderCompactSection(t('settings.title'), userSettingItems)}
               </>
-            ) : mode === 'vendor' && vendorInfo ? (
-              <Text style={styles.vendorStatus}>
-                {vendorInfo.status === 'approved' ? t('profile.vendorApproved') :
-                 vendorInfo.status === 'pending' ? t('profile.vendorPending') :
-                 vendorInfo.status === 'rejected' ? t('profile.vendorRejected') :
-                 t('profile.vendorSuspended')}
-              </Text>
-            ) : (
-              <Text style={styles.bio}>{session?.user.email ?? ''}</Text>
-            )}
-          </View>
-        </View>
+          )}
 
-        {/* Mode selector */}
-        <View style={styles.modeTabs}>
-          {MODE_TAB_KEYS.map((tab) => {
-            const active = mode === tab.key;
-            return (
-              <TouchableOpacity
-                key={tab.key}
-                onPress={() => handleTabPress(tab.key)}
-                activeOpacity={0.8}
-                style={[styles.modeTab, active ? styles.modeTabActive : styles.modeTabInactive]}
-              >
-                <Text style={[styles.modeTabText, active && styles.modeTabTextActive]} numberOfLines={1}>
-                  {t(tab.tKey)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+          {mode === 'vendor' && (
+              <>
+                {renderCompactSection(t('profile.modeVendor'), vendorMenuItems)}
+                {renderCompactSection(t('settings.title'), userSettingItems)}
+              </>
+          )}
 
-        <View style={styles.headerDivider} />
+          {mode === 'user' && (
+              <>
+                {renderCompactSection(t('profile.myReservations'), userReservationItems)}
+                {renderCompactSection(t('profile.myPosts'), userPostItems)}
+                {renderCompactSection(t('settings.title'), userSettingItems)}
+              </>
+          )}
 
-        {mode === 'artist' && (
-          <View style={styles.artistMenuList}>
-            {artistMenuItems.map(renderArtistMenuCard)}
-          </View>
-        )}
+          {mode === 'shopMatching' && (
+              <>
+                {renderCompactSection(t('profile.myPosts'), shopMatchingItems)}
+                {renderCompactSection(t('settings.title'), userSettingItems)}
+              </>
+          )}
 
-        {mode === 'vendor' && (
-          <View style={styles.artistMenuList}>
-            {vendorMenuItems.map(renderArtistMenuCard)}
-          </View>
-        )}
-
-        {mode === 'user' && (
-          <>
-            {renderCompactSection(t('profile.myReservations'), userReservationItems)}
-            {renderCompactSection(t('profile.myPosts'), userPostItems)}
-            {renderCompactSection(t('settings.title'), userSettingItems)}
-          </>
-        )}
-
-        {mode === 'shopMatching' && (
-          <>
-            {renderCompactSection(t('profile.myPosts'), shopMatchingItems)}
-          </>
-        )}
-
-        <View style={{ height: 24 }} />
-      </ScrollView>
-    </SafeAreaView>
+          <View style={{ height: 24 }} />
+        </ScrollView>
+      </SafeAreaView>
   );
 };
 
@@ -497,12 +486,20 @@ const styles = StyleSheet.create({
     width: 28,
     alignItems: 'center',
   },
-  menuLabel: {
+  menuLabelWrap: {
     flex: 1,
+    gap: 2,
+  },
+  menuLabel: {
     color: COLORS.white,
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 20,
+  },
+  menuDesc: {
+    color: COLORS.gray,
+    fontSize: 11,
+    lineHeight: 15,
   },
   menuRight: {
     flexDirection: 'row',
@@ -530,38 +527,4 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gold,
   },
 
-  artistMenuList: {
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  artistCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    gap: 16,
-  },
-  artistCardIconWrap: {
-    width: 32,
-    alignItems: 'center',
-  },
-  artistCardBody: {
-    flex: 1,
-    gap: 3,
-  },
-  artistCardLabel: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 22,
-  },
-  artistCardDesc: {
-    color: COLORS.gray,
-    fontSize: 12,
-    lineHeight: 17,
-  },
 });

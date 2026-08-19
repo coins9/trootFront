@@ -91,6 +91,7 @@ export const ko = {
     modeUser: '일반 손님',
     modeArtist: '타투이스트',
     modeVendor: '용품 판매자',
+    modeShopMatching: '샵&매칭',
     bookingManage: '예약 관리',
     favArtists: '찜한 타투이스트',
     favWorks: '찜한 작품',
