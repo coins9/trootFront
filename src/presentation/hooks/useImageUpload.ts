@@ -5,6 +5,7 @@ import {
   launchCamera,
   type PhotoQuality,
 } from 'react-native-image-picker';
+import ImageResizer from 'react-native-image-resizer';
 import { uploadImages, type LocalImage, type UploadScope } from '../../data/api/upload';
 import { ApiError } from '../../data/api/client';
 
@@ -56,14 +57,79 @@ const requestAndroidCameraPermission = async (): Promise<boolean> => {
 
 type Asset = { uri?: string; type?: string; fileSize?: number };
 
-const toLocalImages = (assets: Asset[]): LocalImage[] =>
-  assets
-    .filter((a) => !!a.uri)
-    .map((a) => ({ uri: a.uri as string, type: a.type, fileSize: a.fileSize }));
+/** RAW 파일 확장자 목록 */
+const RAW_EXTS = new Set([
+  'dng', 'raw', 'arw', 'cr2', 'cr3', 'nef', 'orf', 'rw2',
+  'raf', 'srw', 'nrw', 'pef', '3fr', 'erf', 'mef', 'mrw', 'x3f',
+]);
+
+/** MIME 타입 또는 URI 확장자로 RAW 파일 여부 판단 */
+const isRawAsset = (a: Asset): boolean => {
+  const mimeType = (a.type ?? '').toLowerCase();
+  if (
+    mimeType &&
+    (mimeType.includes('raw') ||
+      mimeType.includes('dng') ||
+      mimeType.includes('x-adobe') ||
+      mimeType.includes('x-sony') ||
+      mimeType.includes('x-nikon') ||
+      mimeType.includes('x-canon') ||
+      mimeType.includes('x-olympus') ||
+      mimeType.includes('x-fuji'))
+  ) {
+    return true;
+  }
+  const ext = (a.uri ?? '').split('.').pop()?.toLowerCase() ?? '';
+  return RAW_EXTS.has(ext);
+};
+
+/**
+ * RAW 파일을 JPEG으로 변환 (react-native-image-resizer 사용).
+ * 최대 4096×4096 유지, 품질 90%, 비율 보존.
+ */
+const convertRawToJpeg = async (uri: string): Promise<string> => {
+  const result = await ImageResizer.createResizedImage(
+    uri,
+    4096,
+    4096,
+    'JPEG',
+    90,
+    0,
+    undefined,
+    false,
+    { mode: 'contain', onlyScaleDown: true },
+  );
+  return result.uri;
+};
+
+/**
+ * 에셋 목록 처리:
+ * - RAW 파일 → JPEG 변환 후 포함
+ * - 일반 파일 → 그대로 포함
+ * - URI 없는 항목 → 스킵
+ */
+const processAssets = async (assets: Asset[]): Promise<LocalImage[]> => {
+  const images: LocalImage[] = [];
+  for (const a of assets) {
+    if (!a.uri) continue;
+    if (isRawAsset(a)) {
+      try {
+        const jpegUri = await convertRawToJpeg(a.uri);
+        images.push({ uri: jpegUri, type: 'image/jpeg' });
+      } catch {
+        // 변환 실패 시 해당 파일 스킵
+      }
+    } else {
+      images.push({ uri: a.uri as string, type: a.type, fileSize: a.fileSize });
+    }
+  }
+  return images;
+};
 
 /**
  * Pick images from gallery or camera and upload to R2.
  * Returns public URLs — callers just store them in state.
+ * RAW 파일은 자동으로 JPEG으로 변환된 후 업로드됩니다.
  */
 export function useImageUpload({ scope, max, current, onError }: Options) {
   const [uploading, setUploading] = useState(false);
@@ -102,7 +168,9 @@ export function useImageUpload({ scope, max, current, onError }: Options) {
     });
 
     if (picked.didCancel || !picked.assets?.length) return [];
-    return upload(toLocalImages(picked.assets));
+    const images = await processAssets(picked.assets);
+    if (!images.length) return [];
+    return upload(images);
   }, [max, current, onError, upload]);
 
   const pickFromCamera = useCallback(async (): Promise<string[]> => {
@@ -125,7 +193,9 @@ export function useImageUpload({ scope, max, current, onError }: Options) {
     });
 
     if (picked.didCancel || !picked.assets?.length) return [];
-    return upload(toLocalImages(picked.assets));
+    const images = await processAssets(picked.assets);
+    if (!images.length) return [];
+    return upload(images);
   }, [max, current, onError, upload]);
 
   /** Shows an action sheet to choose gallery or camera, then uploads. */

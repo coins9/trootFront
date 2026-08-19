@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, StatusBar, ActivityIndicator, TouchableOpacity,
+  View, Text, FlatList, StyleSheet, StatusBar, ActivityIndicator, TouchableOpacity, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,10 +16,11 @@ import FilterBar from '../../components/home/FilterBar';
 import ActiveFilterRow from '../../components/home/ActiveFilterRow';
 import FilterBottomSheet from '../../components/filter/FilterBottomSheet';
 import FullFilterModal from '../../components/filter/FullFilterModal';
-import { usePagedApi } from '../../hooks/useApi';
+import { useApi, usePagedApi } from '../../hooks/useApi';
 import { useDebounce } from '../../hooks/useDebounce';
 import { artistApi, favoriteApi } from '../../../data/api';
-import { toTattoo } from '../../../data/api/mappers';
+import { toTattoo, toArtist } from '../../../data/api/mappers';
+import { CrownIcon } from '../../components/icons';
 import { FilterType, Tattoo, Artist } from '../../../domain/entities/types';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useFilterStore } from '../../store/filterStore';
@@ -44,6 +45,13 @@ const HomeScreen = () => {
   const debouncedKeyword = useDebounce(keyword, 400);
 
   const { regionMode, region, overseasCountryCode, genres, bodyParts, budgetMin, budgetMax } = useFilterStore();
+
+  // 셀렉티드 마스터 — HomeArtistHeader 와 동일한 API (서버 캐시)
+  const { data: mastersData } = useApi(
+    async () => (await artistApi.selectedMasters()).map(toArtist),
+    [],
+  );
+  const masters = mastersData ?? [];
 
   const MAX_PRICE = 10000000;
 
@@ -150,8 +158,43 @@ const HomeScreen = () => {
       <HomeArtistHeader onArtistPress={handleArtistPress} onBannerPress={() => {}} />
       <FilterBar onFilterPress={openFilter} />
       <ActiveFilterRow onAddPress={() => openFilter('full')} />
+      {masters.length > 0 && (
+        <View style={styles.mastersSection}>
+          <View style={styles.mastersSectionHeader}>
+            <CrownIcon size={14} color={COLORS.gold} />
+            <Text style={styles.mastersSectionTitle}>셀렉티드 마스터</Text>
+          </View>
+          <FlatList
+            data={masters}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(m) => m.id}
+            contentContainerStyle={styles.mastersList}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => handleArtistPress(item)}
+                activeOpacity={0.85}
+                style={styles.masterItem}
+              >
+                <View style={styles.masterAvatarWrap}>
+                  {item.profileImage ? (
+                    <Image source={{ uri: item.profileImage }} style={styles.masterAvatar} />
+                  ) : (
+                    <View style={[styles.masterAvatar, styles.masterAvatarFallback]} />
+                  )}
+                  <View style={styles.masterCrownBadge}>
+                    <CrownIcon size={8} color={COLORS.black} />
+                  </View>
+                </View>
+                <Text style={styles.masterName} numberOfLines={1}>{item.nickname}</Text>
+                <Text style={styles.masterCity} numberOfLines={1}>{item.city}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
     </View>
-  ), [handleArtistPress, openFilter]);
+  ), [handleArtistPress, openFilter, masters]);
 
   const listEmpty = useMemo(() => {
     if (loading) {
@@ -271,4 +314,74 @@ const styles = StyleSheet.create({
   },
   retryText: { color: COLORS.gold, fontSize: 13, fontWeight: '600', lineHeight: 18 },
   footer: { paddingVertical: 20 },
+
+  mastersSection: {
+    marginBottom: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 14,
+  },
+  mastersSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: SIDE_PAD,
+    marginBottom: 10,
+  },
+  mastersSectionTitle: {
+    color: COLORS.gold,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 17,
+    letterSpacing: 0.3,
+  },
+  mastersList: {
+    paddingHorizontal: SIDE_PAD,
+    gap: 12,
+    paddingBottom: 12,
+  },
+  masterItem: {
+    alignItems: 'center',
+    width: 72,
+  },
+  masterAvatarWrap: {
+    position: 'relative',
+    marginBottom: 6,
+  },
+  masterAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: COLORS.gold,
+  },
+  masterAvatarFallback: {
+    backgroundColor: COLORS.elevated,
+  },
+  masterCrownBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  masterName: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
+    textAlign: 'center',
+    width: 72,
+  },
+  masterCity: {
+    color: COLORS.gray,
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: 'center',
+    width: 72,
+  },
 });

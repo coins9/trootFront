@@ -48,6 +48,9 @@ function toSelfProfile(p: ArtistPage): ArtistSelfProfile {
     likes: p.followerCount,
     bookedCount: 0,
     tags: (p as any).tags ?? [],
+    openChatUrl: (p as any).openChatUrl ?? null,
+    availableHours: (p as any).availableHours ?? null,
+    closedDay: (p as any).closedDay ?? null,
   };
 }
 
@@ -56,6 +59,7 @@ function toArtwork(a: Artwork): ArtistArtwork {
     id: a.id,
     type: 'image',
     thumbnailUri: a.thumbnail ?? (a.images[0] ?? ''),
+    imageUris: a.images ?? [],
     title: a.title,
     genre: a.genres[0] ?? '',
     bodyPart: a.bodyPart ?? '',
@@ -212,6 +216,9 @@ const ArtistMyPageScreen = () => {
         lat: next.lat ?? undefined,
         lng: next.lng ?? undefined,
         tags: next.tags,
+        openChatUrl: next.openChatUrl ?? undefined,
+        availableHours: next.availableHours ?? undefined,
+        closedDay: next.closedDay ?? undefined,
       } as any);
       setProfileOverride((prev) => ({ ...prev, ...next }));
       reloadProfile();
@@ -240,8 +247,8 @@ const ArtistMyPageScreen = () => {
         genres: next.subjects,
         bodyPart: next.bodyPart,
         priceKrw: next.priceFrom || null,
-        images: next.thumbnailUri ? [next.thumbnailUri] : [],
-        thumbnail: next.thumbnailUri || null,
+        images: next.imageUris?.length ? next.imageUris : (next.thumbnailUri ? [next.thumbnailUri] : []),
+        thumbnail: next.imageUris?.[0] || next.thumbnailUri || null,
       };
       if (artworkFormEditing) {
         await artistApi.updateArtwork(next.id, body);

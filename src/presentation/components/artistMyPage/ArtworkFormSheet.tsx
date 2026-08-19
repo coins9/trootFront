@@ -2,21 +2,47 @@ import React, { memo, useEffect, useRef, useState, useCallback, useMemo } from '
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, Animated,
   Dimensions, Platform, TextInput, ScrollView, KeyboardAvoidingView, Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import {
   XIcon, TattooPlaceholderIcon,
-  CheckCircleIcon,
+  CheckCircleIcon, PlusIcon,
 } from '../icons';
 import { ArtistArtwork } from '../../../domain/entities/artistMyPageTypes';
 import {
   GENRES, BODY_PARTS, SUBJECTS, MOODS,
 } from '../../../data/mock/mockData';
-import BilingualSection from '../common/BilingualSection';
 import { useTranslation } from '../../store/languageStore';
 import { useImageUpload } from '../../hooks/useImageUpload';
 import { deleteUpload } from '../../../data/api/upload';
+
+/* ---- English display labels (same index as Korean arrays) ---- */
+const GENRES_EN = [
+  'Black & Gray', 'Linework', 'Mini Tattoo', 'Lettering',
+  'Irezumi', 'Old School', 'New School', 'Watercolor',
+  'Chicano', 'Blackwork', 'Realism', 'Tribal',
+  'Illustration', 'Geometric',
+];
+const SUBJECTS_EN = [
+  'Animals/Pets', 'Plants/Flowers', 'Nature/Space', 'Objects',
+  'People/Characters', 'Symbols/Patterns', 'Words/Numbers',
+];
+const MOODS_EN = [
+  'Dark/Decadent', 'Simple/Minimal', 'Cute/Kitsch', 'Dreamy/Mystical',
+  'Vintage/Rough', 'Oriental', 'Delicate',
+];
+const BODY_PARTS_EN = [
+  { category: 'Head & Neck', parts: ['Behind Ear', 'Back Neck', 'Side Neck', 'Front Neck', 'Face', 'Scalp'] },
+  { category: 'Arms & Hands', parts: ['Shoulder', 'Upper Arm', 'Forearm', 'Elbow', 'Wrist', 'Back of Hand', 'Finger'] },
+  { category: 'Upper Body', parts: ['Chest', 'Abdomen', 'Ribs', 'Collarbone'] },
+  { category: 'Back', parts: ['Upper Back', 'Shoulder Blade', 'Full Back', 'Spine', 'Lower Back'] },
+  { category: 'Lower Body & Feet', parts: ['Hip/Pelvis', 'Thigh', 'Knee', 'Calf', 'Ankle', 'Instep', 'Toes'] },
+  { category: 'Special', parts: ['Sleeve', 'Full Body', 'Cover-up', 'Touch-up'] },
+];
+
+type Lang = 'ko' | 'en';
 
 interface Props {
   visible: boolean;
@@ -27,6 +53,7 @@ interface Props {
 
 const { height: SH } = Dimensions.get('window');
 const DESC_MAX = 120;
+const MAX_IMAGES = 10;
 
 const flatBodyParts: string[] = BODY_PARTS.flatMap((c) => c.parts);
 
@@ -34,6 +61,7 @@ const emptyForm = (): ArtistArtwork => ({
   id: `aw-${Date.now()}`,
   type: 'image',
   thumbnailUri: '',
+  imageUris: [],
   title: '',
   titleEn: '',
   genre: GENRES[0],
@@ -53,6 +81,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
   const translate = useRef(new Animated.Value(SH)).current;
   const insets = useSafeAreaInsets();
   const [form, setForm] = useState<ArtistArtwork>(emptyForm());
+  const [lang, setLang] = useState<Lang>('ko');
   const isEdit = editing !== null;
 
   useEffect(() => {
@@ -85,18 +114,28 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
 
   const { pickWithChoice, uploading: imgUploading } = useImageUpload({
     scope: 'artwork',
-    max: 1,
-    current: form.thumbnailUri ? 1 : 0,
+    max: MAX_IMAGES,
+    current: form.imageUris?.length ?? 0,
   });
 
-  const handlePickThumbnail = useCallback(async () => {
+  const handleAddImages = useCallback(async () => {
     const urls = await pickWithChoice();
-    if (urls[0]) {
-      // 이전 썸네일은 이미 R2 에 올라간 상태이므로 교체 시 삭제한다
-      if (form.thumbnailUri) deleteUpload(form.thumbnailUri);
-      setSingle('thumbnailUri', urls[0]);
+    if (urls.length > 0) {
+      setForm((prev) => {
+        const next = [...(prev.imageUris ?? []), ...urls].slice(0, MAX_IMAGES);
+        return { ...prev, imageUris: next, thumbnailUri: next[0] ?? prev.thumbnailUri };
+      });
     }
-  }, [pickWithChoice, setSingle, form.thumbnailUri]);
+  }, [pickWithChoice]);
+
+  const handleRemoveImage = useCallback((idx: number) => {
+    setForm((prev) => {
+      const removed = prev.imageUris?.[idx];
+      if (removed) deleteUpload(removed);
+      const next = (prev.imageUris ?? []).filter((_, i) => i !== idx);
+      return { ...prev, imageUris: next, thumbnailUri: next[0] ?? '' };
+    });
+  }, []);
 
   const handleSubmit = useCallback(() => {
     if (!canSubmit) return;
@@ -138,194 +177,316 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                 </TouchableOpacity>
               </View>
 
+              {/* Language tab switcher */}
+              <View style={styles.langTabRow}>
+                <TouchableOpacity
+                  onPress={() => setLang('ko')}
+                  activeOpacity={0.8}
+                  style={[styles.langTab, lang === 'ko' && styles.langTabActive]}
+                >
+                  <Text style={[styles.langTabText, lang === 'ko' && styles.langTabTextActive]}>한국어</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setLang('en')}
+                  activeOpacity={0.8}
+                  style={[styles.langTab, lang === 'en' && styles.langTabActive]}
+                >
+                  <Text style={[styles.langTabText, lang === 'en' && styles.langTabTextActive]}>English</Text>
+                </TouchableOpacity>
+              </View>
+
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 style={styles.scroll}
                 contentContainerStyle={{ paddingBottom: 12 }}
               >
-                {/* Thumbnail pick (사진 전용) */}
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.thumbPickBox}
-                  onPress={handlePickThumbnail}
-                  disabled={imgUploading}
-                >
-                  {form.thumbnailUri ? (
-                    <Image
-                      source={{ uri: form.thumbnailUri }}
-                      style={StyleSheet.absoluteFill}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <>
-                      <TattooPlaceholderIcon size={40} color="#3a3a3a" />
-                      <Text style={styles.thumbHint}>
-                        {imgUploading ? '업로드 중...' : '사진 업로드'}
-                      </Text>
-                      <Text style={styles.thumbSub}>탭하여 갤러리 / 카메라 선택</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                {/* Title */}
-                <FieldLabel>작품명</FieldLabel>
-                <View style={styles.inputRow}>
-                  <TextInput
-                    value={form.title}
-                    onChangeText={(v) => setSingle('title', v)}
-                    placeholder={t('artistMyPage.artworkFormTitlePlaceholder')}
-                    placeholderTextColor={COLORS.gray2}
-                    style={styles.input}
-                    maxLength={30}
-                  />
-                </View>
-
-                {/* Genre */}
-                <FieldLabel>장르 (필수)</FieldLabel>
-                <View style={styles.chipGrid}>
-                  {GENRES.map((g) => {
-                    const active = form.genre === g;
-                    return (
+                {/* 이미지 스트립 (최대 10장, 다중 선택 + 미리보기) */}
+                <View style={styles.imageStripRow}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.imageStripContent}
+                  >
+                    {(form.imageUris?.length ?? 0) < MAX_IMAGES && (
                       <TouchableOpacity
-                        key={g}
-                        onPress={() => setSingle('genre', g)}
-                        activeOpacity={0.85}
-                        style={[styles.chip, active && styles.chipActive]}
+                        style={styles.imgAddBtn}
+                        onPress={handleAddImages}
+                        disabled={imgUploading}
+                        activeOpacity={0.8}
                       >
-                        <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                          {g}
-                        </Text>
+                        {imgUploading ? (
+                          <ActivityIndicator color={COLORS.gold} size="small" />
+                        ) : (
+                          <>
+                            <PlusIcon size={22} color={COLORS.gold} />
+                            <Text style={styles.imgAddText}>사진 추가</Text>
+                            <Text style={styles.imgAddSub}>
+                              {(form.imageUris?.length ?? 0)}/{MAX_IMAGES}
+                            </Text>
+                          </>
+                        )}
                       </TouchableOpacity>
-                    );
-                  })}
+                    )}
+                    {(form.imageUris ?? []).map((uri, idx) => (
+                      <View key={`${uri}-${idx}`} style={styles.imgThumbWrap}>
+                        <Image source={{ uri }} style={styles.imgThumb} resizeMode="cover" />
+                        {idx === 0 && (
+                          <View style={styles.imgMainBadge}>
+                            <Text style={styles.imgMainBadgeText}>대표</Text>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={styles.imgRemoveBtn}
+                          onPress={() => handleRemoveImage(idx)}
+                          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                        >
+                          <XIcon size={10} color={COLORS.white} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
                 </View>
 
-                {/* Body part (grouped) */}
-                <FieldLabel>시술 부위 (필수)</FieldLabel>
-                {BODY_PARTS.map((cat) => (
-                  <View key={cat.category} style={styles.bodyCatWrap}>
-                    <Text style={styles.bodyCatLabel}>{cat.category}</Text>
+                {lang === 'ko' ? (
+                  <>
+                    {/* Title (Korean) */}
+                    <FieldLabel>작품명</FieldLabel>
+                    <View style={styles.inputRow}>
+                      <TextInput
+                        value={form.title}
+                        onChangeText={(v) => setSingle('title', v)}
+                        placeholder={t('artistMyPage.artworkFormTitlePlaceholder')}
+                        placeholderTextColor={COLORS.gray2}
+                        style={styles.input}
+                        maxLength={30}
+                      />
+                    </View>
+
+                    {/* Genre */}
+                    <FieldLabel>장르 (필수)</FieldLabel>
                     <View style={styles.chipGrid}>
-                      {cat.parts.map((p) => {
-                        const active = form.bodyPart === p;
+                      {GENRES.map((g) => {
+                        const active = form.genre === g;
                         return (
-                          <TouchableOpacity
-                            key={p}
-                            onPress={() => setSingle('bodyPart', p)}
-                            activeOpacity={0.85}
-                            style={[styles.chip, active && styles.chipActive]}
-                          >
-                            <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                              {p}
-                            </Text>
+                          <TouchableOpacity key={g} onPress={() => setSingle('genre', g)} activeOpacity={0.85} style={[styles.chip, active && styles.chipActive]}>
+                            <Text style={[styles.chipText, active && styles.chipTextActive]}>{g}</Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
-                  </View>
-                ))}
 
-                {/* Subject */}
-                <FieldLabel>주제 (복수 선택)</FieldLabel>
-                <View style={styles.chipGrid}>
-                  {SUBJECTS.map((s) => {
-                    const active = form.subjects.includes(s);
-                    return (
-                      <TouchableOpacity
-                        key={s}
-                        onPress={() => toggleMulti('subjects', s)}
-                        activeOpacity={0.85}
-                        style={[styles.chip, active && styles.chipActive]}
-                      >
-                        <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                          {s}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                    {/* Body part (grouped) */}
+                    <FieldLabel>시술 부위 (필수)</FieldLabel>
+                    {BODY_PARTS.map((cat) => (
+                      <View key={cat.category} style={styles.bodyCatWrap}>
+                        <Text style={styles.bodyCatLabel}>{cat.category}</Text>
+                        <View style={styles.chipGrid}>
+                          {cat.parts.map((p) => {
+                            const active = form.bodyPart === p;
+                            return (
+                              <TouchableOpacity key={p} onPress={() => setSingle('bodyPart', p)} activeOpacity={0.85} style={[styles.chip, active && styles.chipActive]}>
+                                <Text style={[styles.chipText, active && styles.chipTextActive]}>{p}</Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    ))}
 
-                {/* Moods */}
-                <FieldLabel>감성 (복수 선택)</FieldLabel>
-                <View style={styles.chipGrid}>
-                  {MOODS.map((m) => {
-                    const active = form.moods.includes(m);
-                    return (
-                      <TouchableOpacity
-                        key={m}
-                        onPress={() => toggleMulti('moods', m)}
-                        activeOpacity={0.85}
-                        style={[styles.chip, active && styles.chipActive]}
-                      >
-                        <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                          {m}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                    {/* Subject */}
+                    <FieldLabel>주제 (복수 선택)</FieldLabel>
+                    <View style={styles.chipGrid}>
+                      {SUBJECTS.map((s) => {
+                        const active = form.subjects.includes(s);
+                        return (
+                          <TouchableOpacity key={s} onPress={() => toggleMulti('subjects', s)} activeOpacity={0.85} style={[styles.chip, active && styles.chipActive]}>
+                            <Text style={[styles.chipText, active && styles.chipTextActive]}>{s}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
 
-                {/* Price + duration */}
-                <View style={styles.rowFields}>
-                  <View style={{ flex: 1 }}>
-                    <FieldLabel>시작 가격</FieldLabel>
+                    {/* Moods */}
+                    <FieldLabel>감성 (복수 선택)</FieldLabel>
+                    <View style={styles.chipGrid}>
+                      {MOODS.map((m) => {
+                        const active = form.moods.includes(m);
+                        return (
+                          <TouchableOpacity key={m} onPress={() => toggleMulti('moods', m)} activeOpacity={0.85} style={[styles.chip, active && styles.chipActive]}>
+                            <Text style={[styles.chipText, active && styles.chipTextActive]}>{m}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* Price + duration */}
+                    <View style={styles.rowFields}>
+                      <View style={{ flex: 1 }}>
+                        <FieldLabel>시작 가격</FieldLabel>
+                        <View style={styles.inputRow}>
+                          <TextInput
+                            value={String(form.priceFrom)}
+                            onChangeText={(v) => setSingle('priceFrom', Number(v.replace(/\D/g, '') || 0))}
+                            placeholder="0"
+                            placeholderTextColor={COLORS.gray2}
+                            keyboardType="number-pad"
+                            style={styles.input}
+                          />
+                          <Text style={styles.suffix}>원~</Text>
+                        </View>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <FieldLabel>소요 시간</FieldLabel>
+                        <View style={styles.inputRow}>
+                          <TextInput
+                            value={form.duration}
+                            onChangeText={(v) => setSingle('duration', v)}
+                            placeholder={t('artistMyPage.artworkFormDurationPlaceholder')}
+                            placeholderTextColor={COLORS.gray2}
+                            style={styles.input}
+                            maxLength={20}
+                          />
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Description (Korean) */}
+                    <FieldLabel>설명</FieldLabel>
+                    <View style={styles.descWrap}>
+                      <TextInput
+                        value={form.description}
+                        onChangeText={(v) => v.length <= DESC_MAX && setSingle('description', v)}
+                        placeholder={t('artistMyPage.artworkFormDescPlaceholder')}
+                        placeholderTextColor={COLORS.gray2}
+                        multiline
+                        maxLength={DESC_MAX}
+                        style={styles.descInput}
+                        textAlignVertical="top"
+                      />
+                      <Text style={styles.counter}>{form.description.length}/{DESC_MAX}</Text>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    {/* Title (English) */}
+                    <FieldLabel>Artwork Name</FieldLabel>
                     <View style={styles.inputRow}>
                       <TextInput
-                        value={String(form.priceFrom)}
-                        onChangeText={(v) => setSingle('priceFrom', Number(v.replace(/\D/g, '') || 0))}
-                        placeholder="0"
+                        value={form.titleEn ?? ''}
+                        onChangeText={(v) => setSingle('titleEn', v)}
+                        placeholder="e.g. Blackwork Angel"
                         placeholderTextColor={COLORS.gray2}
-                        keyboardType="number-pad"
                         style={styles.input}
+                        maxLength={30}
                       />
-                      <Text style={styles.suffix}>원~</Text>
                     </View>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <FieldLabel>소요 시간</FieldLabel>
-                    <View style={styles.inputRow}>
+
+                    {/* Genre (English) */}
+                    <FieldLabel>Genre (required)</FieldLabel>
+                    <View style={styles.chipGrid}>
+                      {GENRES.map((g, i) => {
+                        const active = form.genre === g;
+                        return (
+                          <TouchableOpacity key={g} onPress={() => setSingle('genre', g)} activeOpacity={0.85} style={[styles.chip, active && styles.chipActive]}>
+                            <Text style={[styles.chipText, active && styles.chipTextActive]}>{GENRES_EN[i] ?? g}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* Body part (English) */}
+                    <FieldLabel>Body Part (required)</FieldLabel>
+                    {BODY_PARTS.map((cat, ci) => (
+                      <View key={cat.category} style={styles.bodyCatWrap}>
+                        <Text style={styles.bodyCatLabel}>{BODY_PARTS_EN[ci]?.category ?? cat.category}</Text>
+                        <View style={styles.chipGrid}>
+                          {cat.parts.map((p, pi) => {
+                            const active = form.bodyPart === p;
+                            return (
+                              <TouchableOpacity key={p} onPress={() => setSingle('bodyPart', p)} activeOpacity={0.85} style={[styles.chip, active && styles.chipActive]}>
+                                <Text style={[styles.chipText, active && styles.chipTextActive]}>{BODY_PARTS_EN[ci]?.parts[pi] ?? p}</Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    ))}
+
+                    {/* Subject (English) */}
+                    <FieldLabel>Subject (multiple)</FieldLabel>
+                    <View style={styles.chipGrid}>
+                      {SUBJECTS.map((s, i) => {
+                        const active = form.subjects.includes(s);
+                        return (
+                          <TouchableOpacity key={s} onPress={() => toggleMulti('subjects', s)} activeOpacity={0.85} style={[styles.chip, active && styles.chipActive]}>
+                            <Text style={[styles.chipText, active && styles.chipTextActive]}>{SUBJECTS_EN[i] ?? s}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* Moods (English) */}
+                    <FieldLabel>Mood (multiple)</FieldLabel>
+                    <View style={styles.chipGrid}>
+                      {MOODS.map((m, i) => {
+                        const active = form.moods.includes(m);
+                        return (
+                          <TouchableOpacity key={m} onPress={() => toggleMulti('moods', m)} activeOpacity={0.85} style={[styles.chip, active && styles.chipActive]}>
+                            <Text style={[styles.chipText, active && styles.chipTextActive]}>{MOODS_EN[i] ?? m}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* Price + duration (shared, shown in both tabs) */}
+                    <View style={styles.rowFields}>
+                      <View style={{ flex: 1 }}>
+                        <FieldLabel>Starting Price</FieldLabel>
+                        <View style={styles.inputRow}>
+                          <TextInput
+                            value={String(form.priceFrom)}
+                            onChangeText={(v) => setSingle('priceFrom', Number(v.replace(/\D/g, '') || 0))}
+                            placeholder="0"
+                            placeholderTextColor={COLORS.gray2}
+                            keyboardType="number-pad"
+                            style={styles.input}
+                          />
+                          <Text style={styles.suffix}>KRW~</Text>
+                        </View>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <FieldLabel>Duration</FieldLabel>
+                        <View style={styles.inputRow}>
+                          <TextInput
+                            value={form.duration}
+                            onChangeText={(v) => setSingle('duration', v)}
+                            placeholder="e.g. 2h"
+                            placeholderTextColor={COLORS.gray2}
+                            style={styles.input}
+                            maxLength={20}
+                          />
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Description (English) */}
+                    <FieldLabel>Description</FieldLabel>
+                    <View style={styles.descWrap}>
                       <TextInput
-                        value={form.duration}
-                        onChangeText={(v) => setSingle('duration', v)}
-                        placeholder={t('artistMyPage.artworkFormDurationPlaceholder')}
+                        value={form.descriptionEn ?? ''}
+                        onChangeText={(v) => v.length <= DESC_MAX && setSingle('descriptionEn', v)}
+                        placeholder="Size, sessions, concept, etc."
                         placeholderTextColor={COLORS.gray2}
-                        style={styles.input}
-                        maxLength={20}
+                        multiline
+                        maxLength={DESC_MAX}
+                        style={styles.descInput}
+                        textAlignVertical="top"
                       />
+                      <Text style={styles.counter}>{(form.descriptionEn ?? '').length}/{DESC_MAX}</Text>
                     </View>
-                  </View>
-                </View>
-
-                {/* Description */}
-                <FieldLabel>설명</FieldLabel>
-                <View style={styles.descWrap}>
-                  <TextInput
-                    value={form.description}
-                    onChangeText={(v) => v.length <= DESC_MAX && setSingle('description', v)}
-                    placeholder={t('artistMyPage.artworkFormDescPlaceholder')}
-                    placeholderTextColor={COLORS.gray2}
-                    multiline
-                    maxLength={DESC_MAX}
-                    style={styles.descInput}
-                    textAlignVertical="top"
-                  />
-                  <Text style={styles.counter}>
-                    {form.description.length}/{DESC_MAX}
-                  </Text>
-                </View>
-
-                {/* Bilingual (English) */}
-                <BilingualSection
-                  titleEn={form.titleEn ?? ''}
-                  onChangeTitleEn={(v) => setSingle('titleEn', v)}
-                  titlePlaceholder="e.g. Blackwork Angel"
-                  titleMaxLength={30}
-                  descEn={form.descriptionEn ?? ''}
-                  onChangeDescEn={(v) => setSingle('descriptionEn', v)}
-                  descPlaceholder="Size, sessions, concept, etc."
-                  descMaxLength={DESC_MAX}
-                />
+                  </>
+                )}
               </ScrollView>
 
               <TouchableOpacity
@@ -389,7 +550,35 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 23,
   },
-  scroll: { maxHeight: SH * 0.7 },
+  scroll: { maxHeight: SH * 0.63 },
+
+  langTabRow: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    backgroundColor: COLORS.elevated,
+    padding: 3,
+    marginBottom: 14,
+  },
+  langTab: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langTabActive: {
+    backgroundColor: COLORS.gold,
+  },
+  langTabText: {
+    color: COLORS.gray,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 17,
+  },
+  langTabTextActive: {
+    color: COLORS.black,
+    fontWeight: '800',
+  },
 
   mediaToggleRow: {
     flexDirection: 'row',
@@ -423,29 +612,72 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  thumbPickBox: {
-    height: 140,
-    borderRadius: 12,
-    borderWidth: 1.2,
-    borderColor: 'rgba(212,168,67,0.3)',
+  imageStripRow: {
+    marginBottom: 18,
+  },
+  imageStripContent: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  imgAddBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(212,168,67,0.4)',
     borderStyle: 'dashed',
     backgroundColor: COLORS.elevated,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 18,
-    gap: 6,
-    overflow: 'hidden',
+    gap: 4,
   },
-  thumbHint: {
-    color: COLORS.white,
-    fontSize: 13,
+  imgAddText: {
+    color: COLORS.gold,
+    fontSize: 10,
     fontWeight: '700',
-    lineHeight: 18,
+    lineHeight: 13,
   },
-  thumbSub: {
+  imgAddSub: {
     color: COLORS.gray,
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 9,
+    lineHeight: 12,
+  },
+  imgThumbWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  imgThumb: {
+    width: 80,
+    height: 80,
+  },
+  imgRemoveBtn: {
+    position: 'absolute',
+    top: 3,
+    right: 3,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imgMainBadge: {
+    position: 'absolute',
+    bottom: 3,
+    left: 3,
+    backgroundColor: COLORS.gold,
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  imgMainBadgeText: {
+    color: COLORS.black,
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 12,
   },
 
   label: {

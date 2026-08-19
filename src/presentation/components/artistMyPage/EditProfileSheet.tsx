@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import {
   XIcon, LocationPinIcon, CameraSolidIcon, PersonSilhouette,
+  ClockIcon, CalendarIcon, ChatBubbleIcon,
 } from '../icons';
 import { ArtistSelfProfile } from '../../../domain/entities/artistMyPageTypes';
 import { ARTIST_TAGS } from '../../../domain/entities/artistTags';
@@ -41,6 +42,9 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   const [locationMeta, setLocationMeta] = useState<LocationMeta>({});
   const [intro, setIntro] = useState(profile.intro);
   const [tags, setTags] = useState<string[]>(profile.tags ?? []);
+  const [openChatUrl, setOpenChatUrl] = useState(profile.openChatUrl ?? '');
+  const [availableHours, setAvailableHours] = useState(profile.availableHours ?? '');
+  const [closedDay, setClosedDay] = useState(profile.closedDay ?? '');
 
   const toggleTag = useCallback((code: string) => {
     setTags((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
@@ -53,6 +57,9 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       setLocationMeta({});
       setIntro(profile.intro);
       setTags(profile.tags ?? []);
+      setOpenChatUrl(profile.openChatUrl ?? '');
+      setAvailableHours(profile.availableHours ?? '');
+      setClosedDay(profile.closedDay ?? '');
       // 기존 위치 텍스트를 Places 입력창에 미리 채운다
       setTimeout(() => {
         placesRef.current?.setAddressText(profile.location ?? '');
@@ -72,9 +79,12 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       location: addressText.trim() || profile.location,
       intro: intro.trim() || profile.intro,
       tags,
+      openChatUrl: openChatUrl.trim() || null,
+      availableHours: availableHours.trim() || null,
+      closedDay: closedDay.trim() || null,
       ...locationMeta,
     });
-  }, [nickname, location, locationMeta, intro, tags, profile, onSave]);
+  }, [nickname, location, locationMeta, intro, tags, openChatUrl, availableHours, closedDay, profile, onSave]);
 
   if (!visible) return null;
 
@@ -212,6 +222,56 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                       textAlignVertical="top"
                     />
                     <Text style={styles.counter}>{intro.length}/{INTRO_MAX}</Text>
+                  </View>
+                </View>
+
+                {/* Available Hours */}
+                <View style={styles.field}>
+                  <Text style={styles.label}>상담 가능 시간</Text>
+                  <View style={styles.inputRow}>
+                    <ClockIcon size={15} color={COLORS.gray} />
+                    <TextInput
+                      value={availableHours}
+                      onChangeText={setAvailableHours}
+                      placeholder="예: 10:00~22:00"
+                      placeholderTextColor={COLORS.gray2}
+                      style={[styles.input, { marginLeft: 8 }]}
+                      maxLength={30}
+                    />
+                  </View>
+                </View>
+
+                {/* Closed Day */}
+                <View style={styles.field}>
+                  <Text style={styles.label}>휴무일</Text>
+                  <View style={styles.inputRow}>
+                    <CalendarIcon size={15} color={COLORS.gray} />
+                    <TextInput
+                      value={closedDay}
+                      onChangeText={setClosedDay}
+                      placeholder="예: 매주 월요일"
+                      placeholderTextColor={COLORS.gray2}
+                      style={[styles.input, { marginLeft: 8 }]}
+                      maxLength={30}
+                    />
+                  </View>
+                </View>
+
+                {/* Open KakaoTalk URL */}
+                <View style={styles.field}>
+                  <Text style={styles.label}>카카오 오픈채팅 링크</Text>
+                  <View style={styles.inputRow}>
+                    <ChatBubbleIcon size={15} color={COLORS.gray} />
+                    <TextInput
+                      value={openChatUrl}
+                      onChangeText={setOpenChatUrl}
+                      placeholder="https://open.kakao.com/o/..."
+                      placeholderTextColor={COLORS.gray2}
+                      style={[styles.input, { marginLeft: 8 }]}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="url"
+                    />
                   </View>
                 </View>
 

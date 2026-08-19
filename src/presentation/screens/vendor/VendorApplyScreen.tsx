@@ -62,7 +62,7 @@ const VendorApplyScreen = () => {
   }, [canSubmit, submitting, name, businessNo, ecommerceRegNo, contactEmail, toast, navigation, t]);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
 
       <View style={s.header}>

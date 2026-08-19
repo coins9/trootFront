@@ -17,6 +17,9 @@ export interface ArtistSelfProfile {
   bookedCount: number;
   /** 편의/특성 태그 코드 (same_day, open_24h, parking, female_artist, male_artist) */
   tags: string[];
+  openChatUrl?: string | null;
+  availableHours?: string | null;
+  closedDay?: string | null;
 }
 
 export type ArtworkMediaType = 'image';
@@ -25,6 +28,8 @@ export interface ArtistArtwork {
   id: string;
   type: ArtworkMediaType;
   thumbnailUri: string;
+  /** 등록된 이미지 URL 목록 (첫 번째가 썸네일) */
+  imageUris?: string[];
   title: string;
   titleEn?: string;
   genre: string;

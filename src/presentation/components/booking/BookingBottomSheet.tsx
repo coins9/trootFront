@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import {
   View, Text, Modal, Animated, StyleSheet, Dimensions,
   TouchableWithoutFeedback, ScrollView, KeyboardAvoidingView, Platform,
-  TouchableOpacity, Alert, Linking,
+  TouchableOpacity, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import { XIcon } from '../icons';
+import ConfirmModal, { ConfirmConfig } from '../common/ConfirmModal';
+import { useToast } from '../common/Toast';
 import {
   BookingFormData,
   INITIAL_BOOKING_FORM,
@@ -48,9 +50,11 @@ const BookingBottomSheet = memo(({
   onClose,
 }: BookingBottomSheetProps) => {
   const insets = useSafeAreaInsets();
+  const { toast } = useToast();
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const [form, setForm] = useState<BookingFormData>(INITIAL_BOOKING_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -103,21 +107,18 @@ const BookingBottomSheet = memo(({
       });
 
       handleClose();
-      // 접수 직후 작가 오픈톡으로 연결 (없으면 안내만)
+      // 접수 직후 작가 오픈톡으로 연결 (없으면 토스트 안내)
       setTimeout(async () => {
         if (artistKakaoLink && (await Linking.canOpenURL(artistKakaoLink))) {
           Linking.openURL(artistKakaoLink).catch(() => {});
         } else {
-          Alert.alert(
-            '예약 요청이 접수되었습니다',
-            '작가가 확인 후 오픈톡으로 연락드립니다.',
-          );
+          toast('예약 요청이 접수되었습니다. 작가가 확인 후 연락드립니다.', { variant: 'success' });
         }
       }, 350);
     } catch (e) {
-      Alert.alert(
-        '예약 요청 실패',
+      toast(
         e instanceof ApiError ? e.userMessage : '잠시 후 다시 시도해주세요.',
+        { variant: 'error' },
       );
     } finally {
       setSubmitting(false);
@@ -126,15 +127,14 @@ const BookingBottomSheet = memo(({
 
   const handleSubmit = useCallback(() => {
     const summary = formatBookingMessage(artistName, designTitle, form);
-
-    Alert.alert(
-      '예약 요청 확인',
-      `${summary}\n\n요청을 보내면 작가 오픈톡으로 연결됩니다.\n상담 후 작가가 확정하면 예약이 등록돼요.`,
-      [
-        { text: '취소', style: 'cancel' },
-        { text: '예약 요청', onPress: () => { void submit(); } },
-      ],
-    );
+    setConfirm({
+      title: '예약 요청 확인',
+      message: `${summary}\n\n요청을 보내면 작가 오픈톡으로 연결됩니다.\n상담 후 작가가 확정하면 예약이 등록돼요.`,
+      cancelLabel: '취소',
+      confirmLabel: '예약 요청',
+      variant: 'default',
+      onConfirm: () => { void submit(); },
+    });
   }, [artistName, designTitle, form, submit]);
 
   const updateForm = useCallback(<K extends keyof BookingFormData>(
@@ -147,6 +147,7 @@ const BookingBottomSheet = memo(({
   const valid = isBookingFormValid(form);
 
   return (
+    <>
     <Modal
       visible={visible}
       transparent
@@ -249,6 +250,8 @@ const BookingBottomSheet = memo(({
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
+    <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
+    </>
   );
 });
 

@@ -150,7 +150,7 @@ const ArtistReservationRequestsScreen = () => {
   ), [busyId, doConfirm, doReject, t, language]);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>

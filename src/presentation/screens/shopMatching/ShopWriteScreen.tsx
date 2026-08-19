@@ -800,7 +800,7 @@ const ShopWriteScreen = () => {
   }, []);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
 
       {/* 헤더 */}
