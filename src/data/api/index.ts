@@ -26,6 +26,11 @@ export interface ArtistPage {
   reviewCount: number;
   portfolioCount: number;
   followerCount: number;
+  availableHours?: string | null;
+  closedDay?: string | null;
+  openChatUrl?: string | null;
+  tags?: string[];
+  intro?: string | null;
 }
 
 export interface Artwork {

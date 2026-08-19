@@ -41,16 +41,17 @@ function toSelfProfile(p: ArtistPage): ArtistSelfProfile {
     nickname: p.pageName,
     handle: `@${p.handle}`,
     location: regionParts.join(' ') || '',
-    intro: p.bio ?? '',
+    intro: p.intro ?? p.bio ?? '',
     avatarUri: p.profileImage ?? '',
+    coverImage: p.coverImage ?? null,
     rating: parseFloat(p.rating) || 0,
     reviewCount: p.reviewCount,
     likes: p.followerCount,
     bookedCount: 0,
-    tags: (p as any).tags ?? [],
-    openChatUrl: (p as any).openChatUrl ?? null,
-    availableHours: (p as any).availableHours ?? null,
-    closedDay: (p as any).closedDay ?? null,
+    tags: p.tags ?? [],
+    openChatUrl: p.openChatUrl ?? null,
+    availableHours: p.availableHours ?? null,
+    closedDay: p.closedDay ?? null,
   };
 }
 
@@ -207,7 +208,9 @@ const ArtistMyPageScreen = () => {
     try {
       await artistApi.updateMe({
         pageName: next.nickname,
+        intro: next.intro,
         bio: next.intro,
+        coverImage: next.coverImage ?? undefined,
         regionSido: next.regionSido ?? undefined,
         regionSigungu: next.regionSigungu ?? undefined,
         countryCode: next.countryCode ?? undefined,

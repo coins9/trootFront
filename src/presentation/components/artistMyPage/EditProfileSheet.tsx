@@ -1,8 +1,9 @@
 import React, { memo, useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, Animated,
-  Dimensions, Platform, TextInput, ScrollView, KeyboardAvoidingView,
+  Dimensions, Platform, TextInput, ScrollView, KeyboardAvoidingView, Image,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 import Config from 'react-native-config';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,6 +39,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   const insets = useSafeAreaInsets();
   const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
   const [nickname, setNickname] = useState(profile.nickname);
+  const [coverImage, setCoverImage] = useState<string | null>(profile.coverImage ?? null);
   const [location, setLocation] = useState(profile.location);
   const [locationMeta, setLocationMeta] = useState<LocationMeta>({});
   const [intro, setIntro] = useState(profile.intro);
@@ -46,6 +48,13 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   const [availableHours, setAvailableHours] = useState(profile.availableHours ?? '');
   const [closedDay, setClosedDay] = useState(profile.closedDay ?? '');
 
+  const handlePickCover = useCallback(async () => {
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, selectionLimit: 1 });
+    if (result.assets?.[0]?.uri) {
+      setCoverImage(result.assets[0].uri);
+    }
+  }, []);
+
   const toggleTag = useCallback((code: string) => {
     setTags((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
   }, []);
@@ -53,6 +62,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   useEffect(() => {
     if (visible) {
       setNickname(profile.nickname);
+      setCoverImage(profile.coverImage ?? null);
       setLocation(profile.location);
       setLocationMeta({});
       setIntro(profile.intro);
@@ -76,6 +86,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
     const addressText = placesRef.current?.getAddressText() ?? location;
     onSave({
       nickname: nickname.trim() || profile.nickname,
+      coverImage,
       location: addressText.trim() || profile.location,
       intro: intro.trim() || profile.intro,
       tags,
@@ -84,7 +95,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       closedDay: closedDay.trim() || null,
       ...locationMeta,
     });
-  }, [nickname, location, locationMeta, intro, tags, openChatUrl, availableHours, closedDay, profile, onSave]);
+  }, [nickname, coverImage, location, locationMeta, intro, tags, openChatUrl, availableHours, closedDay, profile, onSave]);
 
   if (!visible) return null;
 
@@ -124,6 +135,25 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                 keyboardShouldPersistTaps="handled"
                 style={styles.scroll}
               >
+                {/* Cover Image */}
+                <TouchableOpacity
+                  onPress={handlePickCover}
+                  activeOpacity={0.8}
+                  style={styles.coverBlock}
+                >
+                  {coverImage ? (
+                    <Image source={{ uri: coverImage }} style={styles.coverImg} resizeMode="cover" />
+                  ) : (
+                    <View style={styles.coverPlaceholder}>
+                      <Text style={styles.coverPlaceholderText}>배경 사진 없음</Text>
+                    </View>
+                  )}
+                  <View style={styles.coverEditBadge}>
+                    <CameraSolidIcon size={13} color={COLORS.black} strokeWidth={1.9} />
+                    <Text style={styles.coverEditText}>배경 변경</Text>
+                  </View>
+                </TouchableOpacity>
+
                 {/* Avatar */}
                 <View style={styles.avatarBlock}>
                   <View style={styles.avatarCircle}>
@@ -351,6 +381,46 @@ const styles = StyleSheet.create({
   },
   scroll: {
     maxHeight: SH * 0.55,
+  },
+  coverBlock: {
+    height: 120,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  coverImg: {
+    width: '100%',
+    height: '100%',
+  },
+  coverPlaceholder: {
+    flex: 1,
+    backgroundColor: COLORS.elevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverPlaceholderText: {
+    color: COLORS.gray2,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  coverEditBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.gold,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  coverEditText: {
+    color: COLORS.black,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
   },
   avatarBlock: {
     alignItems: 'center',

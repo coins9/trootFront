@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View, Text, Image, TouchableOpacity, ScrollView,
-  StyleSheet, Dimensions, StatusBar, Share,
+  StyleSheet, Dimensions, StatusBar, Share, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -10,7 +10,7 @@ import { COLORS } from '../../theme/colors';
 import {
   BackArrowIcon, ShareIcon, DotsIcon, StarIcon, LocationPinIcon,
   BookmarkIcon, ShieldCheckIcon, LockIcon, ChevronDownIcon, ChevronRightIcon,
-  CommentIcon, PersonSilhouette, TattooPlaceholderIcon,
+  CommentIcon, PersonSilhouette, TattooPlaceholderIcon, ClockIcon, CalendarIcon,
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { usePagedApi, useApi } from '../../hooks/useApi';
@@ -133,6 +133,11 @@ const ArtistProfileScreen = () => {
       <View style={styles.multiIcon}>
         <View style={styles.multiIconInner} />
       </View>
+      {artist.isSelectedMaster && (
+        <View style={styles.selectedMasterBadge}>
+          <Text style={styles.selectedMasterBadgeText}>★ SM</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 
@@ -187,11 +192,51 @@ const ArtistProfileScreen = () => {
       <View style={styles.infoTabRow}>
         <View style={styles.infoTabItem}>
           <LocationPinIcon size={18} color={COLORS.gold} />
-          <View>
+          <View style={styles.infoTabTextGroup}>
             <Text style={styles.infoTabLabel}>{t('artistProfile.regionLabel')}</Text>
-            <Text style={styles.infoTabValue}>{artist.city} · {artist.district}구</Text>
+            <Text style={styles.infoTabValue}>{artist.city} · {artist.district}</Text>
           </View>
         </View>
+        {!!artist.availableHours && (
+          <View style={styles.infoTabItem}>
+            <ClockIcon size={18} color={COLORS.gold} />
+            <View style={styles.infoTabTextGroup}>
+              <Text style={styles.infoTabLabel}>{t('artistProfile.consultLabel')}</Text>
+              <Text style={styles.infoTabValue}>{artist.availableHours}</Text>
+            </View>
+          </View>
+        )}
+        {!!artist.closedDay && (
+          <View style={styles.infoTabItem}>
+            <CalendarIcon size={18} color={COLORS.gold} />
+            <View style={styles.infoTabTextGroup}>
+              <Text style={styles.infoTabLabel}>{t('artistProfile.dayOffLabel')}</Text>
+              <Text style={styles.infoTabValue}>{artist.closedDay}</Text>
+            </View>
+          </View>
+        )}
+        {!!artist.bio && (
+          <View style={styles.infoTabItem}>
+            <PersonSilhouette size={18} color={COLORS.gold} />
+            <View style={styles.infoTabTextGroup}>
+              <Text style={styles.infoTabLabel}>소개</Text>
+              <Text style={styles.infoTabValue}>{artist.bio}</Text>
+            </View>
+          </View>
+        )}
+        {!!artist.kakaoLink && (
+          <TouchableOpacity
+            style={styles.infoTabItem}
+            activeOpacity={0.8}
+            onPress={() => Linking.openURL(artist.kakaoLink!).catch(() => {})}
+          >
+            <CommentIcon size={18} color={COLORS.gold} strokeWidth={2} />
+            <View style={styles.infoTabTextGroup}>
+              <Text style={styles.infoTabLabel}>카카오 오픈채팅</Text>
+              <Text style={[styles.infoTabValue, { color: COLORS.gold }]}>채팅방 바로가기 →</Text>
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -322,8 +367,18 @@ const ArtistProfileScreen = () => {
                   {following ? t('artistProfile.following') : t('artistProfile.follow')}
                 </Text>
               </TouchableOpacity>
+              {artist.kakaoLink ? (
+                <TouchableOpacity
+                  style={styles.kakaoBtn}
+                  activeOpacity={0.85}
+                  onPress={() => Linking.openURL(artist.kakaoLink!).catch(() => {})}
+                >
+                  <CommentIcon size={16} color={COLORS.black} strokeWidth={2} />
+                  <Text style={styles.kakaoText}>오픈채팅</Text>
+                </TouchableOpacity>
+              ) : null}
               <TouchableOpacity
-                style={styles.consultBtn}
+                style={[styles.consultBtn, artist.kakaoLink ? styles.consultBtnNarrow : undefined]}
                 activeOpacity={0.85}
                 onPress={() => setBookingVisible(true)}
               >
@@ -724,11 +779,30 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: COLORS.gold,
   },
+  consultBtnNarrow: {
+    flex: 1.6,
+  },
   consultText: {
     color: COLORS.black,
     fontSize: 15,
     fontWeight: '700',
     lineHeight: 20,
+  },
+  kakaoBtn: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#FEE500',
+  },
+  kakaoText: {
+    color: '#3C1E1E',
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 19,
   },
 
   /* ── Badge card (3 columns) ── */
@@ -1077,8 +1151,12 @@ const styles = StyleSheet.create({
   },
   infoTabItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
+  },
+  infoTabTextGroup: {
+    flex: 1,
+    gap: 2,
   },
   infoTabLabel: {
     color: COLORS.gray,
@@ -1090,5 +1168,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 20,
+  },
+
+  /* ── Selected Master badge on portfolio items ── */
+  selectedMasterBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: COLORS.gold,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  selectedMasterBadgeText: {
+    color: COLORS.black,
+    fontSize: 8,
+    fontWeight: '800',
+    lineHeight: 11,
   },
 });

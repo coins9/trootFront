@@ -20,6 +20,7 @@ export interface ArtistSelfProfile {
   openChatUrl?: string | null;
   availableHours?: string | null;
   closedDay?: string | null;
+  coverImage?: string | null;
 }
 
 export type ArtworkMediaType = 'image';
