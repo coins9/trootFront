@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, FlatList, StyleSheet, StatusBar, TouchableOpacity, Image,
-  ActivityIndicator, Linking,
+  ActivityIndicator, Linking, Alert, TextInput,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -200,6 +200,68 @@ const MyProductsScreen = () => {
               </Text>
             )}
             {vendor.status === 'approved' && (
+              <View style={s.chatRow}>
+                <TouchableOpacity
+                  style={s.chatBtn}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    if (vendor.openChatUrl) {
+                      Linking.openURL(vendor.openChatUrl).catch(() => {});
+                    } else {
+                      Alert.prompt(
+                        '카카오 오픈채팅 URL',
+                        '오픈채팅 URL을 입력해주세요 (open.kakao.com/...)',
+                        async (url) => {
+                          if (!url?.trim()) return;
+                          try {
+                            const updated = await supplyVendorApi.updateVendor({ openChatUrl: url.trim() });
+                            setVendor(updated);
+                            toast('오픈채팅 URL이 저장되었습니다', { variant: 'success' });
+                          } catch {
+                            toast('저장에 실패했습니다', { variant: 'error' });
+                          }
+                        },
+                        'plain-text',
+                        vendor.openChatUrl ?? '',
+                      );
+                    }
+                  }}
+                >
+                  <Text style={s.chatBtnText}>
+                    {vendor.openChatUrl ? '💬 오픈채팅 바로가기' : '💬 오픈채팅 URL 등록'}
+                  </Text>
+                </TouchableOpacity>
+                {vendor.openChatUrl && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.prompt(
+                        '카카오 오픈채팅 URL',
+                        '오픈채팅 URL을 변경해주세요',
+                        async (url) => {
+                          if (url === undefined) return;
+                          try {
+                            const updated = await supplyVendorApi.updateVendor({ openChatUrl: url.trim() || '' });
+                            setVendor(updated);
+                            toast('오픈채팅 URL이 저장되었습니다', { variant: 'success' });
+                          } catch {
+                            toast('저장에 실패했습니다', { variant: 'error' });
+                          }
+                        },
+                        'plain-text',
+                        vendor.openChatUrl,
+                      );
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <EditPenIcon size={14} color={COLORS.gray} strokeWidth={1.7} />
+                  </TouchableOpacity>
+                )}
+                {vendor.inquiryCount > 0 && (
+                  <Text style={s.inquiryCount}>문의 {vendor.inquiryCount}회</Text>
+                )}
+              </View>
+            )}
+            {vendor.status === 'approved' && (
               <TouchableOpacity
                 style={s.adLink}
                 activeOpacity={0.75}
@@ -290,6 +352,13 @@ const s = StyleSheet.create({
   statusBadge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 9, paddingVertical: 3 },
   statusText: { fontSize: 11.5, fontWeight: '700', lineHeight: 16 },
   statusDesc: { color: COLORS.gray, fontSize: 12.5, lineHeight: 18 },
+  chatRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  chatBtn: {
+    backgroundColor: COLORS.goldDim, borderRadius: 8, borderWidth: 1, borderColor: COLORS.gold,
+    paddingHorizontal: 12, paddingVertical: 7,
+  },
+  chatBtnText: { color: COLORS.gold, fontSize: 12.5, fontWeight: '600', lineHeight: 18 },
+  inquiryCount: { color: COLORS.gray, fontSize: 12, lineHeight: 18 },
   adLink: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border,

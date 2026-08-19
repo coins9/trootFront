@@ -14,6 +14,8 @@ export interface MyVendor {
   commissionRate: string;
   status: VendorStatus;
   productCount: number;
+  openChatUrl: string | null;
+  inquiryCount: number;
   createdAt: string;
 }
 
@@ -81,4 +83,7 @@ export const supplyVendorApi = {
 
   deleteProduct: (id: string) =>
     api.delete<{ deleted: boolean }>(`/app/supplies/vendors/me/products/${id}`),
+
+  updateVendor: (body: { openChatUrl?: string }) =>
+    api.patch<MyVendor>('/app/supplies/vendors/me', body),
 };

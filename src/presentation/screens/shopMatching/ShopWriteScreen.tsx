@@ -18,8 +18,8 @@ import { deleteUpload } from '../../../data/api/upload';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import {
   ShopMatchingCategory,
-  ShareRegion, ShareLighting, ShareBedCount,
-  SHARE_REGION_OPTIONS,
+  ShareLighting, ShareBedCount,
+
 } from '../../../domain/entities/shopTypes';
 import { shopApi, ShopCategory } from '../../../data/api';
 import BilingualSection from '../../components/common/BilingualSection';
@@ -36,7 +36,6 @@ const CATEGORIES: ShopMatchingCategory[] = [
 ];
 
 /* ── 공통 옵션 ── */
-const REGION_OPTS = SHARE_REGION_OPTIONS.filter(r => r !== '전체');
 const STYLE_OPTS = ['블랙워크', '라인워크', '올드스쿨', '뉴스쿨', '이레즈미', '수채화', '미니타투', '커버업'];
 
 /* ── 해외 부스쉐어 옵션 ── */
@@ -83,7 +82,9 @@ const SectionLabel = ({ label, required }: { label: string; required?: boolean }
 interface BoothForm {
   title: string;
   titleEn: string;
-  region: ShareRegion | '';
+  region: string;
+  latitude: number | null;
+  longitude: number | null;
   pricePerDay: string;
   bedCount: ShareBedCount | '';
   lighting: ShareLighting | '';
@@ -94,7 +95,7 @@ interface BoothForm {
 }
 
 const EMPTY_BOOTH: BoothForm = {
-  title: '', titleEn: '', region: '', pricePerDay: '', bedCount: '',
+  title: '', titleEn: '', region: '', latitude: null, longitude: null, pricePerDay: '', bedCount: '',
   lighting: '', maxOccupancy: '', description: '', descriptionEn: '', contact: '',
 };
 
@@ -102,6 +103,7 @@ const BoothShareForm = ({ form, setForm }: {
   form: BoothForm;
   setForm: React.Dispatch<React.SetStateAction<BoothForm>>;
 }) => {
+  const regionRef = useRef<GooglePlacesAutocompleteRef>(null);
   const toggle = useCallback((field: keyof BoothForm) => (v: string) => {
     setForm(p => ({ ...p, [field]: p[field] === v ? '' : v }));
   }, [setForm]);
@@ -119,11 +121,25 @@ const BoothShareForm = ({ form, setForm }: {
       />
 
       <SectionLabel label="지역" required />
-      <ChipSelect
-        options={REGION_OPTS}
-        selected={form.region ? [form.region] : []}
-        onToggle={toggle('region')}
-      />
+      <View style={s.placesWrap}>
+        <GooglePlacesAutocomplete
+          ref={regionRef}
+          placeholder="지역 검색 (예: 서울 강남구, 부산 해운대구)"
+          query={{ key: Config.GOOGLE_PLACES_API_KEY ?? '', language: 'ko', types: 'geocode', components: 'country:kr' }}
+          fetchDetails={true}
+          onPress={(data, details) => {
+            setForm(p => ({
+              ...p,
+              region: data.description,
+              latitude: details?.geometry?.location.lat ?? null,
+              longitude: details?.geometry?.location.lng ?? null,
+            }));
+          }}
+          textInputProps={{ placeholderTextColor: COLORS.gray2, onChangeText: v => setForm(p => ({ ...p, region: v, latitude: null, longitude: null })) }}
+          enablePoweredByContainer={false}
+          styles={{ container: { flex: 1 }, textInputContainer: { backgroundColor: 'transparent' }, textInput: s.placesInput, listView: s.placesList, row: s.placesRow, description: s.placesDescription, separator: { height: 1, backgroundColor: COLORS.border } }}
+        />
+      </View>
 
       <SectionLabel label="1일 가격 (원)" required />
       <TextInput
@@ -338,6 +354,8 @@ interface ModelForm {
   title: string;
   titleEn: string;
   region: string;
+  latitude: number | null;
+  longitude: number | null;
   styles: string[];
   materialFee: string;
   workPeriod: string;
@@ -347,7 +365,7 @@ interface ModelForm {
 }
 
 const EMPTY_MODEL: ModelForm = {
-  title: '', titleEn: '', region: '', styles: [], materialFee: '', workPeriod: '',
+  title: '', titleEn: '', region: '', latitude: null, longitude: null, styles: [], materialFee: '', workPeriod: '',
   description: '', descriptionEn: '', contact: '',
 };
 
@@ -355,9 +373,7 @@ const ModelRecruitForm = ({ form, setForm }: {
   form: ModelForm;
   setForm: React.Dispatch<React.SetStateAction<ModelForm>>;
 }) => {
-  const toggleRegion = useCallback((v: string) => {
-    setForm(p => ({ ...p, region: p.region === v ? '' : v }));
-  }, [setForm]);
+  const regionRef = useRef<GooglePlacesAutocompleteRef>(null);
 
   const toggleStyle = useCallback((v: string) => {
     setForm(p => ({
@@ -379,11 +395,25 @@ const ModelRecruitForm = ({ form, setForm }: {
       />
 
       <SectionLabel label="지역" required />
-      <ChipSelect
-        options={REGION_OPTS}
-        selected={form.region ? [form.region] : []}
-        onToggle={toggleRegion}
-      />
+      <View style={s.placesWrap}>
+        <GooglePlacesAutocomplete
+          ref={regionRef}
+          placeholder="지역 검색 (예: 서울 강남구, 부산 해운대구)"
+          query={{ key: Config.GOOGLE_PLACES_API_KEY ?? '', language: 'ko', types: 'geocode', components: 'country:kr' }}
+          fetchDetails={true}
+          onPress={(data, details) => {
+            setForm(p => ({
+              ...p,
+              region: data.description,
+              latitude: details?.geometry?.location.lat ?? null,
+              longitude: details?.geometry?.location.lng ?? null,
+            }));
+          }}
+          textInputProps={{ placeholderTextColor: COLORS.gray2, onChangeText: v => setForm(p => ({ ...p, region: v, latitude: null, longitude: null })) }}
+          enablePoweredByContainer={false}
+          styles={{ container: { flex: 1 }, textInputContainer: { backgroundColor: 'transparent' }, textInput: s.placesInput, listView: s.placesList, row: s.placesRow, description: s.placesDescription, separator: { height: 1, backgroundColor: COLORS.border } }}
+        />
+      </View>
 
       <SectionLabel label="작업 스타일" required />
       <ChipSelect
@@ -454,6 +484,8 @@ interface MediaForm {
   specialty: '사진' | '영상' | '';
   nickname: string;
   region: string;
+  latitude: number | null;
+  longitude: number | null;
   experience: string;
   workKinds: string[];
   priceMin: string;
@@ -465,7 +497,7 @@ interface MediaForm {
 }
 
 const EMPTY_MEDIA: MediaForm = {
-  specialty: '', nickname: '', region: '', experience: '',
+  specialty: '', nickname: '', region: '', latitude: null, longitude: null, experience: '',
   workKinds: [], priceMin: '', priceMax: '', description: '', descriptionEn: '',
   instagramUrl: '', contact: '',
 };
@@ -476,9 +508,7 @@ const MediaExpertForm = ({ form, setForm }: {
   form: MediaForm;
   setForm: React.Dispatch<React.SetStateAction<MediaForm>>;
 }) => {
-  const toggleRegion = useCallback((v: string) => {
-    setForm(p => ({ ...p, region: p.region === v ? '' : v }));
-  }, [setForm]);
+  const regionRef = useRef<GooglePlacesAutocompleteRef>(null);
 
   const toggleExp = useCallback((v: string) => {
     setForm(p => ({ ...p, experience: p.experience === v ? '' : v }));
@@ -511,11 +541,25 @@ const MediaExpertForm = ({ form, setForm }: {
       />
 
       <SectionLabel label="활동 지역" required />
-      <ChipSelect
-        options={REGION_OPTS}
-        selected={form.region ? [form.region] : []}
-        onToggle={toggleRegion}
-      />
+      <View style={s.placesWrap}>
+        <GooglePlacesAutocomplete
+          ref={regionRef}
+          placeholder="지역 검색 (예: 서울 강남구, 부산 해운대구)"
+          query={{ key: Config.GOOGLE_PLACES_API_KEY ?? '', language: 'ko', types: 'geocode', components: 'country:kr' }}
+          fetchDetails={true}
+          onPress={(data, details) => {
+            setForm(p => ({
+              ...p,
+              region: data.description,
+              latitude: details?.geometry?.location.lat ?? null,
+              longitude: details?.geometry?.location.lng ?? null,
+            }));
+          }}
+          textInputProps={{ placeholderTextColor: COLORS.gray2, onChangeText: v => setForm(p => ({ ...p, region: v, latitude: null, longitude: null })) }}
+          enablePoweredByContainer={false}
+          styles={{ container: { flex: 1 }, textInputContainer: { backgroundColor: 'transparent' }, textInput: s.placesInput, listView: s.placesList, row: s.placesRow, description: s.placesDescription, separator: { height: 1, backgroundColor: COLORS.border } }}
+        />
+      </View>
 
       <SectionLabel label="경력" required />
       <ChipSelect
@@ -736,6 +780,8 @@ const ShopWriteScreen = () => {
           bedCount: boothForm.bedCount,
           lighting: boothForm.lighting || null,
           maxOccupancy: boothForm.maxOccupancy ? Number(boothForm.maxOccupancy) : null,
+          latitude: boothForm.latitude,
+          longitude: boothForm.longitude,
         },
       };
     }
@@ -753,6 +799,8 @@ const ShopWriteScreen = () => {
         attributes: {
           styles: modelForm.styles,
           workPeriod: modelForm.workPeriod.trim(),
+          latitude: modelForm.latitude,
+          longitude: modelForm.longitude,
         },
       };
     }
@@ -773,6 +821,8 @@ const ShopWriteScreen = () => {
         priceMin: mediaForm.priceMin ? Number(mediaForm.priceMin) : null,
         priceMax: mediaForm.priceMax ? Number(mediaForm.priceMax) : null,
         instagramUrl: mediaForm.instagramUrl.trim() || null,
+        latitude: mediaForm.latitude,
+        longitude: mediaForm.longitude,
       },
     };
   }, [category, boothKind, boothForm, overseasBoothForm, modelForm, mediaForm, images]);

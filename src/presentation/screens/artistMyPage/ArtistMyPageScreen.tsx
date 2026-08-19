@@ -20,7 +20,6 @@ import ArtworkFormSheet from '../../components/artistMyPage/ArtworkFormSheet';
 import ArtworkDetailModal from '../../components/artistMyPage/ArtworkDetailModal';
 import ReviewManageModal from '../../components/artistMyPage/ReviewManageModal';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
-import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import {
   ArtistSelfProfile, ArtistArtwork, ArtistReviewItem, ArtistReviewReply,
 } from '../../../domain/entities/artistMyPageTypes';
@@ -178,7 +177,6 @@ const ArtistMyPageScreen = () => {
   const [artworkFormOpen, setArtworkFormOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState<ArtistReviewItem | null>(null);
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
-  const bottomTabHeight = useBottomTabHeight();
 
   const requestReviewSupport = useCallback(() => {
     setConfirm({
@@ -248,7 +246,7 @@ const ArtistMyPageScreen = () => {
       const body = {
         title: next.title,
         description: next.description,
-        genres: next.subjects,
+        genres: Array.from(new Set([next.genre, ...next.subjects].filter(Boolean))),
         bodyPart: next.bodyPart,
         priceKrw: next.priceFrom || null,
         images: next.imageUris?.length ? next.imageUris : (next.thumbnailUri ? [next.thumbnailUri] : []),
@@ -371,7 +369,7 @@ const ArtistMyPageScreen = () => {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomTabHeight + 80 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 80 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Sub header */}
@@ -577,7 +575,7 @@ const ArtistMyPageScreen = () => {
         <TouchableOpacity
           onPress={() => handleOpenArtworkForm(null)}
           activeOpacity={0.85}
-          style={[styles.fab, { bottom: bottomTabHeight + 12 }]}
+          style={[styles.fab, { bottom: 12 }]}
         >
           <PlusIcon size={28} color={COLORS.black} strokeWidth={2.4} />
         </TouchableOpacity>
@@ -610,7 +608,6 @@ const ArtistMyPageScreen = () => {
       />
       <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
 
-      <AppBottomTabBar activeTab="ProfileTab" />
     </SafeAreaView>
   );
 };

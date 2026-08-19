@@ -25,15 +25,17 @@ import {
   SHARE_REGION_OPTIONS, SHARE_LIGHTING_OPTIONS, SHARE_BED_OPTIONS,
   SHARE_OCCUPANCY_OPTIONS, SHARE_SORT_OPTIONS,
   ShareRegion, ShareLighting, ShareBedCount, ShareOccupancy, ShareSort,
-  matchRegion, matchLighting, matchBedCount, matchOccupancy, applyShareSort,
+  matchLighting, matchBedCount, matchOccupancy, applyShareSort,
   BeginnerFilterState, INITIAL_BEGINNER_FILTER,
   BEGINNER_STYLE_OPTIONS, BEGINNER_PRICE_OPTIONS, BEGINNER_SORT_OPTIONS,
   BeginnerStyle, BeginnerPriceRange, BeginnerSort,
   matchBeginnerStyle, matchBeginnerPrice, applyBeginnerSort,
+
   ExpertFilterState, INITIAL_EXPERT_FILTER,
   EXPERT_CAREER_OPTIONS, EXPERT_WORK_KIND_OPTIONS, EXPERT_SORT_OPTIONS,
   ExpertCareer, ExpertWorkKind, ExpertSort,
   matchExpertCareer, matchExpertWorkKind, applyExpertSort,
+
 } from '../../../domain/entities/shopTypes';
 import { usePagedApi } from '../../hooks/useApi';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -218,21 +220,25 @@ const ShopMatchingScreen = () => {
   const [activeFilterSheet, setActiveFilterSheet] = useState<AnyFilterKind | null>(null);
 
   /* ── API 데이터 ── */
+  const boothRegion = shareFilter.region !== '전체' ? shareFilter.region : undefined;
+  const modelRegion = beginnerFilter.region !== '전체' ? beginnerFilter.region : undefined;
+  const expertRegion = expertFilter.region !== '전체' ? expertFilter.region : undefined;
+
   const { items: rawBooth } = usePagedApi(
-    (cursor) => shopApi.list({ category: 'booth_share', keyword: debouncedKeyword || undefined, cursor }),
-    [debouncedKeyword],
+    (cursor) => shopApi.list({ category: 'booth_share', keyword: debouncedKeyword || undefined, region: boothRegion, cursor }),
+    [debouncedKeyword, boothRegion],
   );
   const { items: rawOverseasBooth } = usePagedApi(
     (cursor) => shopApi.list({ category: 'booth_share_overseas', keyword: debouncedKeyword || undefined, cursor }),
     [debouncedKeyword],
   );
   const { items: rawModel } = usePagedApi(
-    (cursor) => shopApi.list({ category: 'model_recruit', keyword: debouncedKeyword || undefined, cursor }),
-    [debouncedKeyword],
+    (cursor) => shopApi.list({ category: 'model_recruit', keyword: debouncedKeyword || undefined, region: modelRegion, cursor }),
+    [debouncedKeyword, modelRegion],
   );
   const { items: rawMedia } = usePagedApi(
-    (cursor) => shopApi.list({ category: 'media_expert', keyword: debouncedKeyword || undefined, cursor }),
-    [debouncedKeyword],
+    (cursor) => shopApi.list({ category: 'media_expert', keyword: debouncedKeyword || undefined, region: expertRegion, cursor }),
+    [debouncedKeyword, expertRegion],
   );
 
   const boothPosts = useMemo(() => rawBooth.map(toShareShop), [rawBooth]);
@@ -281,8 +287,7 @@ const ShopMatchingScreen = () => {
 
   const filteredModels = useMemo(() => {
     const filtered = modelPosts.filter((p) =>
-      matchRegion(p.location, beginnerFilter.region)
-      && matchBeginnerStyle(p.tags, beginnerFilter.style)
+      matchBeginnerStyle(p.tags, beginnerFilter.style)
       && matchBeginnerPrice(p.materialFee, beginnerFilter.price),
     );
     return applyBeginnerSort(filtered, beginnerFilter.sort);
@@ -291,18 +296,16 @@ const ShopMatchingScreen = () => {
   const filteredExperts = useMemo(() => {
     const byTab = mediaPosts.filter((e) => e.specialty === expertTab);
     const filtered = byTab.filter((e) =>
-      matchRegion(e.location, expertFilter.region)
-      && matchExpertCareer(e.experience, expertFilter.career)
+      matchExpertCareer(e.experience, expertFilter.career)
       && matchExpertWorkKind(e.tags, expertFilter.workKind),
     );
     return applyExpertSort(filtered, expertFilter.sort);
   }, [mediaPosts, expertTab, expertFilter]);
 
-  /* ── 부스 쉐어 필터·정렬 적용 ── */
+  /* ── 부스 쉐어 필터·정렬 적용 (지역은 서버사이드, 나머지는 클라이언트) ── */
   const filteredShops = useMemo(() => {
     const list = boothPosts.filter((s) =>
-      matchRegion(s.address, shareFilter.region)
-      && matchLighting(s.lighting, shareFilter.lighting)
+      matchLighting(s.lighting, shareFilter.lighting)
       && matchBedCount(s.bedCount, shareFilter.bedCount)
       && matchOccupancy(s.maxOccupancy, shareFilter.occupancy),
     );
