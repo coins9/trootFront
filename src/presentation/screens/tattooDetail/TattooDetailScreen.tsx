@@ -15,6 +15,7 @@ import {
 import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
+import { favoriteApi } from '../../../data/api';
 import { artistTagLabels } from '../../../domain/entities/artistTags';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -31,8 +32,23 @@ const TattooDetailScreen = () => {
 
   const { t } = useTranslation();
   const [liked, setLiked] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [bookingVisible, setBookingVisible] = useState(false);
+
+  const handleToggleLike = useCallback(async () => {
+    if (likeLoading) return;
+    const next = !liked;
+    setLiked(next);           // optimistic
+    setLikeLoading(true);
+    try {
+      await favoriteApi.toggle('artwork', tattoo.id);
+    } catch {
+      setLiked(!next);        // revert on error
+    } finally {
+      setLikeLoading(false);
+    }
+  }, [liked, likeLoading, tattoo.id]);
 
   const handleArtistPress = useCallback(() => {
     navigation.navigate('ArtistProfile', { artist: tattoo.artist });
@@ -81,7 +97,7 @@ const TattooDetailScreen = () => {
               <ShareIcon size={22} color={COLORS.white} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setLiked((v) => !v)}
+              onPress={handleToggleLike}
               style={styles.overlayBtn}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -104,20 +120,37 @@ const TattooDetailScreen = () => {
       >
         <Text style={styles.title}>{tattoo.title}</Text>
 
-        <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>{t('artist.estimatedPrice')}</Text>
-          <Text style={styles.price}>{formatPrice(tattoo.minPrice)}</Text>
-        </View>
+        {tattoo.minPrice > 0 && (
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>{t('artist.estimatedPrice')}</Text>
+            <Text style={styles.price}>{formatPrice(tattoo.minPrice)}</Text>
+          </View>
+        )}
 
-        <View style={styles.tagsRow}>
-          {tattoo.tags.map((tag) => (
-            <View key={tag} style={styles.tag}>
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
+        {/* 장르 / 시술부위 / 사이즈 chips */}
+        {(tattoo.genres.length > 0 || tattoo.bodyParts.length > 0 || tattoo.sizePreset) && (
+          <View style={styles.tagsRow}>
+            {tattoo.genres.map((g) => (
+              <View key={`g-${g}`} style={styles.tag}>
+                <Text style={styles.tagText}>{g}</Text>
+              </View>
+            ))}
+            {tattoo.bodyParts.map((b) => (
+              <View key={`b-${b}`} style={[styles.tag, styles.tagBodyPart]}>
+                <Text style={styles.tagText}>{b}</Text>
+              </View>
+            ))}
+            {tattoo.sizePreset ? (
+              <View style={[styles.tag, styles.tagSize]}>
+                <Text style={styles.tagText}>{tattoo.sizePreset}</Text>
+              </View>
+            ) : null}
+          </View>
+        )}
 
-        <Text style={styles.description}>{tattoo.description}</Text>
+        {!!tattoo.description && (
+          <Text style={styles.description}>{tattoo.description}</Text>
+        )}
 
         <TouchableOpacity
           onPress={handleArtistPress}
@@ -259,6 +292,12 @@ const styles = StyleSheet.create({
     borderColor: COLORS.chipBorder,
     paddingHorizontal: 14,
     paddingVertical: 7,
+  },
+  tagBodyPart: {
+    borderColor: '#5A8A6A',
+  },
+  tagSize: {
+    borderColor: COLORS.gold,
   },
   tagText: {
     color: COLORS.white,

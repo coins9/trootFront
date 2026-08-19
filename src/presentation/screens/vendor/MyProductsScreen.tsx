@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, FlatList, StyleSheet, StatusBar, TouchableOpacity, Image,
-  ActivityIndicator, Linking, Alert, TextInput,
+  ActivityIndicator, Linking, Alert, TextInput, Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -49,6 +49,25 @@ const MyProductsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
+  const [chatModalVisible, setChatModalVisible] = useState(false);
+  const [chatUrlInput, setChatUrlInput] = useState('');
+
+  const openChatModal = () => {
+    setChatUrlInput(vendor?.openChatUrl ?? '');
+    setChatModalVisible(true);
+  };
+
+  const saveChatUrl = async () => {
+    const url = chatUrlInput.trim();
+    setChatModalVisible(false);
+    try {
+      const updated = await supplyVendorApi.updateVendor({ openChatUrl: url });
+      setVendor(updated);
+      toast('오픈채팅 URL이 저장되었습니다', { variant: 'success' });
+    } catch {
+      toast('저장에 실패했습니다', { variant: 'error' });
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -208,22 +227,7 @@ const MyProductsScreen = () => {
                     if (vendor.openChatUrl) {
                       Linking.openURL(vendor.openChatUrl).catch(() => {});
                     } else {
-                      Alert.prompt(
-                        '카카오 오픈채팅 URL',
-                        '오픈채팅 URL을 입력해주세요 (open.kakao.com/...)',
-                        async (url) => {
-                          if (!url?.trim()) return;
-                          try {
-                            const updated = await supplyVendorApi.updateVendor({ openChatUrl: url.trim() });
-                            setVendor(updated);
-                            toast('오픈채팅 URL이 저장되었습니다', { variant: 'success' });
-                          } catch {
-                            toast('저장에 실패했습니다', { variant: 'error' });
-                          }
-                        },
-                        'plain-text',
-                        vendor.openChatUrl ?? '',
-                      );
+                      openChatModal();
                     }
                   }}
                 >
@@ -233,24 +237,7 @@ const MyProductsScreen = () => {
                 </TouchableOpacity>
                 {vendor.openChatUrl && (
                   <TouchableOpacity
-                    onPress={() => {
-                      Alert.prompt(
-                        '카카오 오픈채팅 URL',
-                        '오픈채팅 URL을 변경해주세요',
-                        async (url) => {
-                          if (url === undefined) return;
-                          try {
-                            const updated = await supplyVendorApi.updateVendor({ openChatUrl: url.trim() || '' });
-                            setVendor(updated);
-                            toast('오픈채팅 URL이 저장되었습니다', { variant: 'success' });
-                          } catch {
-                            toast('저장에 실패했습니다', { variant: 'error' });
-                          }
-                        },
-                        'plain-text',
-                        vendor.openChatUrl,
-                      );
-                    }}
+                    onPress={openChatModal}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
                     <EditPenIcon size={14} color={COLORS.gray} strokeWidth={1.7} />
@@ -261,16 +248,7 @@ const MyProductsScreen = () => {
                 )}
               </View>
             )}
-            {vendor.status === 'approved' && (
-              <TouchableOpacity
-                style={s.adLink}
-                activeOpacity={0.75}
-                onPress={() => navigation.navigate('AdManage', { placement: 'product' })}
-              >
-                <Text style={s.adLinkText}>용품샵 광고 · 통계 관리</Text>
-                <ChevronRightIcon size={15} color={COLORS.gold} />
-              </TouchableOpacity>
-            )}
+
           </View>
 
           <FlatList
@@ -305,6 +283,33 @@ const MyProductsScreen = () => {
         </>
       )}
 
+      {/* Chat URL Edit Modal */}
+      <Modal visible={chatModalVisible} transparent animationType="fade" onRequestClose={() => setChatModalVisible(false)}>
+        <View style={s.modalBackdrop}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>카카오 오픈채팅 URL</Text>
+            <TextInput
+              style={s.modalInput}
+              value={chatUrlInput}
+              onChangeText={setChatUrlInput}
+              placeholder="open.kakao.com/o/..."
+              placeholderTextColor={COLORS.gray3}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              autoFocus
+            />
+            <View style={s.modalActions}>
+              <TouchableOpacity style={s.modalCancelBtn} onPress={() => setChatModalVisible(false)}>
+                <Text style={s.modalCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.modalSaveBtn} onPress={saveChatUrl}>
+                <Text style={s.modalSaveText}>저장</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
     </SafeAreaView>
   );
@@ -395,4 +400,18 @@ const s = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 3 }, shadowRadius: 6, elevation: 6,
   },
+
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
+  modalCard: { width: '100%', backgroundColor: COLORS.card, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: COLORS.border },
+  modalTitle: { color: COLORS.white, fontSize: 16, fontWeight: '700', marginBottom: 14 },
+  modalInput: {
+    borderWidth: 1, borderColor: COLORS.border, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    color: COLORS.white, fontSize: 14, backgroundColor: COLORS.elevated,
+  },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  modalCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' },
+  modalCancelText: { color: COLORS.gray, fontSize: 14, fontWeight: '600' },
+  modalSaveBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: COLORS.gold, alignItems: 'center' },
+  modalSaveText: { color: COLORS.black, fontSize: 14, fontWeight: '700' },
 });

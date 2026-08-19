@@ -214,6 +214,7 @@ const BoothShareForm = ({ form, setForm }: {
  * ───────────────────────────────────────────────────── */
 interface OverseasBoothForm {
   title: string;
+  titleEn: string;
   country: string;
   city: string;
   pricePerDay: string;
@@ -221,12 +222,13 @@ interface OverseasBoothForm {
   bedCount: ShareBedCount | '';
   lighting: ShareLighting | '';
   description: string;
+  descriptionEn: string;
   contact: string;
 }
 
 const EMPTY_OVERSEAS_BOOTH: OverseasBoothForm = {
-  title: '', country: '', city: '', pricePerDay: '', currency: 'USD',
-  bedCount: '', lighting: '', description: '', contact: '',
+  title: '', titleEn: '', country: '', city: '', pricePerDay: '', currency: 'USD',
+  bedCount: '', lighting: '', description: '', descriptionEn: '', contact: '',
 };
 
 const OverseasBoothShareForm = ({ form, setForm }: {
@@ -240,14 +242,25 @@ const OverseasBoothShareForm = ({ form, setForm }: {
 
   return (
     <>
-      <SectionLabel label="제목 (Title)" required />
+      <SectionLabel label="제목 (한국어)" required />
       <TextInput
         style={s.input}
-        placeholder="e.g. Tokyo Shinjuku Booth Share – 1 Bed Available"
+        placeholder="예: 도쿄 신주쿠 부스쉐어 1베드"
         placeholderTextColor={COLORS.gray2}
         value={form.title}
         onChangeText={v => setForm(p => ({ ...p, title: v }))}
         maxLength={60}
+      />
+
+      <SectionLabel label="Title (English)" />
+      <TextInput
+        style={s.input}
+        placeholder="e.g. Tokyo Shinjuku Booth Share – 1 Bed Available"
+        placeholderTextColor={COLORS.gray2}
+        value={form.titleEn}
+        onChangeText={v => setForm(p => ({ ...p, titleEn: v }))}
+        maxLength={60}
+        autoCapitalize="sentences"
       />
 
       <SectionLabel label="국가 (Country)" required />
@@ -323,15 +336,27 @@ const OverseasBoothShareForm = ({ form, setForm }: {
         onToggle={toggle('lighting')}
       />
 
-      <SectionLabel label="공간 소개 (Description)" required />
+      <SectionLabel label="공간 소개 (한국어)" required />
       <TextInput
         style={[s.input, s.textarea]}
-        placeholder="Space features, amenities, rules, etc."
+        placeholder="공간 특징, 편의시설, 규칙 등을 적어주세요"
         placeholderTextColor={COLORS.gray2}
         value={form.description}
         onChangeText={v => setForm(p => ({ ...p, description: v }))}
         multiline
         maxLength={600}
+      />
+
+      <SectionLabel label="Description (English)" />
+      <TextInput
+        style={[s.input, s.textarea]}
+        placeholder="Space features, amenities, rules, etc."
+        placeholderTextColor={COLORS.gray2}
+        value={form.descriptionEn}
+        onChangeText={v => setForm(p => ({ ...p, descriptionEn: v }))}
+        multiline
+        maxLength={600}
+        autoCapitalize="sentences"
       />
 
       <SectionLabel label="연락처 (Contact)" required />
@@ -749,9 +774,9 @@ const ShopWriteScreen = () => {
         return {
           category: 'booth_share_overseas' as ShopCategory,
           title: f.title.trim(),
-          titleEn: f.title.trim(),
+          titleEn: f.titleEn.trim() || f.title.trim(),
           description: f.description.trim(),
-          descriptionEn: f.description.trim(),
+          descriptionEn: f.descriptionEn.trim() || f.description.trim(),
           region: `${f.city.trim()}, ${f.country}`,
           images,
           contact: f.contact.trim() || null,

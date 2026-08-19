@@ -51,6 +51,8 @@ type BeginnerFilterKind = 'bRegion' | 'bStyle' | 'bPrice' | 'bSort';
 type ExpertFilterKind = 'eRegion' | 'eCareer' | 'eWorkKind' | 'eSort';
 type AnyFilterKind = ShareFilterKind | BeginnerFilterKind | ExpertFilterKind;
 
+const OVERSEAS_COUNTRY_OPTIONS = ['전체', '일본', '미국', '프랑스', '독일', '영국', '태국', '싱가포르', '홍콩', '대만', '호주', '캐나다', '이탈리아', '기타'];
+
 /* ── ShopPost → 도메인 타입 매퍼 ── */
 const parseBedCount = (v: unknown): number => {
   if (typeof v === 'number') return v;
@@ -202,6 +204,7 @@ const ShopMatchingScreen = () => {
   const settings = usePublicSettings();
   const [category, setCategory] = useState<ShopMatchingCategory>('부스 쉐어');
   const [boothTab, setBoothTab] = useState<'domestic' | 'overseas'>('domestic');
+  const [overseasCountry, setOverseasCountry] = useState<string>('전체');
   const [expertTab, setExpertTab] = useState<MediaSpecialty>('photo');
   const [searchVisible, setSearchVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -242,7 +245,11 @@ const ShopMatchingScreen = () => {
   );
 
   const boothPosts = useMemo(() => rawBooth.map(toShareShop), [rawBooth]);
-  const overseasBoothPosts = useMemo(() => rawOverseasBooth.map(toShareShop), [rawOverseasBooth]);
+  const overseasBoothPosts = useMemo(() => {
+    const all = rawOverseasBooth.map(toShareShop);
+    if (overseasCountry === '전체') return all;
+    return all.filter((s) => s.address.includes(overseasCountry));
+  }, [rawOverseasBooth, overseasCountry]);
   const modelPosts = useMemo(() => rawModel.map(toModelRecruit), [rawModel]);
   const mediaPosts = useMemo(() => rawMedia.map(toMediaExpert), [rawMedia]);
 
@@ -531,10 +538,16 @@ const ShopMatchingScreen = () => {
               ))
             : isShareCategory && boothTab === 'overseas'
               ? (
-                  <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8}>
-                    <RegionIcon size={13} color={COLORS.gray} />
-                    <Text style={styles.filterText}>{t('shop.filter.country')}</Text>
-                    <ChevronDownIcon size={11} color={COLORS.gray} />
+                  <TouchableOpacity
+                    style={[styles.filterBtn, overseasCountry !== '전체' && styles.filterBtnActive]}
+                    activeOpacity={0.8}
+                    onPress={() => setActiveFilterSheet('overseasCountry' as any)}
+                  >
+                    <RegionIcon size={13} color={overseasCountry !== '전체' ? COLORS.gold : COLORS.gray} />
+                    <Text style={[styles.filterText, overseasCountry !== '전체' && styles.filterTextActive]}>
+                      {overseasCountry === '전체' ? t('shop.filter.country') : overseasCountry}
+                    </Text>
+                    <ChevronDownIcon size={11} color={overseasCountry !== '전체' ? COLORS.gold : COLORS.gray} />
                   </TouchableOpacity>
                 )
               : nonShareFilters.map((f) => (
@@ -733,6 +746,16 @@ const ShopMatchingScreen = () => {
         options={BEGINNER_SORT_OPTIONS}
         selected={beginnerFilter.sort}
         onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, sort: v }))}
+        onClose={() => setActiveFilterSheet(null)}
+      />
+
+      {/* Overseas country filter */}
+      <ShareFilterBottomSheet<string>
+        visible={(activeFilterSheet as any) === 'overseasCountry'}
+        title="국가 선택"
+        options={OVERSEAS_COUNTRY_OPTIONS}
+        selected={overseasCountry}
+        onSelect={(v) => setOverseasCountry(v)}
         onClose={() => setActiveFilterSheet(null)}
       />
 

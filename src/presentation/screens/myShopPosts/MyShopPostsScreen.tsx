@@ -8,7 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
   BackArrowIcon, EditPenIcon, HeartIcon, CommentIcon, EyeIcon,
-  RegionIcon, PenIcon, BarChartIcon,
+  RegionIcon, PenIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
@@ -41,20 +41,6 @@ const CATEGORY_LABEL: Record<ShopMatchingCategory, string> = {
   '사진/영상 편집자': '사진/영상',
 };
 
-// 매칭 글 카테고리 → 광고 노출 면
-const CATEGORY_PLACEMENT: Record<ShopMatchingCategory, 'booth' | 'model' | 'media'> = {
-  '부스 쉐어': 'booth',
-  '타투 모델 구인 (비기너)': 'model',
-  '사진/영상 편집자': 'media',
-};
-
-const FILTER_TABS: { key: 'all' | ShopMatchingCategory; label: string }[] = [
-  { key: 'all', label: '전체' },
-  { key: '부스 쉐어', label: '부스 쉐어' },
-  { key: '타투 모델 구인 (비기너)', label: '타투 모델' },
-  { key: '사진/영상 편집자', label: '사진/영상' },
-];
-
 const API_TO_CATEGORY: Record<ShopCategory, ShopMatchingCategory> = {
   booth_share: '부스 쉐어',
   booth_share_overseas: '부스 쉐어',
@@ -85,12 +71,11 @@ const StatusBadge = ({ status }: { status: PostStatus }) => {
   );
 };
 
-const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete, onAd }: {
+const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete }: {
   post: MyShopPost;
   onEdit: (p: MyShopPost) => void;
   onToggleStatus: (p: MyShopPost) => void;
   onDelete: (p: MyShopPost) => void;
-  onAd: (p: MyShopPost) => void;
 }) => {
   const { t } = useTranslation();
   return (
@@ -129,14 +114,6 @@ const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete, onAd }: {
     <View style={s.actionRow}>
       <TouchableOpacity
         style={s.actionBtn}
-        onPress={() => onAd(post)}
-        activeOpacity={0.75}
-      >
-        <BarChartIcon size={14} color={COLORS.gold} strokeWidth={1.8} />
-        <Text style={s.actionBtnText}>{t('myShopPosts.ad')}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={s.actionBtn}
         onPress={() => onToggleStatus(post)}
         activeOpacity={0.75}
       >
@@ -171,9 +148,6 @@ const MyShopPostsScreen = () => {
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
 
-  const [filter, setFilter] = useState<'all' | ShopMatchingCategory>(
-    route.params?.defaultCategory ?? 'all',
-  );
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
 
   const {
@@ -185,11 +159,6 @@ const MyShopPostsScreen = () => {
   } = usePagedApi((cursor) => shopApi.mine({ cursor }), []);
 
   const posts = useMemo(() => rawItems.map(toMyPost), [rawItems]);
-
-  const filtered = useMemo(
-    () => (filter === 'all' ? posts : posts.filter(p => p.category === filter)),
-    [posts, filter],
-  );
 
   const handleEdit = useCallback((post: MyShopPost) => {
     navigation.navigate('ShopWrite', { initialCategory: post.category });
@@ -234,22 +203,14 @@ const MyShopPostsScreen = () => {
     });
   }, [setItems, toast, t]);
 
-  const handleAd = useCallback((post: MyShopPost) => {
-    navigation.navigate('AdManage', {
-      placement: CATEGORY_PLACEMENT[post.category],
-      targetId: post.id,
-    });
-  }, [navigation]);
-
   const renderItem = useCallback(({ item }: { item: MyShopPost }) => (
     <PostCard
       post={item}
       onEdit={handleEdit}
       onToggleStatus={handleToggleStatus}
       onDelete={handleDelete}
-      onAd={handleAd}
     />
-  ), [handleEdit, handleToggleStatus, handleDelete, handleAd]);
+  ), [handleEdit, handleToggleStatus, handleDelete]);
 
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
@@ -266,29 +227,8 @@ const MyShopPostsScreen = () => {
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={s.filterBar}>
-        {FILTER_TABS.map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            onPress={() => setFilter(tab.key)}
-            style={[s.filterTab, filter === tab.key && s.filterTabActive]}
-            activeOpacity={0.75}
-          >
-            <Text style={[s.filterTabText, filter === tab.key && s.filterTabTextActive]}>
-              {tab.key === 'all'
-                ? t('common.all')
-                : tab.key === '부스 쉐어'
-                  ? t('shop.tab.booth')
-                  : tab.key === '타투 모델 구인 (비기너)'
-                    ? t('shop.tab.model')
-                    : t('shop.tab.media')}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       <FlatList
-        data={filtered}
+        data={posts}
         keyExtractor={item => item.id}
         renderItem={renderItem}
         contentContainerStyle={[s.listContent, { paddingBottom: 16 + insets.bottom }]}

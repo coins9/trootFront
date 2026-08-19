@@ -97,8 +97,13 @@ const AdStatsScreen = () => {
   }, [toast]);
 
   const handleOpenDetail = useCallback((item: ArtistAdItem) => () => {
-    toast(t('adStats.detailComingSoon').replace('{{title}}', item.title));
-  }, [toast, t]);
+    const artwork = artworks.find((aw) => aw.id === item.artworkId);
+    if (artwork) {
+      navigation.navigate('TattooDetail', { tattoo: artwork as any });
+    } else {
+      toast(t('adStats.detailComingSoon').replace('{{title}}', item.title));
+    }
+  }, [artworks, navigation, toast, t]);
 
   const handleUp = useCallback((item: ArtistAdItem) => () => {
     setConfirm({

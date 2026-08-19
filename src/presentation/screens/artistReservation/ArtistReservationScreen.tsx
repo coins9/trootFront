@@ -21,9 +21,7 @@ import {
   formatMonth,
   PersonalTimelineItem, MonthlyCellSummary, MonthlyCellEvent,
 } from '../../../domain/entities/artistScheduleTypes';
-import {
-  getMultiDayEvents,
-} from '../../../data/mock/artistScheduleMockData';
+
 import { useApi } from '../../hooks/useApi';
 import { reservationApi, studioApi, type Studio, type StudioScheduleEntry } from '../../../data/api';
 import { MultiDayEvent } from '../../../domain/entities/artistScheduleTypes';
@@ -37,6 +35,7 @@ import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/App
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 if (
   Platform.OS === 'android' &&
@@ -596,6 +595,21 @@ const ArtistReservationScreen = () => {
   const [shopScheduleLoading, setShopScheduleLoading] = useState(false);
   const [dayPopupDate, setDayPopupDate] = useState<Date | null>(null);
   const [customItems, setCustomItems] = useState<Record<string, PersonalTimelineItem[]>>({});
+  const CUSTOM_ITEMS_KEY = 'artist_custom_schedule_v1';
+
+  // Load persisted items on mount
+  useEffect(() => {
+    AsyncStorage.getItem(CUSTOM_ITEMS_KEY).then((raw) => {
+      if (raw) {
+        try { setCustomItems(JSON.parse(raw)); } catch {}
+      }
+    });
+  }, []);
+
+  // Persist whenever customItems changes
+  useEffect(() => {
+    AsyncStorage.setItem(CUSTOM_ITEMS_KEY, JSON.stringify(customItems));
+  }, [customItems]);
   const [reservationSheetOpen, setReservationSheetOpen] = useState(false);
   const [reservationSheetEditing, setReservationSheetEditing] = useState<PersonalTimelineItem | null>(null);
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
@@ -663,6 +677,7 @@ const ArtistReservationScreen = () => {
         isAppLinked: true,
         depositStatus: r.depositStatus === 'refunded' ? 'paid' : r.depositStatus,
         depositAmount: r.depositKrw > 0 ? r.depositKrw : undefined,
+        customerName: r.customerName ?? undefined,
       };
       if (!map[iso]) map[iso] = [];
       map[iso].push(item);
@@ -711,7 +726,7 @@ const ArtistReservationScreen = () => {
   }, [scheduleByDate, customItems]);
 
   const multiEvents = useMemo(
-    () => getMultiDayEvents(monthStart),
+    () => [] as MultiDayEvent[],
     [monthStart],
   );
 
@@ -781,7 +796,8 @@ const ArtistReservationScreen = () => {
       cancelLabel: t('common.cancel'),
       confirmLabel: t('reservation.noShowConfirm'),
       variant: 'danger',
-      onConfirm: () => {
+      onConfirm: async () => {
+        try { await reservationApi.changeStatus(id, 'no_show'); } catch (_) {}
         setStatus(id, '노쇼');
         toast(t('reservation.toastNoShow'), { variant: 'error' });
       },
@@ -795,7 +811,8 @@ const ArtistReservationScreen = () => {
       cancelLabel: t('common.cancel'),
       confirmLabel: t('reservation.completeConfirm'),
       variant: 'default',
-      onConfirm: () => {
+      onConfirm: async () => {
+        try { await reservationApi.changeStatus(id, 'completed'); } catch (_) {}
         setStatus(id, '완료');
         toast(t('reservation.toastComplete'), { variant: 'success' });
       },
@@ -1208,7 +1225,7 @@ const ArtistReservationScreen = () => {
         statusBarTranslucent
       >
         <Pressable style={styles.popupBackdrop} onPress={closeDayPopup}>
-          <Pressable onPress={() => {}}>
+          <Pressable onPress={() => {}} style={{ width: '100%' }}>
             <View style={styles.popupCard}>
               <View style={styles.popupHeader}>
                 <Text style={styles.popupTitle}>

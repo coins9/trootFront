@@ -112,6 +112,7 @@ export interface Reservation {
   depositStatus: 'none' | 'pending' | 'paid' | 'refunded';
   createdAt: string;
   updatedAt: string;
+  customerName?: string | null;
 }
 
 /** 백엔드 원본 상태값(영문 enum) — 확정/필터에 그대로 사용 */

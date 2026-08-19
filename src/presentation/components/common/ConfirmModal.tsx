@@ -79,6 +79,7 @@ const ConfirmModal = memo(({ config, onDismiss }: Props) => {
       animationType="fade"
       onRequestClose={handleCancel}
       statusBarTranslucent
+      hardwareAccelerated
     >
       <Pressable style={styles.backdrop} onPress={handleCancel}>
         <Animated.View style={{ opacity, transform: [{ scale }] }}>

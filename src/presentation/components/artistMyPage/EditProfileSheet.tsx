@@ -48,6 +48,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   const [openChatUrl, setOpenChatUrl] = useState(profile.openChatUrl ?? '');
   const [availableHours, setAvailableHours] = useState(profile.availableHours ?? '');
   const [closedDay, setClosedDay] = useState(profile.closedDay ?? '');
+  const [detailAddress, setDetailAddress] = useState((profile as any).detailAddress ?? '');
 
   const handlePickCover = useCallback(async () => {
     const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, selectionLimit: 1 });
@@ -79,6 +80,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       setOpenChatUrl(profile.openChatUrl ?? '');
       setAvailableHours(profile.availableHours ?? '');
       setClosedDay(profile.closedDay ?? '');
+      setDetailAddress((profile as any).detailAddress ?? '');
       // 기존 위치 텍스트를 Places 입력창에 미리 채운다
       setTimeout(() => {
         placesRef.current?.setAddressText(profile.location ?? '');
@@ -104,6 +106,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       availableHours: availableHours.trim() || null,
       closedDay: closedDay.trim() || null,
       ...locationMeta,
+      detailAddress: detailAddress.trim() || null,
     } as any);
   }, [nickname, coverImage, avatarImage, location, locationMeta, intro, tags, openChatUrl, availableHours, closedDay, profile, onSave]);
 
@@ -127,7 +130,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
           <Animated.View
             style={[
               styles.sheet,
-              { paddingBottom: Math.max(insets.bottom, 12) + 12 },
+              { paddingBottom: Math.max(insets.bottom, 24) + 20 },
               { transform: [{ translateY: translate }] },
             ]}
           >
@@ -149,10 +152,11 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                   </View>
                   <GooglePlacesAutocomplete
                     ref={placesRef}
-                    placeholder="도시 검색 (예: 서울, Tokyo, Paris...)"
+                    placeholder="주소·건물명 검색 (예: 홍대 스튜디오, 강남구)"
                     query={{
                       key: Config.GOOGLE_PLACES_API_KEY ?? '',
                       language: 'ko',
+                      types: 'geocode|establishment',
                     }}
                     fetchDetails
                     onPress={(data, details) => {
@@ -192,6 +196,25 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                       description: placesStyles.description,
                       separator: placesStyles.separator,
                     }}
+                  />
+                </View>
+              </View>
+
+
+              {/* Detail Address */}
+              <View style={[styles.fieldOutside, { marginTop: 0 }]}>
+                <Text style={styles.label}>상세 주소 <Text style={{ color: COLORS.gray2, fontSize: 11 }}>(선택)</Text></Text>
+                <View style={styles.placesRow}>
+                  <View style={styles.placesIcon}>
+                    <LocationPinIcon size={15} color={COLORS.gray} />
+                  </View>
+                  <TextInput
+                    value={detailAddress}
+                    onChangeText={setDetailAddress}
+                    placeholder="건물명, 층수, 상세 위치 (예: B1F 스튜디오 루츠)"
+                    placeholderTextColor={COLORS.gray2}
+                    style={[styles.input, { flex: 1 }]}
+                    maxLength={200}
                   />
                 </View>
               </View>

@@ -71,6 +71,7 @@ export const toTattoo = (artwork: Artwork, favorited = false): Tattoo => ({
   bodyParts: artwork.bodyPart ? [artwork.bodyPart] : [],
   subjects: [],
   moods: [],
+  sizePreset: artwork.sizePreset ?? null,
   minPrice: artwork.priceKrw ?? 0,
   likeCount: artwork.likeCount,
   commentCount: 0,

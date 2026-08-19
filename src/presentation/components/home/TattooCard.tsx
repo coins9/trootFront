@@ -63,6 +63,9 @@ const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooC
       </TouchableOpacity>
 
       <View style={styles.body}>
+        {!!tattoo.title && (
+          <Text style={styles.artworkTitle} numberOfLines={1}>{tattoo.title}</Text>
+        )}
         <TouchableOpacity
           onPress={onArtistPress}
           style={styles.artistRow}
@@ -209,6 +212,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gold,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  artworkTitle: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+    marginBottom: 4,
   },
   artistInfo: {
     flexShrink: 1,

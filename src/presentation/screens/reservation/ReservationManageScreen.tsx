@@ -68,6 +68,13 @@ const ReservationManageScreen = () => {
 
   const all = useMemo(() => raw.map(toReservation), [raw]);
 
+  // raw id → original view (for review navigation)
+  const rawMap = useMemo(() => {
+    const m = new Map<string, CustomerReservationView>();
+    raw.forEach((r) => m.set(r.id, r));
+    return m;
+  }, [raw]);
+
   const filtered = useMemo(() => (
     tab === '진행 중인 예약'
       ? all.filter((r) => isOngoing(r.status))
@@ -85,9 +92,23 @@ const ReservationManageScreen = () => {
     toast(t('reservation.chatCannotOpen').replace('{{name}}', r.artist.nickname), { variant: 'error' });
   }, [toast, t]);
 
-  const handleDetail = useCallback((r: Reservation) => {
-    toast(t('reservation.detailComingSoon').replace('{{number}}', r.reservationNumber));
-  }, [toast, t]);
+  const handleWriteReview = useCallback((item: Reservation) => {
+    const rv = rawMap.get(item.id);
+    if (!rv) return;
+    const dt = new Date(rv.scheduledAt);
+    navigation.navigate('ReviewWrite', {
+      review: {
+        artist: {
+          avatarUri: rv.artist?.profileImage ?? null,
+          nickname: rv.artist?.pageName ?? '',
+        },
+        procedureDate: dt.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+        procedureTime: dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+        bodyPart: rv.bodyPart ?? '',
+        style: rv.sizePreset ?? '',
+      },
+    });
+  }, [rawMap, navigation]);
 
   const isOngoingTab = tab === '진행 중인 예약';
 
@@ -173,13 +194,19 @@ const ReservationManageScreen = () => {
           <Text style={styles.ctaSolidText}>{t('reservation.chat')}</Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity
-          onPress={() => handleDetail(item)}
-          activeOpacity={0.85}
-          style={styles.ctaOutline}
-        >
-          <Text style={styles.ctaOutlineText}>{t('reservation.viewDetail')}</Text>
-        </TouchableOpacity>
+        item.status === '완료' ? (
+          <TouchableOpacity
+            onPress={() => handleWriteReview(item)}
+            activeOpacity={0.85}
+            style={styles.ctaSolid}
+          >
+            <Text style={styles.ctaSolidText}>{t('reservation.writeReview')}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.ctaOutline, { opacity: 0.5 }]}>
+            <Text style={styles.ctaOutlineText}>{item.status}</Text>
+          </View>
+        )
       )}
     </View>
   ), [isOngoingTab, handleOpenChat, handleDetail, t]);

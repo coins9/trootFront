@@ -4,7 +4,7 @@ import {
   StatusBar, Dimensions, LayoutAnimation, Platform, UIManager, Linking,
   TextInput, ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
@@ -117,6 +117,7 @@ const GRID_ITEM = (W - GRID_GAP * (GRID_COL - 1)) / GRID_COL;
 const ArtistMyPageScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { toast } = useToast();
   const refresh = useAuthStore((s) => s.refresh);
 
@@ -575,7 +576,7 @@ const ArtistMyPageScreen = () => {
         <TouchableOpacity
           onPress={() => handleOpenArtworkForm(null)}
           activeOpacity={0.85}
-          style={[styles.fab, { bottom: 12 }]}
+          style={[styles.fab, { bottom: insets.bottom + 16 }]}
         >
           <PlusIcon size={28} color={COLORS.black} strokeWidth={2.4} />
         </TouchableOpacity>

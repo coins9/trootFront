@@ -36,6 +36,7 @@ export interface Tattoo {
   bodyParts: string[];
   subjects: string[];
   moods: string[];
+  sizePreset: string | null;
   minPrice: number;
   likeCount: number;
   commentCount: number;
