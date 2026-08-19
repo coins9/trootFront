@@ -154,7 +154,6 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                       query={{
                         key: Config.GOOGLE_PLACES_API_KEY ?? '',
                         language: 'ko',
-                        types: '(cities)',
                       }}
                       fetchDetails
                       onPress={(data, details) => {
