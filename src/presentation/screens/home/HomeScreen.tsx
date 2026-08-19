@@ -182,9 +182,6 @@ const HomeScreen = () => {
                   ) : (
                     <View style={[styles.masterAvatar, styles.masterAvatarFallback]} />
                   )}
-                  <View style={styles.masterCrownBadge}>
-                    <CrownIcon size={8} color={COLORS.black} />
-                  </View>
                 </View>
                 <Text style={styles.masterName} numberOfLines={1}>{item.nickname}</Text>
                 <Text style={styles.masterCity} numberOfLines={1}>{item.city}</Text>
