@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, StatusBar, TouchableOpacity, FlatList,
-  ActivityIndicator,
+  ActivityIndicator, Image, ScrollView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -109,15 +109,29 @@ const ArtistReservationRequestsScreen = () => {
         </View>
       </View>
       <Text style={s.schedule}>{formatSchedule(item.scheduledAt, language)}</Text>
+      {!!item.artworkTitle && (
+        <Text style={s.artworkTitle} numberOfLines={1}>🖼 {item.artworkTitle}</Text>
+      )}
       <View style={s.metaRow}>
         {!!item.bodyPart && <Text style={s.metaChip}>{item.bodyPart}</Text>}
         {!!item.sizePreset && <Text style={s.metaChip}>{item.sizePreset}</Text>}
-        {item.referenceImages.length > 0 && (
-          <Text style={s.metaChip}>
-            {t('reservationRequests.refCount').replace('{{count}}', String(item.referenceImages.length))}
-          </Text>
-        )}
       </View>
+      {item.referenceImages.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.refRow}
+        >
+          {item.referenceImages.map((uri, idx) => (
+            <Image
+              key={`${uri}-${idx}`}
+              source={{ uri }}
+              style={s.refThumb}
+              resizeMode="cover"
+            />
+          ))}
+        </ScrollView>
+      )}
       {!!item.memo && <Text style={s.memo} numberOfLines={3}>{item.memo}</Text>}
 
       <View style={s.actions}>
@@ -221,6 +235,23 @@ const s = StyleSheet.create({
     color: COLORS.gray, fontSize: 12, backgroundColor: COLORS.elevated,
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, overflow: 'hidden',
     lineHeight: 17,
+  },
+  artworkTitle: {
+    color: COLORS.gold,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  refRow: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  refThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: COLORS.elevated,
   },
   memo: { color: COLORS.gray, fontSize: 13, lineHeight: 19 },
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },

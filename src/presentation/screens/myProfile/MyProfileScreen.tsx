@@ -118,7 +118,7 @@ const MyProfileScreen = () => {
 
   /* ── Menu items ── */
   const userReservationItems: MenuItem[] = [
-    { Icon: CalendarIcon, label: t('profile.bookingManage'), badge: t('profile.reservationPending'), onPress: goTo('ReservationManage') },
+    { Icon: CalendarIcon, label: t('profile.bookingManage'), onPress: goTo('ReservationManage') },
     { Icon: HeartIcon, label: t('profile.favArtists'), onPress: goTo('FavoriteArtists') },
     { Icon: PaletteIcon, label: t('profile.favWorks'), onPress: goTo('FavoriteWorks') },
     { Icon: StoreIcon, label: t('profile.favPhotoShops'), onPress: goTo('FavoritePhotoShops') },

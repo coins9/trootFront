@@ -2,6 +2,7 @@ import React, { memo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Image, StyleSheet, Alert, TextInput,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { COLORS } from '../../../theme/colors';
 import { CameraAddIcon, XIcon } from '../../icons';
 
@@ -15,14 +16,6 @@ interface ReferenceStepProps {
 const MAX_IMAGES = 5;
 const MAX_TEXT = 500;
 
-const MOCK_REFS = [
-  'https://picsum.photos/seed/tref1/300/300',
-  'https://picsum.photos/seed/tref2/300/300',
-  'https://picsum.photos/seed/tref3/300/300',
-  'https://picsum.photos/seed/tref4/300/300',
-  'https://picsum.photos/seed/tref5/300/300',
-];
-
 const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: ReferenceStepProps) => {
   const hasAny = images.length > 0 || text.trim().length > 0;
 
@@ -31,9 +24,15 @@ const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: Refe
       Alert.alert('최대 5장까지 첨부 가능합니다.');
       return;
     }
-    // 실제 구현 시 react-native-image-picker 연동
-    const next = MOCK_REFS[images.length % MOCK_REFS.length];
-    onImagesChange([...images, next]);
+    launchImageLibrary(
+      { mediaType: 'photo', selectionLimit: MAX_IMAGES - images.length, quality: 0.8 },
+      (response) => {
+        if (response.didCancel || response.errorCode) return;
+        const uris = (response.assets ?? []).map((a) => a.uri!).filter(Boolean);
+        if (!uris.length) return;
+        onImagesChange([...images, ...uris].slice(0, MAX_IMAGES));
+      },
+    );
   }, [images, onImagesChange]);
 
   const handleRemove = useCallback((idx: number) => {

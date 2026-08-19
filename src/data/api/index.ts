@@ -126,6 +126,7 @@ export interface CustomerReservationView {
   durationMinutes: number;
   bodyPart: string | null;
   sizePreset: string | null;
+  artworkTitle: string | null;
   depositKrw: number;
   depositStatus: 'none' | 'pending' | 'paid' | 'refunded';
   estimatedPriceKrw: number | null;
@@ -136,6 +137,7 @@ export interface CustomerReservationView {
     profileImage: string | null;
     regionSido: string | null;
     regionSigungu: string | null;
+    openChatUrl: string | null;
   } | null;
 }
 
@@ -153,6 +155,7 @@ export interface ArtistReservationView {
   depositKrw: number;
   depositStatus: 'none' | 'pending' | 'paid' | 'refunded';
   artworkId: string | null;
+  artworkTitle: string | null;
   createdAt: string;
   customer: { id: string; nickname: string | null; profileImage: string | null } | null;
 }

@@ -10,9 +10,10 @@ export interface Reservation {
     nickname: string;
     profileImage: string;
     location: string;
-    kakaoLink?: string;
+    openChatUrl?: string | null;
   };
   dateTime: string;
+  artworkTitle?: string | null;
   bodyPart: string;
   genre: string;
   totalPrice: number;

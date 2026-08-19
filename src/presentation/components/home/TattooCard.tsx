@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'rea
 import { COLORS } from '../../theme/colors';
 import {
   BookmarkIcon, HeartIcon, CommentIcon, EyeIcon,
-  TattooPlaceholderIcon, PersonSilhouette,
+  TattooPlaceholderIcon, PersonSilhouette, CrownIcon,
 } from '../icons';
 import { Tattoo } from '../../../domain/entities/types';
 
@@ -30,6 +30,8 @@ const formatPrice = (price: number) => {
 };
 
 const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooCardProps) => {
+  const isMaster = !!tattoo.artist.isSelectedMaster;
+
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
@@ -66,15 +68,23 @@ const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooC
           style={styles.artistRow}
           hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
         >
-          <View style={styles.avatarWrapper}>
-            {tattoo.artist.profileImage ? (
-              <Image
-                source={{ uri: tattoo.artist.profileImage }}
-                style={styles.avatar}
-                resizeMode="cover"
-              />
-            ) : (
-              <PersonSilhouette size={28} color="#3a3a3a" />
+          {/* 셀렉티드 마스터: 금색 테두리 + 왕관 뱃지 */}
+          <View style={[styles.avatarOuter, isMaster && styles.avatarOuterMaster]}>
+            <View style={styles.avatarWrapper}>
+              {tattoo.artist.profileImage ? (
+                <Image
+                  source={{ uri: tattoo.artist.profileImage }}
+                  style={styles.avatar}
+                  resizeMode="cover"
+                />
+              ) : (
+                <PersonSilhouette size={24} color="#3a3a3a" />
+              )}
+            </View>
+            {isMaster && (
+              <View style={styles.crownBadge}>
+                <CrownIcon size={7} color={COLORS.black} />
+              </View>
             )}
           </View>
           <View style={styles.artistInfo}>
@@ -164,10 +174,22 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
+  avatarOuter: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.elevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarOuterMaster: {
+    borderWidth: 2,
+    borderColor: COLORS.gold,
+  },
   avatarWrapper: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: COLORS.elevated,
     justifyContent: 'center',
@@ -176,6 +198,17 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%',
     height: '100%',
+  },
+  crownBadge: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: COLORS.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   artistInfo: {
     flexShrink: 1,

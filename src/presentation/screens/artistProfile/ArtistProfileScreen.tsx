@@ -43,6 +43,7 @@ const ArtistProfileScreen = () => {
 
   const [activeTab, setActiveTab] = useState<TabType>('works');
   const [activeGenreKey, setActiveGenreKey] = useState('all');
+  const [sortOrder, setSortOrder] = useState<'recent' | 'popular'>('recent');
 
   const GRID_GENRES = useMemo(() => [
     { key: 'all', label: t('filter.genreAll') },
@@ -102,9 +103,21 @@ const ArtistProfileScreen = () => {
     [artist.id],
   );
   const artistTattoos = useMemo(() => artworks.map((a) => toTattoo(a)), [artworks]);
+
+  // 장르 필터 + 정렬 — activeGenreKey / sortOrder 변경 시 재계산
+  const filteredTattoos = useMemo(() => {
+    let result = activeGenreKey === 'all'
+      ? artistTattoos
+      : artistTattoos.filter((t) => t.genres.includes(activeGenreKey));
+    if (sortOrder === 'popular') {
+      result = [...result].sort((a, b) => b.likeCount - a.likeCount);
+    }
+    return result;
+  }, [artistTattoos, activeGenreKey, sortOrder]);
+
   const portfolioImages = useMemo(
-    () => artistTattoos.map((t) => t.images[0] ?? ''),
-    [artistTattoos],
+    () => filteredTattoos.map((t) => t.images[0] ?? ''),
+    [filteredTattoos],
   );
   const portfolioItems = showAllPortfolio ? portfolioImages : portfolioImages.slice(0, 9);
 
@@ -119,7 +132,7 @@ const ArtistProfileScreen = () => {
       style={styles.portfolioItem}
       activeOpacity={0.85}
       onPress={() => {
-        const tattoo = artistTattoos[index % Math.max(artistTattoos.length, 1)];
+        const tattoo = filteredTattoos[index];
         if (tattoo) handleTattooPress(tattoo);
       }}
     >
@@ -457,8 +470,13 @@ const ArtistProfileScreen = () => {
                   );
                 })}
               </ScrollView>
-              <TouchableOpacity style={styles.sortBtn}>
-                <Text style={styles.sortText}>{t('artistProfile.sortLatest')}</Text>
+              <TouchableOpacity
+                style={styles.sortBtn}
+                onPress={() => setSortOrder((prev) => prev === 'recent' ? 'popular' : 'recent')}
+              >
+                <Text style={styles.sortText}>
+                  {sortOrder === 'recent' ? t('artistProfile.sortLatest') : '인기순'}
+                </Text>
                 <ChevronDownIcon size={12} color={COLORS.gray} />
               </TouchableOpacity>
             </View>

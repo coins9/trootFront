@@ -219,11 +219,9 @@ const ArtistMyPageScreen = () => {
         lat: next.lat ?? undefined,
         lng: next.lng ?? undefined,
         tags: next.tags,
-        // NOTE: 아래 3개 필드는 백엔드 PATCH DTO에서 아직 허용하지 않아 주석 처리.
-        // 백엔드 UpdateArtistPageDto에 @IsOptional() 데코레이터로 추가하면 재활성화 가능.
-        // openChatUrl: next.openChatUrl ?? undefined,
-        // availableHours: next.availableHours ?? undefined,
-        // closedDay: next.closedDay ?? undefined,
+        openChatUrl: next.openChatUrl ?? undefined,
+        availableHours: next.availableHours ?? undefined,
+        closedDay: next.closedDay ?? undefined,
       } as any);
       setProfileOverride((prev) => ({ ...prev, ...next }));
       reloadProfile();

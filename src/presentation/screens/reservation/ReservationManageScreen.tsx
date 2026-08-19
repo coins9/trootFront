@@ -42,8 +42,10 @@ function toReservation(v: CustomerReservationView): Reservation {
       nickname: v.artist?.pageName ?? '',
       profileImage: v.artist?.profileImage ?? '',
       location: regionParts.join(' ') || '',
+      openChatUrl: v.artist?.openChatUrl ?? null,
     },
     dateTime: `${dt.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} ${dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`,
+    artworkTitle: v.artworkTitle ?? null,
     bodyPart: v.bodyPart ?? '',
     genre: v.sizePreset ?? '',
     totalPrice: v.estimatedPriceKrw ?? 0,
@@ -73,10 +75,10 @@ const ReservationManageScreen = () => {
   ), [all, tab]);
 
   const handleOpenChat = useCallback(async (r: Reservation) => {
-    if ((r.artist as any).kakaoLink) {
-      const can = await Linking.canOpenURL((r.artist as any).kakaoLink);
+    if (r.artist.openChatUrl) {
+      const can = await Linking.canOpenURL(r.artist.openChatUrl);
       if (can) {
-        Linking.openURL((r.artist as any).kakaoLink);
+        Linking.openURL(r.artist.openChatUrl);
         return;
       }
     }
@@ -126,6 +128,9 @@ const ReservationManageScreen = () => {
 
         <View style={styles.info}>
           <Text style={styles.artistName}>{item.artist.nickname}</Text>
+          {!!item.artworkTitle && (
+            <Text style={styles.artworkTitle} numberOfLines={1}>{item.artworkTitle}</Text>
+          )}
           <View style={styles.locationRow}>
             <LocationPinIcon size={13} color={COLORS.gray} />
             <Text style={styles.locationText}>{item.artist.location || t('reservation.locationDefault')}</Text>
@@ -390,6 +395,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     lineHeight: 27,
+  },
+  artworkTitle: {
+    color: COLORS.gold,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 17,
+    marginTop: 1,
   },
   locationRow: {
     flexDirection: 'row',
