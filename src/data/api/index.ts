@@ -530,3 +530,48 @@ export const userApi = {
   switchRole: (role: 'USER' | 'TATTOOIST') => api.patch('/app/users/me/role', { role }),
   withdraw: () => api.delete<void>('/app/users/me'),
 };
+
+// ── 공개 사이트 설정 ──────────────────────────────────────
+/** GET /public/settings — 인증 불필요, 2분 캐시 */
+export interface SiteSettings {
+  kakao_channel_url: string;
+  kakao_channel_id: string;
+  kakao_openchat_url: string;
+  support_email: string;
+  support_hours: string;
+  notice_banner: string;
+  banner_beginner_url: string;
+  banner_supply_url: string;
+  banner_media_url: string;
+  banner_booth_url: string;
+  ad_inquiry_url: string;
+  partner_inquiry_url: string;
+  home_banner_title: string;
+  home_banner_subtitle: string;
+  home_banner_url: string;
+  home_banner_image: string;
+  shop_booth_banner_image: string;
+  shop_booth_banner_url: string;
+  shop_model_banner_image: string;
+  shop_model_banner_url: string;
+  shop_media_banner_image: string;
+  shop_media_banner_url: string;
+  supplies_banner_image: string;
+  supplies_banner_url: string;
+  banner_beginner_images_ko: string;
+  banner_beginner_images_en: string;
+  banner_supply_images_ko: string;
+  banner_supply_images_en: string;
+  banner_booth_images_ko: string;
+  banner_booth_images_en: string;
+  banner_media_images_ko: string;
+  banner_media_images_en: string;
+  banner_ad_images_ko: string;
+  banner_ad_images_en: string;
+  banner_partner_images_ko: string;
+  banner_partner_images_en: string;
+}
+
+export const publicSettingsApi = {
+  get: () => api.get<SiteSettings>('/public/settings'),
+};

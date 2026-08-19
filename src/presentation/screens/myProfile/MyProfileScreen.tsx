@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar, Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -17,9 +17,8 @@ import {
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
-import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import { useAuthStore } from '../../store/authStore';
-import { artistApi, type ArtistPage } from '../../../data/api';
+import { artistApi, type ArtistPage, publicSettingsApi, type SiteSettings } from '../../../data/api';
 import { supplyVendorApi, type MyVendor } from '../../../data/api/vendor';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -49,11 +48,11 @@ const MyProfileScreen = () => {
   const navigation = useNavigation<Nav>();
   const session = useAuthStore((s) => s.session);
   const insets = useSafeAreaInsets();
-  const bottomTabHeight = useBottomTabHeight();
 
   const [mode, setMode] = useState<ProfileMode>('user');
   const [artistInfo, setArtistInfo] = useState<ArtistPage | null>(null);
   const [vendorInfo, setVendorInfo] = useState<MyVendor | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
   // Restore persisted mode on mount
   useEffect(() => {
@@ -64,7 +63,13 @@ const MyProfileScreen = () => {
         .catch(() => {});
   }, []);
 
-  // Preload artist page & vendor profile
+  // Preload artist page, vendor profile, and site settings
+  useEffect(() => {
+    publicSettingsApi.get()
+        .then(setSiteSettings)
+        .catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (!session) return;
     artistApi.me()
@@ -127,6 +132,14 @@ const MyProfileScreen = () => {
   const userPostItems: MenuItem[] = [
     { Icon: ListIcon, label: t('profile.tattooReview'), onPress: goTo('TattooReview') },
   ];
+  const openLink = useCallback((url?: string | null) => {
+    if (!url) {
+      toast(t('common.linkError'), { variant: 'error' });
+      return;
+    }
+    Linking.openURL(url).catch(() => toast(t('common.linkError'), { variant: 'error' }));
+  }, [t, toast]);
+
   const shopMatchingItems: MenuItem[] = [
     {
       Icon: HandshakeIcon,
@@ -142,6 +155,21 @@ const MyProfileScreen = () => {
       Icon: PaletteIcon,
       label: '사진/영상 편집자',
       onPress: () => navigation.navigate('MyShopPosts', { defaultCategory: '사진/영상 편집자' }),
+    },
+    {
+      Icon: BarChartIcon,
+      label: '비기너모델 광고 문의하기',
+      onPress: () => openLink(siteSettings?.banner_beginner_url),
+    },
+    {
+      Icon: BarChartIcon,
+      label: '사진/영상 광고 문의하기',
+      onPress: () => openLink(siteSettings?.banner_media_url),
+    },
+    {
+      Icon: BarChartIcon,
+      label: '부스쉐어 광고 문의하기',
+      onPress: () => openLink(siteSettings?.banner_booth_url),
     },
   ];
   const userSettingItems: MenuItem[] = [
@@ -197,6 +225,12 @@ const MyProfileScreen = () => {
       label: t('profile.sellerInfo'),
       description: t('profile.vendorDescSeller'),
       onPress: goTo('MyProducts'),
+    },
+    {
+      Icon: BarChartIcon,
+      label: '용품샵 광고 문의하기',
+      description: '왈라폼을 통해 광고를 문의하세요',
+      onPress: () => openLink(siteSettings?.banner_supply_url),
     },
   ];
 
@@ -298,7 +332,7 @@ const MyProfileScreen = () => {
 
         <ScrollView
             style={styles.scroll}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomTabHeight + insets.bottom + 16 }]}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 16 }]}
             showsVerticalScrollIndicator={false}
         >
           {mode === 'artist' && (
@@ -328,7 +362,6 @@ const MyProfileScreen = () => {
           )}
         </ScrollView>
 
-        <AppBottomTabBar activeTab="ProfileTab" />
       </SafeAreaView>
   );
 };

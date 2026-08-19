@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
+import { useTranslation } from '../../store/languageStore';
 import { XIcon } from '../icons';
 import ConfirmModal, { ConfirmConfig } from '../common/ConfirmModal';
 import { useToast } from '../common/Toast';
@@ -51,6 +52,7 @@ const BookingBottomSheet = memo(({
 }: BookingBottomSheetProps) => {
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const [form, setForm] = useState<BookingFormData>(INITIAL_BOOKING_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -112,12 +114,12 @@ const BookingBottomSheet = memo(({
         if (artistKakaoLink && (await Linking.canOpenURL(artistKakaoLink))) {
           Linking.openURL(artistKakaoLink).catch(() => {});
         } else {
-          toast('예약 요청이 접수되었습니다. 작가가 확인 후 연락드립니다.', { variant: 'success' });
+          toast(t('booking.successNoChat'), { variant: 'success' });
         }
       }, 350);
     } catch (e) {
       toast(
-        e instanceof ApiError ? e.userMessage : '잠시 후 다시 시도해주세요.',
+        e instanceof ApiError ? e.userMessage : t('booking.errorRetry'),
         { variant: 'error' },
       );
     } finally {
@@ -128,10 +130,10 @@ const BookingBottomSheet = memo(({
   const handleSubmit = useCallback(() => {
     const summary = formatBookingMessage(artistName, designTitle, form);
     setConfirm({
-      title: '예약 요청 확인',
-      message: `${summary}\n\n요청을 보내면 작가 오픈톡으로 연결됩니다.\n상담 후 작가가 확정하면 예약이 등록돼요.`,
-      cancelLabel: '취소',
-      confirmLabel: '예약 요청',
+      title: t('booking.confirmTitle'),
+      message: t('booking.confirmMessage').replace('{{summary}}', summary),
+      cancelLabel: t('booking.cancelLabel'),
+      confirmLabel: t('booking.confirmLabel'),
       variant: 'default',
       onConfirm: () => { void submit(); },
     });
@@ -182,7 +184,7 @@ const BookingBottomSheet = memo(({
                   {designTitle}
                 </Text>
               ) : null}
-              <Text style={styles.headerTitle}>예약 / 상담 요청서</Text>
+              <Text style={styles.headerTitle}>{t('booking.sheetTitle')}</Text>
             </View>
             <TouchableOpacity
               onPress={handleClose}
@@ -195,7 +197,7 @@ const BookingBottomSheet = memo(({
 
           {/* Artist name row */}
           <View style={styles.artistRow}>
-            <Text style={styles.artistLabel}>작가</Text>
+            <Text style={styles.artistLabel}>{t('booking.artistLabel')}</Text>
             <Text style={styles.artistName}>{artistName}</Text>
           </View>
 

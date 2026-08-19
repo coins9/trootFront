@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
+import { useTranslation } from '../../store/languageStore';
 import {
   BackArrowIcon, ShareIcon, HeartIcon, ChevronRightIcon,
   StarIcon,
@@ -28,6 +29,7 @@ const TattooDetailScreen = () => {
   const route = useRoute<DetailRoute>();
   const { tattoo } = route.params;
 
+  const { t } = useTranslation();
   const [liked, setLiked] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [bookingVisible, setBookingVisible] = useState(false);
@@ -103,7 +105,7 @@ const TattooDetailScreen = () => {
         <Text style={styles.title}>{tattoo.title}</Text>
 
         <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>예상가</Text>
+          <Text style={styles.priceLabel}>{t('artist.estimatedPrice')}</Text>
           <Text style={styles.price}>{formatPrice(tattoo.minPrice)}</Text>
         </View>
 
@@ -133,12 +135,12 @@ const TattooDetailScreen = () => {
               ) : null}
             </View>
             <View style={styles.artistCardInfo}>
-              <Text style={styles.artistCardLabel}>타투이스트</Text>
+              <Text style={styles.artistCardLabel}>{t('booking.tattooist')}</Text>
               <Text style={styles.artistCardName}>{tattoo.artist.nickname}</Text>
               <View style={styles.artistRatingRow}>
                 <StarIcon size={13} color={COLORS.gold} filled />
                 <Text style={styles.artistRating}>
-                  {tattoo.artist.rating} (리뷰 {tattoo.artist.reviewCount})
+                  {tattoo.artist.rating} ({t('booking.reviewCount').replace('{{count}}', String(tattoo.artist.reviewCount))})
                 </Text>
               </View>
               {artistTagLabels(tattoo.artist.tags).length > 0 && (
@@ -158,7 +160,7 @@ const TattooDetailScreen = () => {
           activeOpacity={0.85}
           onPress={() => setBookingVisible(true)}
         >
-          <Text style={styles.ctaText}>이 도안으로 1:1 상담하기</Text>
+          <Text style={styles.ctaText}>{t('artist.consultWithDesign')}</Text>
         </TouchableOpacity>
       </View>
 

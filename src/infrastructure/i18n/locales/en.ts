@@ -706,4 +706,17 @@ export const en: TranslationSchema = {
     title: 'Safety Policy',
     pricePolicy: 'Transparent pricing',
   },
+
+  booking: {
+    sheetTitle: 'Book / Consult Request',
+    artistLabel: 'Artist',
+    confirmTitle: 'Confirm Booking Request',
+    confirmMessage: '{{summary}}\n\nSending this request will open the artist\'s KakaoTalk.\nYour booking is registered once the artist confirms.',
+    cancelLabel: 'Cancel',
+    confirmLabel: 'Send Request',
+    successNoChat: 'Your request has been submitted. The artist will get in touch shortly.',
+    errorRetry: 'Something went wrong. Please try again.',
+    tattooist: 'Tattooist',
+    reviewCount: '{{count}} reviews',
+  },
 };

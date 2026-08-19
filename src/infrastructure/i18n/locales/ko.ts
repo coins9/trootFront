@@ -703,6 +703,19 @@ export const ko = {
     title: '이용 안전 정책',
     pricePolicy: '투명한 가격 정책',
   },
+
+  booking: {
+    sheetTitle: '예약 / 상담 요청서',
+    artistLabel: '작가',
+    confirmTitle: '예약 요청 확인',
+    confirmMessage: '{{summary}}\n\n요청을 보내면 작가 오픈톡으로 연결됩니다.\n상담 후 작가가 확정하면 예약이 등록돼요.',
+    cancelLabel: '취소',
+    confirmLabel: '예약 요청',
+    successNoChat: '예약 요청이 접수되었습니다. 작가가 확인 후 연락드립니다.',
+    errorRetry: '잠시 후 다시 시도해주세요.',
+    tattooist: '타투이스트',
+    reviewCount: '리뷰 {{count}}',
+  },
 } as const;
 
 // 값은 string으로 넓히고 키 구조만 고정 — 번역본이 리터럴에 묶이지 않도록
