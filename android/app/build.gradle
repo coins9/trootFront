@@ -2,6 +2,7 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 apply plugin: "com.google.gms.google-services"
+apply plugin: "com.google.firebase.crashlytics"
 
 // .env 값을 project.env 로 읽어온다 (react-native-config).
 // autolinking 평가 순서에 의존하지 않도록 파일 경로로 직접 적용.
@@ -87,7 +88,7 @@ android {
         applicationId "com.troot.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 10
+        versionCode 14
         versionName "1.0.0"
 
         // 카카오 SDK가 요구하는 리다이렉트 스킴(kakao{네이티브앱키})에 주입.

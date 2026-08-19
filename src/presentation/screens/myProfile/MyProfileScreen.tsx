@@ -31,12 +31,13 @@ interface MenuItem {
   onPress?: () => void;
 }
 
-type ProfileMode = 'user' | 'artist' | 'vendor';
+type ProfileMode = 'user' | 'artist' | 'vendor' | 'shopMatching';
 
-const MODE_TAB_KEYS: { key: ProfileMode; tKey: 'profile.modeUser' | 'profile.modeArtist' | 'profile.modeVendor' }[] = [
+const MODE_TAB_KEYS: { key: ProfileMode; tKey: 'profile.modeUser' | 'profile.modeArtist' | 'profile.modeVendor' | 'profile.modeShopMatching' }[] = [
   { key: 'user', tKey: 'profile.modeUser' },
   { key: 'artist', tKey: 'profile.modeArtist' },
   { key: 'vendor', tKey: 'profile.modeVendor' },
+  { key: 'shopMatching', tKey: 'profile.modeShopMatching' },
 ];
 
 const MODE_KEY = '@troot/profile_mode';
@@ -122,6 +123,8 @@ const MyProfileScreen = () => {
   ];
   const userPostItems: MenuItem[] = [
     { Icon: ListIcon, label: t('profile.tattooReview'), onPress: goTo('TattooReview') },
+  ];
+  const shopMatchingItems: MenuItem[] = [
     { Icon: HandshakeIcon, label: t('profile.shopPosts'), onPress: goTo('MyShopPosts') },
   ];
   const userSettingItems: MenuItem[] = [
@@ -313,6 +316,12 @@ const MyProfileScreen = () => {
             {renderCompactSection(t('profile.myReservations'), userReservationItems)}
             {renderCompactSection(t('profile.myPosts'), userPostItems)}
             {renderCompactSection(t('settings.title'), userSettingItems)}
+          </>
+        )}
+
+        {mode === 'shopMatching' && (
+          <>
+            {renderCompactSection(t('profile.myPosts'), shopMatchingItems)}
           </>
         )}
 

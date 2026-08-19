@@ -94,6 +94,7 @@ export const en: TranslationSchema = {
     modeUser: 'Client',
     modeArtist: 'Artist',
     modeVendor: 'Supplier',
+    modeShopMatching: 'Shop & Matching',
     bookingManage: 'Bookings',
     favArtists: 'Saved Artists',
     favWorks: 'Saved Works',

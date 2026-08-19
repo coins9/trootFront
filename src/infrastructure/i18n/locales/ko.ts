@@ -126,7 +126,7 @@ export const ko = {
     artist: '타투이스트',
     shopMatching: '샵&매칭',
     supplies: '용품샵',
-    profile: '마이',
+    profile: '프로필',
   },
 
   tattooistHub: {

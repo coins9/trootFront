@@ -60,7 +60,6 @@ const HomeScreen = () => {
       genre: genres.length === 1 ? genres[0] : undefined,
       bodyPart: bodyParts.length === 1 ? bodyParts[0] : undefined,
       priceMin: budgetMin > 0 ? budgetMin : undefined,
-      priceMax: budgetMax < MAX_PRICE ? budgetMax : undefined,
     }),
     [debouncedKeyword, regionMode, overseasCountryCode, region.city, region.district,
       genres, bodyParts, budgetMin, budgetMax],
