@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  StatusBar, KeyboardAvoidingView, Platform, Keyboard, Alert, Image,
+  StatusBar, KeyboardAvoidingView, Platform, Keyboard, Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import {
   BellIcon, ShieldCheckIcon, ChevronRightIcon, PersonSilhouette,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from '../../store/languageStore';
 import { userApi } from '../../../data/api';
@@ -77,6 +78,7 @@ const AccountInfoScreen = () => {
   const [nickname, setNickname] = useState(user?.nickname ?? '');
   const [saving, setSaving] = useState(false);
   const [nicknameFocused, setNicknameFocused] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
 
   const nicknameValid = useMemo(
     () => nickname.trim().length >= NICKNAME_MIN,
@@ -109,21 +111,17 @@ const AccountInfoScreen = () => {
   }, [nicknameValid, nickname, t, toast, navigation]);
 
   const handleLogout = useCallback(() => {
-    Alert.alert(
-      t('auth.logout'),
-      t('auth.logoutConfirm'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('auth.logout'),
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-          },
-        },
-      ],
-    );
+    setConfirm({
+      title: t('auth.logout'),
+      message: t('auth.logoutConfirm'),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('auth.logout'),
+      variant: 'danger',
+      onConfirm: async () => {
+        await logout();
+        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      },
+    });
   }, [t, logout, navigation]);
 
   const handleNotifSettings = useCallback(() => {
@@ -258,6 +256,7 @@ const AccountInfoScreen = () => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
     </SafeAreaView>
   );
 };

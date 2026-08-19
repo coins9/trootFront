@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar,
-  Alert, Linking,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -10,6 +10,7 @@ import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import { BackArrowIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import PromoBanner from '../../components/artistAd/PromoBanner';
 import BannerCarousel from '../../components/common/BannerCarousel';
@@ -47,6 +48,7 @@ const AdStatsScreen = () => {
   const [sheet, setSheet] = useState<SheetKind | null>(null);
   const [activeItem, setActiveItem] = useState<ArtistAdItem | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
   const bottomTabHeight = useBottomTabHeight();
 
   const { items: artworks } = usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
@@ -99,21 +101,16 @@ const AdStatsScreen = () => {
   }, [toast, t]);
 
   const handleUp = useCallback((item: ArtistAdItem) => () => {
-    Alert.alert(
-      t('adStats.upTitle'),
-      t('adStats.upMsg'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.confirm'),
-          style: 'default',
-          onPress: () => {
-            toast(t('adStats.toastUp').replace('{{title}}', item.title), { variant: 'success' });
-          },
-        },
-      ],
-      { cancelable: true },
-    );
+    setConfirm({
+      title: t('adStats.upTitle'),
+      message: t('adStats.upMsg'),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('common.confirm'),
+      variant: 'default',
+      onConfirm: () => {
+        toast(t('adStats.toastUp').replace('{{title}}', item.title), { variant: 'success' });
+      },
+    });
   }, [toast, t]);
 
   const handleSuperUp = useCallback((item: ArtistAdItem) => () => {
@@ -232,6 +229,7 @@ const AdStatsScreen = () => {
       </ScrollView>
 
       <AppBottomTabBar activeTab="ProfileTab" />
+      <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
 
       <SuperUpBottomSheet
         visible={sheet === 'superUp'}

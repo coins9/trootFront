@@ -130,6 +130,62 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                 </TouchableOpacity>
               </View>
 
+              {/* Location — outside ScrollView so dropdown isn't clipped */}
+              <View style={styles.fieldOutside}>
+                <Text style={styles.label}>활동 지역</Text>
+                <View style={styles.placesRow}>
+                  <View style={styles.placesIcon}>
+                    <LocationPinIcon size={15} color={COLORS.gray} />
+                  </View>
+                  <GooglePlacesAutocomplete
+                    ref={placesRef}
+                    placeholder="도시 검색 (예: 서울, Tokyo, Paris...)"
+                    query={{
+                      key: Config.GOOGLE_PLACES_API_KEY ?? '',
+                      language: 'ko',
+                    }}
+                    fetchDetails
+                    onPress={(data, details) => {
+                      const address = data.description;
+                      const lat = details?.geometry?.location?.lat;
+                      const lng = details?.geometry?.location?.lng;
+                      const comps = details?.address_components ?? [];
+                      const countryComp = comps.find((c) => c.types.includes('country'));
+                      const adminComp = comps.find((c) =>
+                        c.types.includes('administrative_area_level_1'),
+                      );
+                      const subComp = comps.find((c) =>
+                        c.types.includes('administrative_area_level_2') ||
+                        c.types.includes('locality'),
+                      );
+                      setLocation(address);
+                      setLocationMeta({
+                        lat,
+                        lng,
+                        countryCode: countryComp?.short_name ?? null,
+                        countryName: countryComp?.long_name ?? null,
+                        regionSido: adminComp?.long_name ?? null,
+                        regionSigungu: subComp?.long_name ?? null,
+                      });
+                    }}
+                    textInputProps={{
+                      placeholderTextColor: COLORS.gray2,
+                      onChangeText: setLocation,
+                    }}
+                    enablePoweredByContainer={false}
+                    styles={{
+                      container: placesStyles.container,
+                      textInputContainer: placesStyles.textInputContainer,
+                      textInput: placesStyles.textInput,
+                      listView: placesStyles.listView,
+                      row: placesStyles.row,
+                      description: placesStyles.description,
+                      separator: placesStyles.separator,
+                    }}
+                  />
+                </View>
+              </View>
+
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
@@ -177,62 +233,6 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                       style={styles.input}
                       maxLength={20}
                       autoCorrect={false}
-                    />
-                  </View>
-                </View>
-
-                {/* Location — Google Places Autocomplete */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>활동 지역</Text>
-                  <View style={styles.placesRow}>
-                    <View style={styles.placesIcon}>
-                      <LocationPinIcon size={15} color={COLORS.gray} />
-                    </View>
-                    <GooglePlacesAutocomplete
-                      ref={placesRef}
-                      placeholder="도시 검색 (예: 서울, Tokyo, Paris...)"
-                      query={{
-                        key: Config.GOOGLE_PLACES_API_KEY ?? '',
-                        language: 'ko',
-                      }}
-                      fetchDetails
-                      onPress={(data, details) => {
-                        const address = data.description;
-                        const lat = details?.geometry?.location?.lat;
-                        const lng = details?.geometry?.location?.lng;
-                        const comps = details?.address_components ?? [];
-                        const countryComp = comps.find((c) => c.types.includes('country'));
-                        const adminComp = comps.find((c) =>
-                          c.types.includes('administrative_area_level_1'),
-                        );
-                        const subComp = comps.find((c) =>
-                          c.types.includes('administrative_area_level_2') ||
-                          c.types.includes('locality'),
-                        );
-                        setLocation(address);
-                        setLocationMeta({
-                          lat,
-                          lng,
-                          countryCode: countryComp?.short_name ?? null,
-                          countryName: countryComp?.long_name ?? null,
-                          regionSido: adminComp?.long_name ?? null,
-                          regionSigungu: subComp?.long_name ?? null,
-                        });
-                      }}
-                      textInputProps={{
-                        placeholderTextColor: COLORS.gray2,
-                        onChangeText: setLocation,
-                      }}
-                      enablePoweredByContainer={false}
-                      styles={{
-                        container: placesStyles.container,
-                        textInputContainer: placesStyles.textInputContainer,
-                        textInput: placesStyles.textInput,
-                        listView: placesStyles.listView,
-                        row: placesStyles.row,
-                        description: placesStyles.description,
-                        separator: placesStyles.separator,
-                      }}
                     />
                   </View>
                 </View>
@@ -454,6 +454,10 @@ const styles = StyleSheet.create({
   field: {
     marginBottom: 20,
   },
+  fieldOutside: {
+    marginBottom: 8,
+    zIndex: 20,
+  },
   label: {
     color: COLORS.gray,
     fontSize: 12,
@@ -482,7 +486,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.elevated,
     borderRadius: 10,
     paddingLeft: 12,
-    zIndex: 10,
+    zIndex: 20,
   },
   placesIcon: {
     marginTop: 14,

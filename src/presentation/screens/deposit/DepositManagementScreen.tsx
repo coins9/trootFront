@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Image,
-  StatusBar, Alert, LayoutAnimation, Platform, UIManager,
+  StatusBar, LayoutAnimation, Platform, UIManager,
 } from 'react-native';
 
 if (
@@ -29,6 +29,7 @@ import {
   PersonSilhouette,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import LogoHeader from '../../components/common/LogoHeader';
 import { DepositItem, DepositStatus } from '../../../domain/entities/depositTypes';
 import { useApi, usePagedApi } from '../../hooks/useApi';
@@ -210,6 +211,7 @@ const DepositManagementScreen = () => {
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabKey>('pending');
+  const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
   const { items: pendingRaw, loading: pendingLoading, loadMore: loadMorePending, setItems: setPendingRaw } =
     usePagedApi((cursor) => reservationApi.forArtist({ depositStatus: 'pending', cursor }), []);
   const { items: confirmedRaw, loading: confirmedLoading, loadMore: loadMoreConfirmed, setItems: setConfirmedRaw } =
@@ -234,87 +236,72 @@ const DepositManagementScreen = () => {
   }, [toast, t]);
 
   const handleConfirm = useCallback((item: DepositItem) => () => {
-    Alert.alert(
-      t('reservation.confirmDepositTitle'),
-      t('reservation.confirmDepositMsg'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.confirm'),
-          style: 'default',
-          onPress: async () => {
-            easeLayoutAnim();
-            setPendingRaw((prev) => prev.filter((d) => d.id !== item.id));
-            try {
-              await reservationApi.confirmDeposit(item.id);
-              toast(
-                t('reservation.toastDepositConfirmed').replace('{{name}}', item.customer.nickname || t('reservation.noNameFallback')),
-                { variant: 'success' },
-              );
-            } catch {
-              toast(t('common.error'), { variant: 'error' });
-            }
-          },
-        },
-      ],
-      { cancelable: true },
-    );
+    setConfirm({
+      title: t('reservation.confirmDepositTitle'),
+      message: t('reservation.confirmDepositMsg'),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('common.confirm'),
+      variant: 'default',
+      onConfirm: async () => {
+        easeLayoutAnim();
+        setPendingRaw((prev) => prev.filter((d) => d.id !== item.id));
+        try {
+          await reservationApi.confirmDeposit(item.id);
+          toast(
+            t('reservation.toastDepositConfirmed').replace('{{name}}', item.customer.nickname || t('reservation.noNameFallback')),
+            { variant: 'success' },
+          );
+        } catch {
+          toast(t('common.error'), { variant: 'error' });
+        }
+      },
+    });
   }, [toast, setPendingRaw, t]);
 
   const handleCancelPending = useCallback((item: DepositItem) => () => {
-    Alert.alert(
-      t('reservation.cancelPendingTitle'),
-      t('reservation.cancelPendingMsg'),
-      [
-        { text: t('reservation.cancelBack'), style: 'cancel' },
-        {
-          text: t('reservation.cancelPendingConfirmBtn'),
-          style: 'destructive',
-          onPress: async () => {
-            easeLayoutAnim();
-            setPendingRaw((prev) => prev.filter((d) => d.id !== item.id));
-            try {
-              await reservationApi.rejectByArtist(item.id, '미입금');
-              toast(
-                t('reservation.toastDepositCancelled').replace('{{name}}', item.customer.nickname || t('reservation.noNameFallback')),
-                { variant: 'error' },
-              );
-            } catch {
-              toast(t('common.error'), { variant: 'error' });
-            }
-          },
-        },
-      ],
-      { cancelable: true },
-    );
+    setConfirm({
+      title: t('reservation.cancelPendingTitle'),
+      message: t('reservation.cancelPendingMsg'),
+      cancelLabel: t('reservation.cancelBack'),
+      confirmLabel: t('reservation.cancelPendingConfirmBtn'),
+      variant: 'danger',
+      onConfirm: async () => {
+        easeLayoutAnim();
+        setPendingRaw((prev) => prev.filter((d) => d.id !== item.id));
+        try {
+          await reservationApi.rejectByArtist(item.id, '미입금');
+          toast(
+            t('reservation.toastDepositCancelled').replace('{{name}}', item.customer.nickname || t('reservation.noNameFallback')),
+            { variant: 'error' },
+          );
+        } catch {
+          toast(t('common.error'), { variant: 'error' });
+        }
+      },
+    });
   }, [toast, setPendingRaw, t]);
 
   const handleCancelConfirmed = useCallback((item: DepositItem) => () => {
-    Alert.alert(
-      t('reservation.cancelConfirmedTitle'),
-      t('reservation.cancelConfirmedMsg'),
-      [
-        { text: t('reservation.cancelBack'), style: 'cancel' },
-        {
-          text: t('reservation.cancelConfirmedBtn'),
-          style: 'destructive',
-          onPress: async () => {
-            easeLayoutAnim();
-            setConfirmedRaw((prev) => prev.filter((d) => d.id !== item.id));
-            try {
-              await reservationApi.rejectByArtist(item.id, '예약 취소');
-              toast(
-                t('reservation.toastDepositRefunded').replace('{{name}}', item.customer.nickname || t('reservation.noNameFallback')),
-                { variant: 'error' },
-              );
-            } catch {
-              toast(t('common.error'), { variant: 'error' });
-            }
-          },
-        },
-      ],
-      { cancelable: true },
-    );
+    setConfirm({
+      title: t('reservation.cancelConfirmedTitle'),
+      message: t('reservation.cancelConfirmedMsg'),
+      cancelLabel: t('reservation.cancelBack'),
+      confirmLabel: t('reservation.cancelConfirmedBtn'),
+      variant: 'danger',
+      onConfirm: async () => {
+        easeLayoutAnim();
+        setConfirmedRaw((prev) => prev.filter((d) => d.id !== item.id));
+        try {
+          await reservationApi.rejectByArtist(item.id, '예약 취소');
+          toast(
+            t('reservation.toastDepositRefunded').replace('{{name}}', item.customer.nickname || t('reservation.noNameFallback')),
+            { variant: 'error' },
+          );
+        } catch {
+          toast(t('common.error'), { variant: 'error' });
+        }
+      },
+    });
   }, [toast, setConfirmedRaw, t]);
 
   const handleSummaryTap = useCallback(() => {
@@ -451,6 +438,7 @@ const DepositManagementScreen = () => {
         </View>
         <ChevronRightIcon size={18} color={COLORS.gray} />
       </TouchableOpacity>
+      <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
     </SafeAreaView>
   );
 };

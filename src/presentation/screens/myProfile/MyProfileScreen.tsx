@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +17,7 @@ import {
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
+import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import { useAuthStore } from '../../store/authStore';
 import { artistApi, type ArtistPage } from '../../../data/api';
 import { supplyVendorApi, type MyVendor } from '../../../data/api/vendor';
@@ -47,6 +48,8 @@ const MyProfileScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const session = useAuthStore((s) => s.session);
+  const insets = useSafeAreaInsets();
+  const bottomTabHeight = useBottomTabHeight();
 
   const [mode, setMode] = useState<ProfileMode>('user');
   const [artistInfo, setArtistInfo] = useState<ArtistPage | null>(null);
@@ -225,66 +228,65 @@ const MyProfileScreen = () => {
         <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
         <LogoHeader />
 
+        {/* Profile card — outside ScrollView so tab bar stays sticky */}
+        <View style={styles.profileBlock}>
+          <View style={styles.avatarCircle}>
+            <PersonSilhouette size={72} color="#3a3a3a" />
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.nickname} numberOfLines={1}>{displayName}</Text>
+            {mode === 'artist' && artistInfo ? (
+                <>
+                  <View style={styles.artistMetaRow}>
+                    <LocationPinIcon size={13} color={COLORS.gray} />
+                    <Text style={styles.artistMetaText}>
+                      {[artistInfo.regionSido, artistInfo.regionSigungu].filter(Boolean).join(' · ') || '—'}
+                    </Text>
+                  </View>
+                  <View style={styles.artistRatingRow}>
+                    <StarIcon size={14} color={COLORS.gold} filled />
+                    <Text style={styles.artistRatingValue}>{Number(artistInfo.rating).toFixed(1)}</Text>
+                    <Text style={styles.artistRatingCount}>({artistInfo.reviewCount})</Text>
+                  </View>
+                </>
+            ) : mode === 'vendor' && vendorInfo ? (
+                <Text style={styles.vendorStatus}>
+                  {vendorInfo.status === 'approved' ? t('profile.vendorApproved') :
+                      vendorInfo.status === 'pending' ? t('profile.vendorPending') :
+                          vendorInfo.status === 'rejected' ? t('profile.vendorRejected') :
+                              t('profile.vendorSuspended')}
+                </Text>
+            ) : (
+                <Text style={styles.bio}>{session?.user.email ?? ''}</Text>
+            )}
+          </View>
+        </View>
+
+        {/* Mode selector — underline tab bar matching customer view */}
+        <View style={styles.modeTabs}>
+          {MODE_TAB_KEYS.map((tab) => {
+            const active = mode === tab.key;
+            return (
+                <TouchableOpacity
+                    key={tab.key}
+                    onPress={() => handleTabPress(tab.key)}
+                    activeOpacity={0.8}
+                    style={styles.modeTab}
+                >
+                  <Text style={[styles.modeTabText, active && styles.modeTabTextActive]} numberOfLines={1}>
+                    {t(tab.tKey)}
+                  </Text>
+                  {active && <View style={styles.modeTabUnderline} />}
+                </TouchableOpacity>
+            );
+          })}
+        </View>
+
         <ScrollView
             style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomTabHeight + insets.bottom + 16 }]}
             showsVerticalScrollIndicator={false}
         >
-          {/* Profile card */}
-          <View style={styles.profileBlock}>
-            <View style={styles.avatarCircle}>
-              <PersonSilhouette size={72} color="#3a3a3a" />
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.nickname} numberOfLines={1}>{displayName}</Text>
-              {mode === 'artist' && artistInfo ? (
-                  <>
-                    <View style={styles.artistMetaRow}>
-                      <LocationPinIcon size={13} color={COLORS.gray} />
-                      <Text style={styles.artistMetaText}>
-                        {[artistInfo.regionSido, artistInfo.regionSigungu].filter(Boolean).join(' · ') || '—'}
-                      </Text>
-                    </View>
-                    <View style={styles.artistRatingRow}>
-                      <StarIcon size={14} color={COLORS.gold} filled />
-                      <Text style={styles.artistRatingValue}>{Number(artistInfo.rating).toFixed(1)}</Text>
-                      <Text style={styles.artistRatingCount}>({artistInfo.reviewCount})</Text>
-                    </View>
-                  </>
-              ) : mode === 'vendor' && vendorInfo ? (
-                  <Text style={styles.vendorStatus}>
-                    {vendorInfo.status === 'approved' ? t('profile.vendorApproved') :
-                        vendorInfo.status === 'pending' ? t('profile.vendorPending') :
-                            vendorInfo.status === 'rejected' ? t('profile.vendorRejected') :
-                                t('profile.vendorSuspended')}
-                  </Text>
-              ) : (
-                  <Text style={styles.bio}>{session?.user.email ?? ''}</Text>
-              )}
-            </View>
-          </View>
-
-          {/* Mode selector */}
-          <View style={styles.modeTabs}>
-            {MODE_TAB_KEYS.map((tab) => {
-              const active = mode === tab.key;
-              return (
-                  <TouchableOpacity
-                      key={tab.key}
-                      onPress={() => handleTabPress(tab.key)}
-                      activeOpacity={0.8}
-                      style={[styles.modeTab, active ? styles.modeTabActive : styles.modeTabInactive]}
-                  >
-                    <Text style={[styles.modeTabText, active && styles.modeTabTextActive]} numberOfLines={1}>
-                      {t(tab.tKey)}
-                    </Text>
-                  </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <View style={styles.headerDivider} />
-
           {mode === 'artist' && (
               <>
                 {renderCompactSection(t('profile.modeArtist'), artistMenuItems)}
@@ -313,9 +315,9 @@ const MyProfileScreen = () => {
                 {renderCompactSection(t('settings.title'), userSettingItems)}
               </>
           )}
-
-          <View style={{ height: 24 }} />
         </ScrollView>
+
+        <AppBottomTabBar activeTab="ProfileTab" />
       </SafeAreaView>
   );
 };
@@ -332,7 +334,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingTop: 16,
   },
 
   profileBlock: {
@@ -407,45 +409,34 @@ const styles = StyleSheet.create({
 
   modeTabs: {
     flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 18,
-    padding: 4,
-    borderRadius: 12,
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 4,
+    backgroundColor: COLORS.black,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   modeTab: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 9,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  modeTabInactive: {
-    backgroundColor: 'transparent',
-  },
-  modeTabActive: {
-    backgroundColor: COLORS.gold,
+    paddingVertical: 13,
+    position: 'relative',
   },
   modeTabText: {
     color: COLORS.gray,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
     lineHeight: 17,
   },
   modeTabTextActive: {
-    color: COLORS.black,
+    color: COLORS.gold,
     fontWeight: '700',
   },
-
-  headerDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginHorizontal: 20,
-    marginBottom: 20,
+  modeTabUnderline: {
+    position: 'absolute',
+    bottom: 0,
+    left: '10%',
+    right: '10%',
+    height: 2.5,
+    backgroundColor: COLORS.gold,
+    borderRadius: 2,
   },
 
   sectionCard: {
