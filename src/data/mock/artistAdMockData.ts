@@ -24,6 +24,7 @@ export const MOCK_PROMO_BANNERS: ArtistPromoBanner[] = [
 export const MOCK_ARTIST_ADS: ArtistAdItem[] = [
   {
     id: 'ad-super-1',
+    artworkId: 'ad-super-1',
     title: '블랙워크 천사',
     thumbnailUri: '',
     status: 'super_up',
@@ -37,6 +38,7 @@ export const MOCK_ARTIST_ADS: ArtistAdItem[] = [
   },
   {
     id: 'ad-up-1',
+    artworkId: 'ad-up-1',
     title: '미니멀 라인 · 팔찌',
     thumbnailUri: '',
     status: 'up',

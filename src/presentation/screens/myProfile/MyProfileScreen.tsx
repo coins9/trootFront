@@ -140,36 +140,47 @@ const MyProfileScreen = () => {
     Linking.openURL(url).catch(() => toast(t('common.linkError'), { variant: 'error' }));
   }, [t, toast]);
 
-  const shopMatchingItems: MenuItem[] = [
+  const shopBoothItems: MenuItem[] = [
     {
       Icon: HandshakeIcon,
-      label: '부스 쉐어',
+      label: t('profile.myPosts'),
       onPress: () => navigation.navigate('MyShopPosts', { defaultCategory: '부스 쉐어' }),
     },
     {
+      Icon: CalendarIcon,
+      label: t('profile.applicationStatus'),
+      onPress: () => navigation.navigate('ShopApplications', { category: '부스 쉐어' }),
+    },
+  ];
+  const shopModelItems: MenuItem[] = [
+    {
       Icon: UserOutlineIcon,
-      label: '타투 모델 구인 (비기너)',
+      label: t('profile.myPosts'),
       onPress: () => navigation.navigate('MyShopPosts', { defaultCategory: '타투 모델 구인 (비기너)' }),
     },
     {
+      Icon: CalendarIcon,
+      label: t('profile.applicationStatus'),
+      onPress: () => navigation.navigate('ShopApplications', { category: '타투 모델 구인 (비기너)' }),
+    },
+  ];
+  const shopMediaItems: MenuItem[] = [
+    {
       Icon: PaletteIcon,
-      label: '사진/영상 편집자',
+      label: t('profile.myPosts'),
       onPress: () => navigation.navigate('MyShopPosts', { defaultCategory: '사진/영상 편집자' }),
     },
     {
-      Icon: BarChartIcon,
-      label: '비기너모델 광고 문의하기',
-      onPress: () => openLink(siteSettings?.banner_beginner_url),
+      Icon: CalendarIcon,
+      label: t('profile.applicationStatus'),
+      onPress: () => navigation.navigate('ShopApplications', { category: '사진/영상 편집자' }),
     },
+  ];
+  const shopAdItems: MenuItem[] = [
     {
       Icon: BarChartIcon,
-      label: '사진/영상 광고 문의하기',
-      onPress: () => openLink(siteSettings?.banner_media_url),
-    },
-    {
-      Icon: BarChartIcon,
-      label: '부스쉐어 광고 문의하기',
-      onPress: () => openLink(siteSettings?.banner_booth_url),
+      label: t('profile.adInquiry'),
+      onPress: () => openLink(siteSettings?.ad_inquiry_url),
     },
   ];
   const userSettingItems: MenuItem[] = [
@@ -357,7 +368,10 @@ const MyProfileScreen = () => {
 
           {mode === 'shopMatching' && (
               <>
-                {renderCompactSection(t('profile.myPosts'), shopMatchingItems)}
+                {renderCompactSection('부스 쉐어', shopBoothItems)}
+                {renderCompactSection('타투 모델 구인 (비기너)', shopModelItems)}
+                {renderCompactSection('사진/영상 편집자', shopMediaItems)}
+                {renderCompactSection(t('profile.adSection'), shopAdItems)}
               </>
           )}
         </ScrollView>

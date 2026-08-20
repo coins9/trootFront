@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, StatusBar, Image, ActivityIndicator,
@@ -22,7 +22,6 @@ import {
   SHARE_REGION_OPTIONS,
 } from '../../../domain/entities/shopTypes';
 import { shopApi, ShopCategory } from '../../../data/api';
-import BilingualSection from '../../components/common/BilingualSection';
 import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -100,9 +99,10 @@ const EMPTY_BOOTH: BoothForm = {
   lighting: '', maxOccupancy: '', description: '', descriptionEn: '', contact: '',
 };
 
-const BoothShareForm = ({ form, setForm }: {
+const BoothShareForm = ({ form, setForm, writeLang }: {
   form: BoothForm;
   setForm: React.Dispatch<React.SetStateAction<BoothForm>>;
+  writeLang: 'ko' | 'en';
 }) => {
   const toggle = useCallback((field: keyof BoothForm) => (v: string) => {
     setForm(p => ({ ...p, [field]: p[field] === v ? '' : v }));
@@ -110,15 +110,32 @@ const BoothShareForm = ({ form, setForm }: {
 
   return (
     <>
-      <SectionLabel label="제목" required />
-      <TextInput
-        style={s.input}
-        placeholder="공간 이름 또는 제목을 입력해주세요"
-        placeholderTextColor={COLORS.gray2}
-        value={form.title}
-        onChangeText={v => setForm(p => ({ ...p, title: v }))}
-        maxLength={40}
-      />
+      {writeLang === 'ko' ? (
+        <>
+          <SectionLabel label="제목" required />
+          <TextInput
+            style={s.input}
+            placeholder="공간 이름 또는 제목을 입력해주세요"
+            placeholderTextColor={COLORS.gray2}
+            value={form.title}
+            onChangeText={v => setForm(p => ({ ...p, title: v }))}
+            maxLength={40}
+          />
+        </>
+      ) : (
+        <>
+          <SectionLabel label="Title (English)" />
+          <TextInput
+            style={s.input}
+            placeholder="e.g. Gangnam Tattoo Studio – Booth Share"
+            placeholderTextColor={COLORS.gray2}
+            value={form.titleEn}
+            onChangeText={v => setForm(p => ({ ...p, titleEn: v }))}
+            maxLength={40}
+            autoCapitalize="sentences"
+          />
+        </>
+      )}
 
       <SectionLabel label="지역" required />
       <ChipSelect
@@ -161,16 +178,34 @@ const BoothShareForm = ({ form, setForm }: {
         keyboardType="numeric"
       />
 
-      <SectionLabel label="공간 소개" required />
-      <TextInput
-        style={[s.input, s.textarea]}
-        placeholder="공간 특징, 편의시설, 규칙 등을 자세히 적어주세요"
-        placeholderTextColor={COLORS.gray2}
-        value={form.description}
-        onChangeText={v => setForm(p => ({ ...p, description: v }))}
-        multiline
-        maxLength={500}
-      />
+      {writeLang === 'ko' ? (
+        <>
+          <SectionLabel label="공간 소개" required />
+          <TextInput
+            style={[s.input, s.textarea]}
+            placeholder="공간 특징, 편의시설, 규칙 등을 자세히 적어주세요"
+            placeholderTextColor={COLORS.gray2}
+            value={form.description}
+            onChangeText={v => setForm(p => ({ ...p, description: v }))}
+            multiline
+            maxLength={500}
+          />
+        </>
+      ) : (
+        <>
+          <SectionLabel label="Description (English)" />
+          <TextInput
+            style={[s.input, s.textarea]}
+            placeholder="Space features, amenities, rules, etc."
+            placeholderTextColor={COLORS.gray2}
+            value={form.descriptionEn}
+            onChangeText={v => setForm(p => ({ ...p, descriptionEn: v }))}
+            multiline
+            maxLength={500}
+            autoCapitalize="sentences"
+          />
+        </>
+      )}
 
       <SectionLabel label="연락처 (카카오 오픈채팅 또는 전화)" required />
       <TextInput
@@ -179,17 +214,6 @@ const BoothShareForm = ({ form, setForm }: {
         placeholderTextColor={COLORS.gray2}
         value={form.contact}
         onChangeText={v => setForm(p => ({ ...p, contact: v }))}
-      />
-
-      <BilingualSection
-        titleEn={form.titleEn}
-        onChangeTitleEn={v => setForm(p => ({ ...p, titleEn: v }))}
-        titlePlaceholder="e.g. Gangnam Tattoo Studio – Booth Share"
-        titleMaxLength={40}
-        descEn={form.descriptionEn}
-        onChangeDescEn={v => setForm(p => ({ ...p, descriptionEn: v }))}
-        descPlaceholder="Space features, amenities, rules, etc."
-        descMaxLength={500}
       />
     </>
   );
@@ -217,9 +241,10 @@ const EMPTY_OVERSEAS_BOOTH: OverseasBoothForm = {
   bedCount: '', lighting: '', description: '', descriptionEn: '', contact: '',
 };
 
-const OverseasBoothShareForm = ({ form, setForm }: {
+const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
   form: OverseasBoothForm;
   setForm: React.Dispatch<React.SetStateAction<OverseasBoothForm>>;
+  writeLang: 'ko' | 'en';
 }) => {
   const cityRef = useRef<GooglePlacesAutocompleteRef>(null);
   const toggle = useCallback((field: keyof OverseasBoothForm) => (v: string) => {
@@ -228,26 +253,32 @@ const OverseasBoothShareForm = ({ form, setForm }: {
 
   return (
     <>
-      <SectionLabel label="제목 (한국어)" required />
-      <TextInput
-        style={s.input}
-        placeholder="예: 도쿄 신주쿠 부스쉐어 1베드"
-        placeholderTextColor={COLORS.gray2}
-        value={form.title}
-        onChangeText={v => setForm(p => ({ ...p, title: v }))}
-        maxLength={60}
-      />
-
-      <SectionLabel label="Title (English)" />
-      <TextInput
-        style={s.input}
-        placeholder="e.g. Tokyo Shinjuku Booth Share – 1 Bed Available"
-        placeholderTextColor={COLORS.gray2}
-        value={form.titleEn}
-        onChangeText={v => setForm(p => ({ ...p, titleEn: v }))}
-        maxLength={60}
-        autoCapitalize="sentences"
-      />
+      {writeLang === 'ko' ? (
+        <>
+          <SectionLabel label="제목 (한국어)" required />
+          <TextInput
+            style={s.input}
+            placeholder="예: 도쿄 신주쿠 부스쉐어 1베드"
+            placeholderTextColor={COLORS.gray2}
+            value={form.title}
+            onChangeText={v => setForm(p => ({ ...p, title: v }))}
+            maxLength={60}
+          />
+        </>
+      ) : (
+        <>
+          <SectionLabel label="Title (English)" />
+          <TextInput
+            style={s.input}
+            placeholder="e.g. Tokyo Shinjuku Booth Share – 1 Bed Available"
+            placeholderTextColor={COLORS.gray2}
+            value={form.titleEn}
+            onChangeText={v => setForm(p => ({ ...p, titleEn: v }))}
+            maxLength={60}
+            autoCapitalize="sentences"
+          />
+        </>
+      )}
 
       <SectionLabel label="국가 (Country)" required />
       <ChipSelect
@@ -322,28 +353,34 @@ const OverseasBoothShareForm = ({ form, setForm }: {
         onToggle={toggle('lighting')}
       />
 
-      <SectionLabel label="공간 소개 (한국어)" required />
-      <TextInput
-        style={[s.input, s.textarea]}
-        placeholder="공간 특징, 편의시설, 규칙 등을 적어주세요"
-        placeholderTextColor={COLORS.gray2}
-        value={form.description}
-        onChangeText={v => setForm(p => ({ ...p, description: v }))}
-        multiline
-        maxLength={600}
-      />
-
-      <SectionLabel label="Description (English)" />
-      <TextInput
-        style={[s.input, s.textarea]}
-        placeholder="Space features, amenities, rules, etc."
-        placeholderTextColor={COLORS.gray2}
-        value={form.descriptionEn}
-        onChangeText={v => setForm(p => ({ ...p, descriptionEn: v }))}
-        multiline
-        maxLength={600}
-        autoCapitalize="sentences"
-      />
+      {writeLang === 'ko' ? (
+        <>
+          <SectionLabel label="공간 소개 (한국어)" required />
+          <TextInput
+            style={[s.input, s.textarea]}
+            placeholder="공간 특징, 편의시설, 규칙 등을 적어주세요"
+            placeholderTextColor={COLORS.gray2}
+            value={form.description}
+            onChangeText={v => setForm(p => ({ ...p, description: v }))}
+            multiline
+            maxLength={600}
+          />
+        </>
+      ) : (
+        <>
+          <SectionLabel label="Description (English)" />
+          <TextInput
+            style={[s.input, s.textarea]}
+            placeholder="Space features, amenities, rules, etc."
+            placeholderTextColor={COLORS.gray2}
+            value={form.descriptionEn}
+            onChangeText={v => setForm(p => ({ ...p, descriptionEn: v }))}
+            multiline
+            maxLength={600}
+            autoCapitalize="sentences"
+          />
+        </>
+      )}
 
       <SectionLabel label="연락처 (Contact)" required />
       <TextInput
@@ -378,9 +415,10 @@ const EMPTY_MODEL: ModelForm = {
   description: '', descriptionEn: '', contact: '',
 };
 
-const ModelRecruitForm = ({ form, setForm }: {
+const ModelRecruitForm = ({ form, setForm, writeLang }: {
   form: ModelForm;
   setForm: React.Dispatch<React.SetStateAction<ModelForm>>;
+  writeLang: 'ko' | 'en';
 }) => {
   const toggleRegion = useCallback((v: string) => {
     setForm(p => ({ ...p, region: p.region === v ? '' : v }));
@@ -395,15 +433,32 @@ const ModelRecruitForm = ({ form, setForm }: {
 
   return (
     <>
-      <SectionLabel label="공고 제목" required />
-      <TextInput
-        style={s.input}
-        placeholder="예: 미니타투 무료 모델 구합니다"
-        placeholderTextColor={COLORS.gray2}
-        value={form.title}
-        onChangeText={v => setForm(p => ({ ...p, title: v }))}
-        maxLength={40}
-      />
+      {writeLang === 'ko' ? (
+        <>
+          <SectionLabel label="공고 제목" required />
+          <TextInput
+            style={s.input}
+            placeholder="예: 미니타투 무료 모델 구합니다"
+            placeholderTextColor={COLORS.gray2}
+            value={form.title}
+            onChangeText={v => setForm(p => ({ ...p, title: v }))}
+            maxLength={40}
+          />
+        </>
+      ) : (
+        <>
+          <SectionLabel label="Title (English)" />
+          <TextInput
+            style={s.input}
+            placeholder="e.g. Looking for a mini tattoo model"
+            placeholderTextColor={COLORS.gray2}
+            value={form.titleEn}
+            onChangeText={v => setForm(p => ({ ...p, titleEn: v }))}
+            maxLength={40}
+            autoCapitalize="sentences"
+          />
+        </>
+      )}
 
       <SectionLabel label="지역" required />
       <ChipSelect
@@ -440,16 +495,34 @@ const ModelRecruitForm = ({ form, setForm }: {
         maxLength={50}
       />
 
-      <SectionLabel label="상세 내용" required />
-      <TextInput
-        style={[s.input, s.textarea]}
-        placeholder="작업 부위, 크기, 주의사항 등을 상세히 적어주세요"
-        placeholderTextColor={COLORS.gray2}
-        value={form.description}
-        onChangeText={v => setForm(p => ({ ...p, description: v }))}
-        multiline
-        maxLength={500}
-      />
+      {writeLang === 'ko' ? (
+        <>
+          <SectionLabel label="상세 내용" required />
+          <TextInput
+            style={[s.input, s.textarea]}
+            placeholder="작업 부위, 크기, 주의사항 등을 상세히 적어주세요"
+            placeholderTextColor={COLORS.gray2}
+            value={form.description}
+            onChangeText={v => setForm(p => ({ ...p, description: v }))}
+            multiline
+            maxLength={500}
+          />
+        </>
+      ) : (
+        <>
+          <SectionLabel label="Description (English)" />
+          <TextInput
+            style={[s.input, s.textarea]}
+            placeholder="Body part, size, requirements, etc."
+            placeholderTextColor={COLORS.gray2}
+            value={form.descriptionEn}
+            onChangeText={v => setForm(p => ({ ...p, descriptionEn: v }))}
+            multiline
+            maxLength={500}
+            autoCapitalize="sentences"
+          />
+        </>
+      )}
 
       <SectionLabel label="연락처" required />
       <TextInput
@@ -458,17 +531,6 @@ const ModelRecruitForm = ({ form, setForm }: {
         placeholderTextColor={COLORS.gray2}
         value={form.contact}
         onChangeText={v => setForm(p => ({ ...p, contact: v }))}
-      />
-
-      <BilingualSection
-        titleEn={form.titleEn}
-        onChangeTitleEn={v => setForm(p => ({ ...p, titleEn: v }))}
-        titlePlaceholder="e.g. Looking for a mini tattoo model"
-        titleMaxLength={40}
-        descEn={form.descriptionEn}
-        onChangeDescEn={v => setForm(p => ({ ...p, descriptionEn: v }))}
-        descPlaceholder="Body part, size, requirements, etc."
-        descMaxLength={500}
       />
     </>
   );
@@ -499,9 +561,10 @@ const EMPTY_MEDIA: MediaForm = {
 
 const EXPERIENCE_OPTS = ['1년 미만', '1~3년', '3~5년', '5년 이상'];
 
-const MediaExpertForm = ({ form, setForm }: {
+const MediaExpertForm = ({ form, setForm, writeLang }: {
   form: MediaForm;
   setForm: React.Dispatch<React.SetStateAction<MediaForm>>;
+  writeLang: 'ko' | 'en';
 }) => {
   const toggleRegion = useCallback((v: string) => {
     setForm(p => ({ ...p, region: p.region === v ? '' : v }));
@@ -580,16 +643,34 @@ const MediaExpertForm = ({ form, setForm }: {
         />
       </View>
 
-      <SectionLabel label="소개 및 작업 스타일" required />
-      <TextInput
-        style={[s.input, s.textarea]}
-        placeholder="작업 방식, 장비, 포트폴리오 링크 등을 자유롭게 적어주세요"
-        placeholderTextColor={COLORS.gray2}
-        value={form.description}
-        onChangeText={v => setForm(p => ({ ...p, description: v }))}
-        multiline
-        maxLength={500}
-      />
+      {writeLang === 'ko' ? (
+        <>
+          <SectionLabel label="소개 및 작업 스타일" required />
+          <TextInput
+            style={[s.input, s.textarea]}
+            placeholder="작업 방식, 장비, 포트폴리오 링크 등을 자유롭게 적어주세요"
+            placeholderTextColor={COLORS.gray2}
+            value={form.description}
+            onChangeText={v => setForm(p => ({ ...p, description: v }))}
+            multiline
+            maxLength={500}
+          />
+        </>
+      ) : (
+        <>
+          <SectionLabel label="Description (English)" />
+          <TextInput
+            style={[s.input, s.textarea]}
+            placeholder="Introduce your work style, equipment, and portfolio in English."
+            placeholderTextColor={COLORS.gray2}
+            value={form.descriptionEn}
+            onChangeText={v => setForm(p => ({ ...p, descriptionEn: v }))}
+            multiline
+            maxLength={500}
+            autoCapitalize="sentences"
+          />
+        </>
+      )}
 
       <SectionLabel label="인스타그램" />
       <TextInput
@@ -608,13 +689,6 @@ const MediaExpertForm = ({ form, setForm }: {
         placeholderTextColor={COLORS.gray2}
         value={form.contact}
         onChangeText={v => setForm(p => ({ ...p, contact: v }))}
-      />
-
-      <BilingualSection
-        descEn={form.descriptionEn}
-        onChangeDescEn={v => setForm(p => ({ ...p, descriptionEn: v }))}
-        descPlaceholder="Introduce your work style, equipment, and portfolio in English."
-        descMaxLength={500}
       />
     </>
   );
@@ -674,18 +748,90 @@ const ShopWriteScreen = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
 
+  const postId = route.params?.postId;
+  const isEdit = !!postId;
+
   const [category, setCategory] = useState<ShopMatchingCategory>(
     route.params?.initialCategory ?? '부스 쉐어',
   );
   const [boothKind, setBoothKind] = useState<'domestic' | 'overseas'>(
     route.params?.boothKind ?? 'domestic',
   );
+  const [writeLang, setWriteLang] = useState<'ko' | 'en'>('ko');
   const [images, setImages] = useState<string[]>([]);
   const [boothForm, setBoothForm] = useState<BoothForm>(EMPTY_BOOTH);
   const [overseasBoothForm, setOverseasBoothForm] = useState<OverseasBoothForm>(EMPTY_OVERSEAS_BOOTH);
   const [modelForm, setModelForm] = useState<ModelForm>(EMPTY_MODEL);
   const [mediaForm, setMediaForm] = useState<MediaForm>(EMPTY_MEDIA);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!postId) return;
+    shopApi.detail(postId).then((post) => {
+      const a = post.attributes as Record<string, unknown>;
+      setImages(post.images ?? []);
+      if (post.category === 'booth_share') {
+        setCategory('부스 쉐어');
+        setBoothKind('domestic');
+        setBoothForm({
+          title: post.title ?? '',
+          titleEn: post.titleEn ?? '',
+          region: post.region ?? '',
+          pricePerDay: post.priceKrw != null ? String(post.priceKrw) : '',
+          bedCount: (a.bedCount as BoothForm['bedCount']) ?? '',
+          lighting: (a.lighting as BoothForm['lighting']) ?? '',
+          maxOccupancy: a.maxOccupancy != null ? String(a.maxOccupancy) : '',
+          description: post.description ?? '',
+          descriptionEn: post.descriptionEn ?? '',
+          contact: post.contact ?? '',
+        });
+      } else if (post.category === 'booth_share_overseas') {
+        setCategory('부스 쉐어');
+        setBoothKind('overseas');
+        setOverseasBoothForm({
+          title: post.title ?? '',
+          titleEn: post.titleEn ?? '',
+          country: (a.country as string) ?? '',
+          city: (a.city as string) ?? '',
+          pricePerDay: a.pricePerDay != null ? String(a.pricePerDay) : '',
+          currency: (a.currency as string) ?? 'USD',
+          bedCount: (a.bedCount as OverseasBoothForm['bedCount']) ?? '',
+          lighting: (a.lighting as OverseasBoothForm['lighting']) ?? '',
+          description: post.description ?? '',
+          descriptionEn: post.descriptionEn ?? '',
+          contact: post.contact ?? '',
+        });
+      } else if (post.category === 'model_recruit') {
+        setCategory('타투 모델 구인 (비기너)');
+        setModelForm({
+          title: post.title ?? '',
+          titleEn: post.titleEn ?? '',
+          region: post.region ?? '',
+          styles: Array.isArray(a.styles) ? (a.styles as string[]) : [],
+          materialFee: a.materialFee != null ? String(a.materialFee) : '',
+          workPeriod: (a.workPeriod as string) ?? '',
+          description: post.description ?? '',
+          descriptionEn: post.descriptionEn ?? '',
+          contact: post.contact ?? '',
+        });
+      } else if (post.category === 'media_expert') {
+        setCategory('사진/영상 편집자');
+        setMediaForm({
+          specialty: (a.specialty as MediaForm['specialty']) ?? '',
+          nickname: (a.nickname as string) ?? '',
+          region: post.region ?? '',
+          experience: (a.experience as string) ?? '',
+          workKinds: Array.isArray(a.workKinds) ? (a.workKinds as string[]) : [],
+          priceMin: a.priceMin != null ? String(a.priceMin) : '',
+          priceMax: a.priceMax != null ? String(a.priceMax) : '',
+          description: post.description ?? '',
+          descriptionEn: post.descriptionEn ?? '',
+          instagramUrl: (a.instagramUrl as string) ?? '',
+          contact: post.contact ?? '',
+        });
+      }
+    }).catch(() => {});
+  }, [postId]);
 
   const { pickAndUpload, uploading } = useImageUpload({
     scope: 'shop',
@@ -812,15 +958,19 @@ const ShopWriteScreen = () => {
     if (submitting) return;
     setSubmitting(true);
     try {
-      await shopApi.create(buildBody());
-      toast(t('shop.writeSuccess'), { variant: 'success' });
+      if (isEdit && postId) {
+        await shopApi.update(postId, buildBody());
+      } else {
+        await shopApi.create(buildBody());
+      }
+      toast(isEdit ? t('shop.updateSuccess') : t('shop.writeSuccess'), { variant: 'success' });
       navigation.goBack();
     } catch {
-      toast(t('shop.writeFailed'), { variant: 'error' });
+      toast(isEdit ? t('shop.updateFailed') : t('shop.writeFailed'), { variant: 'error' });
     } finally {
       setSubmitting(false);
     }
-  }, [isValid, submitting, buildBody, toast, navigation, t]);
+  }, [isValid, submitting, isEdit, postId, buildBody, toast, navigation, t]);
 
   const handleCategoryChange = useCallback((cat: ShopMatchingCategory) => {
     setCategory(cat);
@@ -838,7 +988,7 @@ const ShopWriteScreen = () => {
         >
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>{t('shop.writeHeader')}</Text>
+        <Text style={s.headerTitle}>{isEdit ? t('shop.editHeader') : t('shop.writeHeader')}</Text>
         <TouchableOpacity
           onPress={handleSubmit}
           style={[s.submitBtn, isValid() && s.submitBtnActive]}
@@ -848,7 +998,7 @@ const ShopWriteScreen = () => {
           {submitting ? (
             <ActivityIndicator size="small" color={COLORS.black} />
           ) : (
-            <Text style={[s.submitText, isValid() && s.submitTextActive]}>{t('shop.writeSubmit')}</Text>
+            <Text style={[s.submitText, isValid() && s.submitTextActive]}>{isEdit ? t('shop.editSubmit') : t('shop.writeSubmit')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -870,34 +1020,50 @@ const ShopWriteScreen = () => {
         ))}
       </View>
 
-      {/* 부스 쉐어 국내/해외 서브탭 */}
+      {/* 부스 쉐어 국내/해외 토글 */}
       {category === '부스 쉐어' && (
-        <View style={s.boothKindBar}>
-          <TouchableOpacity
-            onPress={() => setBoothKind('domestic')}
-            style={[s.boothKindTab, boothKind === 'domestic' && s.boothKindTabActive]}
-            activeOpacity={0.75}
-          >
-            <Text style={[s.boothKindText, boothKind === 'domestic' && s.boothKindTextActive]}>
-              국내 부스쉐어
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setBoothKind('overseas')}
-            style={[s.boothKindTab, boothKind === 'overseas' && s.boothKindTabActive]}
-            activeOpacity={0.75}
-          >
-            <Text style={[s.boothKindText, boothKind === 'overseas' && s.boothKindTextActive]}>
-              해외 부스쉐어
-            </Text>
-          </TouchableOpacity>
+        <View style={s.boothToggleWrap}>
+          <View style={s.boothToggle}>
+            <View style={[s.boothToggleThumb, boothKind === 'overseas' && s.boothToggleThumbRight]} />
+            <TouchableOpacity
+              onPress={() => setBoothKind('domestic')}
+              activeOpacity={0.8}
+              style={s.boothToggleSegment}
+            >
+              <Text style={[s.boothToggleText, boothKind === 'domestic' && s.boothToggleTextActive]}>
+                국내 부스쉐어
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setBoothKind('overseas')}
+              activeOpacity={0.8}
+              style={s.boothToggleSegment}
+            >
+              <Text style={[s.boothToggleText, boothKind === 'overseas' && s.boothToggleTextActive]}>
+                해외 부스쉐어
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
+      {/* 언어 선택 토글 */}
+      <View style={s.langToggleWrap}>
+        <View style={s.langToggle}>
+          <View style={[s.langToggleThumb, writeLang === 'en' && s.langToggleThumbRight]} />
+          <TouchableOpacity onPress={() => setWriteLang('ko')} activeOpacity={0.8} style={s.langToggleSegment}>
+            <Text style={[s.langToggleText, writeLang === 'ko' && s.langToggleTextActive]}>한국어</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setWriteLang('en')} activeOpacity={0.8} style={s.langToggleSegment}>
+            <Text style={[s.langToggleText, writeLang === 'en' && s.langToggleTextActive]}>English</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         style={s.flex1}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 8}
       >
         <ScrollView
           style={s.scroll}
@@ -912,16 +1078,16 @@ const ShopWriteScreen = () => {
 
           {/* 카테고리별 폼 */}
           {category === '부스 쉐어' && boothKind === 'overseas' && (
-            <OverseasBoothShareForm form={overseasBoothForm} setForm={setOverseasBoothForm} />
+            <OverseasBoothShareForm form={overseasBoothForm} setForm={setOverseasBoothForm} writeLang={writeLang} />
           )}
           {category === '부스 쉐어' && boothKind === 'domestic' && (
-            <BoothShareForm form={boothForm} setForm={setBoothForm} />
+            <BoothShareForm form={boothForm} setForm={setBoothForm} writeLang={writeLang} />
           )}
           {category === '타투 모델 구인 (비기너)' && (
-            <ModelRecruitForm form={modelForm} setForm={setModelForm} />
+            <ModelRecruitForm form={modelForm} setForm={setModelForm} writeLang={writeLang} />
           )}
           {category === '사진/영상 편집자' && (
-            <MediaExpertForm form={mediaForm} setForm={setMediaForm} />
+            <MediaExpertForm form={mediaForm} setForm={setMediaForm} writeLang={writeLang} />
           )}
 
           {/* 운영 정책 안내 */}
@@ -1012,22 +1178,82 @@ const s = StyleSheet.create({
   tabTextActive: { color: COLORS.gold, fontWeight: '700' },
 
   /* 국내/해외 서브탭 */
-  boothKindBar: {
-    flexDirection: 'row',
+  boothToggleWrap: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: COLORS.bg,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  boothKindTab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+  boothToggle: {
+    flexDirection: 'row',
+    height: 44,
+    backgroundColor: COLORS.card,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  boothKindTabActive: { borderBottomColor: COLORS.gold },
-  boothKindText: { fontSize: 13, color: COLORS.gray, fontWeight: '500', lineHeight: 18 },
-  boothKindTextActive: { color: COLORS.gold, fontWeight: '700' },
+  boothToggleThumb: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    left: 4,
+    width: '50%',
+    borderRadius: 18,
+    backgroundColor: COLORS.gold,
+  },
+  boothToggleThumbRight: {
+    left: '50%',
+    transform: [{ translateX: -4 }],
+  },
+  boothToggleSegment: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boothToggleText: { fontSize: 13, color: COLORS.gray2, fontWeight: '500', lineHeight: 18 },
+  boothToggleTextActive: { color: COLORS.black, fontWeight: '700' },
+
+  /* 언어 선택 토글 */
+  langToggleWrap: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: COLORS.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  langToggle: {
+    flexDirection: 'row',
+    height: 38,
+    backgroundColor: COLORS.card,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  langToggleThumb: {
+    position: 'absolute',
+    top: 3,
+    bottom: 3,
+    left: 3,
+    width: '50%',
+    borderRadius: 16,
+    backgroundColor: COLORS.gold,
+  },
+  langToggleThumbRight: {
+    left: '50%',
+    transform: [{ translateX: -3 }],
+  },
+  langToggleSegment: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langToggleText: { fontSize: 13, color: COLORS.gray2, fontWeight: '500' as const, lineHeight: 18 },
+  langToggleTextActive: { color: COLORS.black, fontWeight: '700' as const },
 
   /* 통화 선택 */
   currencyWrap: { flex: 1 },

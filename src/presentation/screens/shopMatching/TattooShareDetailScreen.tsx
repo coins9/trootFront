@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, Image, TouchableOpacity, StyleSheet,
-  Dimensions, StatusBar,
+  Dimensions, StatusBar, Linking, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -13,7 +13,6 @@ import {
   ChevronDownIcon, ChevronUpIcon, TattooPlaceholderIcon, PersonSilhouette,
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
-import ShareBookingBottomSheet from '../../components/shopMatching/ShareBookingBottomSheet';
 
 const { width: W, height: H } = Dimensions.get('window');
 const IMG_HEIGHT = H * 0.42;
@@ -30,7 +29,6 @@ const TattooShareDetailScreen = () => {
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(shop.isBookmarked);
   const [expandDescription, setExpandDescription] = useState(false);
-  const [bookingVisible, setBookingVisible] = useState(false);
 
   const descLines = shop.description.split('\n');
   const shouldTruncate = descLines.length > 5;
@@ -208,22 +206,19 @@ const TattooShareDetailScreen = () => {
       {/* Sticky CTA */}
       <View style={[styles.stickyFooter, { paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity
-          onPress={() => setBookingVisible(true)}
+          onPress={() => {
+            const kakao = shop.host.kakaoLink;
+            const sms = shop.host.smsPhone;
+            if (kakao) { Linking.openURL(kakao).catch(() => {}); return; }
+            if (sms) { Linking.openURL(`sms:${sms}`).catch(() => {}); return; }
+            Alert.alert('연락처 없음', '호스트가 등록한 연락망이 아직 없습니다.');
+          }}
           style={styles.ctaBtn}
           activeOpacity={0.85}
         >
           <Text style={styles.ctaText}>예약 문의하기</Text>
         </TouchableOpacity>
       </View>
-
-      <ShareBookingBottomSheet
-        visible={bookingVisible}
-        shopTitle={shop.title}
-        hostName={shop.host.nickname}
-        hostKakaoLink={shop.host.kakaoLink}
-        hostSmsPhone={shop.host.smsPhone}
-        onClose={() => setBookingVisible(false)}
-      />
     </View>
   );
 };

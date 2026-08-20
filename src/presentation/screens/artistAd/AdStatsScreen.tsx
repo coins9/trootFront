@@ -27,6 +27,7 @@ import { artistApi, adApi, reservationApi, type Artwork, type AdCampaign } from 
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
 import { adaptyService } from '../../../infrastructure/adapty/adaptyService';
+import { toTattoo } from '../../../data/api/mappers';
 
 const FMT_DATE = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '-';
@@ -100,7 +101,7 @@ const AdStatsScreen = () => {
   const handleOpenDetail = useCallback((item: ArtistAdItem) => () => {
     const artwork = artworks.find((aw) => aw.id === item.artworkId);
     if (artwork) {
-      navigation.navigate('TattooDetail', { tattoo: artwork as any });
+      navigation.navigate('TattooDetail', { tattoo: toTattoo(artwork) });
     } else {
       toast(t('adStats.detailComingSoon').replace('{{title}}', item.title));
     }

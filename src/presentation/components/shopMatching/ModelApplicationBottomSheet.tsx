@@ -101,10 +101,7 @@ const ModelApplicationBottomSheet = memo(({
     runToast();
 
     if (target) {
-      const can = await Linking.canOpenURL(target);
-      if (can) {
-        setTimeout(() => Linking.openURL(target), 600);
-      }
+      setTimeout(() => Linking.openURL(target!).catch(() => {}), 600);
     } else {
       setTimeout(() => {
         Alert.alert(

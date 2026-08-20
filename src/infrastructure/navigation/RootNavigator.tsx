@@ -26,6 +26,7 @@ import AdStatsScreen from '../../presentation/screens/artistAd/AdStatsScreen';
 import ArtistMyPageScreen from '../../presentation/screens/artistMyPage/ArtistMyPageScreen';
 import ShopWriteScreen from '../../presentation/screens/shopMatching/ShopWriteScreen';
 import MyShopPostsScreen from '../../presentation/screens/myShopPosts/MyShopPostsScreen';
+import ShopApplicationsScreen from '../../presentation/screens/shopMatching/ShopApplicationsScreen';
 import SafetyPolicyScreen from '../../presentation/screens/safetyPolicy/SafetyPolicyScreen';
 import ReviewWriteScreen from '../../presentation/screens/review/ReviewWriteScreen';
 import LoginScreen from '../../presentation/screens/auth/LoginScreen';
@@ -68,8 +69,9 @@ export type RootStackParamList = {
   DepositManagement: undefined;
   ArtistAdStats: undefined;
   ArtistMyPage: undefined;
-  ShopWrite: { initialCategory?: ShopMatchingCategory; boothKind?: 'domestic' | 'overseas' } | undefined;
+  ShopWrite: { initialCategory?: ShopMatchingCategory; boothKind?: 'domestic' | 'overseas'; postId?: string } | undefined;
   MyShopPosts: { defaultCategory?: ShopMatchingCategory } | undefined;
+  ShopApplications: { category: ShopMatchingCategory };
   SafetyPolicy: undefined;
   ReviewWrite: { review: WritableReview };
   Login: undefined;
@@ -236,6 +238,11 @@ const RootNavigator = () => {
     <Stack.Screen
       name="MyShopPosts"
       component={MyShopPostsScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="ShopApplications"
+      component={ShopApplicationsScreen}
       options={{ animation: 'slide_from_right' }}
     />
     <Stack.Screen

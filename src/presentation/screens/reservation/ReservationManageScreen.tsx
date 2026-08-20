@@ -98,14 +98,19 @@ const ReservationManageScreen = () => {
     const dt = new Date(rv.scheduledAt);
     navigation.navigate('ReviewWrite', {
       review: {
+        id: rv.id,
         artist: {
-          avatarUri: rv.artist?.profileImage ?? null,
+          id: rv.artist?.id ?? '',
+          avatarUri: rv.artist?.profileImage ?? '',
           nickname: rv.artist?.pageName ?? '',
+          handle: rv.artist?.id ?? '',
+          location: [rv.artist?.regionSido, rv.artist?.regionSigungu].filter(Boolean).join(' '),
         },
         procedureDate: dt.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
         procedureTime: dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
         bodyPart: rv.bodyPart ?? '',
         style: rv.sizePreset ?? '',
+        daysLeft: 0,
       },
     });
   }, [rawMap, navigation]);

@@ -50,7 +50,7 @@ const API_TO_CATEGORY: Record<ShopCategory, ShopMatchingCategory> = {
 
 const toMyPost = (p: ShopPost): MyShopPost => ({
   id: p.id,
-  category: API_TO_CATEGORY[p.category],
+  category: API_TO_CATEGORY[p.category] ?? '부스 쉐어',
   title: p.title,
   region: p.region ?? '',
   status: (p.status === 'open' ? 'open' : 'closed') as 'open' | 'closed',
@@ -161,7 +161,7 @@ const MyShopPostsScreen = () => {
   const posts = useMemo(() => rawItems.map(toMyPost), [rawItems]);
 
   const handleEdit = useCallback((post: MyShopPost) => {
-    navigation.navigate('ShopWrite', { initialCategory: post.category });
+    navigation.navigate('ShopWrite', { initialCategory: post.category, postId: post.id });
   }, [navigation]);
 
   const handleToggleStatus = useCallback(async (post: MyShopPost) => {

@@ -9,13 +9,24 @@ import { FilterType } from '../../../domain/entities/types';
 import { useFilterStore } from '../../store/filterStore';
 import { useTranslation } from '../../store/languageStore';
 
+const CITY_LABEL_EN: Record<string, string> = {
+  '서울': 'Seoul',
+  '경기도': 'Gyeonggi',
+  '부산광역시': 'Busan',
+  '대구광역시': 'Daegu',
+  '인천광역시': 'Incheon',
+  '광주광역시': 'Gwangju',
+  '울산광역시': 'Ulsan',
+  '세종특별자치시': 'Sejong',
+};
+
 interface FilterBarProps {
   onFilterPress: (type: FilterType) => void;
 }
 
 const FilterBar = memo(({ onFilterPress }: FilterBarProps) => {
   const { genres, bodyParts, subjects, moods, budgetMin, budgetMax, region } = useFilterStore();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const genreCount = genres.length;
   const bodyPartCount = bodyParts.length;
@@ -30,7 +41,9 @@ const FilterBar = memo(({ onFilterPress }: FilterBarProps) => {
   }[] = [
     {
       type: 'region',
-      label: region.city ?? t('filter.region'),
+      label: region.city
+        ? (language === 'en' ? (CITY_LABEL_EN[region.city] ?? region.city) : region.city)
+        : t('filter.region'),
       Icon: RegionIcon,
       active: !!region.city,
     },

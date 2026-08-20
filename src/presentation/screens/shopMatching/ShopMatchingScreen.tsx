@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useMemo } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  ScrollView, StatusBar, Linking,
+  ScrollView, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
@@ -203,12 +203,6 @@ const CATEGORY_SUBTITLES: Record<ShopMatchingCategory, 'booth' | 'model' | 'medi
   '사진/영상 편집자': 'media',
 };
 
-// 카테고리 → 관리자에서 설정한 왈라(Walla) 배너 URL 키
-const CATEGORY_WALLA_KEY: Record<ShopMatchingCategory, 'bannerBoothUrl' | 'bannerBeginnerUrl' | 'bannerMediaUrl'> = {
-  '부스 쉐어': 'bannerBoothUrl',
-  '타투 모델 구인 (비기너)': 'bannerBeginnerUrl',
-  '사진/영상 편집자': 'bannerMediaUrl',
-};
 
 const ShopMatchingScreen = () => {
   const { t } = useTranslation();
@@ -464,27 +458,35 @@ const ShopMatchingScreen = () => {
         </Text>
       </View>
 
-      {/* 부스 쉐어 국내/해외 서브탭 */}
+      {/* 부스 쉐어 국내/해외 토글 */}
       {isShareCategory && (
-        <View style={styles.subTabRow}>
-          <TouchableOpacity
-            onPress={() => setBoothTab('domestic')}
-            activeOpacity={0.8}
-            style={[styles.subTabBtn, boothTab === 'domestic' && styles.subTabBtnActive]}
-          >
-            <Text style={[styles.subTabText, boothTab === 'domestic' && styles.subTabTextActive]}>
-              {t('shop.boothDomestic')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setBoothTab('overseas')}
-            activeOpacity={0.8}
-            style={[styles.subTabBtn, boothTab === 'overseas' && styles.subTabBtnActive]}
-          >
-            <Text style={[styles.subTabText, boothTab === 'overseas' && styles.subTabTextActive]}>
-              {t('shop.boothOverseas')}
-            </Text>
-          </TouchableOpacity>
+        <View style={styles.boothToggleWrap}>
+          <View style={styles.boothToggle}>
+            <View
+              style={[
+                styles.boothToggleThumb,
+                boothTab === 'overseas' && styles.boothToggleThumbRight,
+              ]}
+            />
+            <TouchableOpacity
+              onPress={() => setBoothTab('domestic')}
+              activeOpacity={0.8}
+              style={styles.boothToggleSegment}
+            >
+              <Text style={[styles.boothToggleText, boothTab === 'domestic' && styles.boothToggleTextActive]}>
+                {t('shop.boothDomestic')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setBoothTab('overseas')}
+              activeOpacity={0.8}
+              style={styles.boothToggleSegment}
+            >
+              <Text style={[styles.boothToggleText, boothTab === 'overseas' && styles.boothToggleTextActive]}>
+                {t('shop.boothOverseas')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -712,16 +714,10 @@ const ShopMatchingScreen = () => {
         style={styles.fab}
         activeOpacity={0.85}
         onPress={() => {
-          // 관리자에 왈라 링크가 있으면 그리로, 없으면 앱 내부 등록으로 폴백
-          const wallaUrl = settings[CATEGORY_WALLA_KEY[category]];
-          if (wallaUrl) {
-            Linking.openURL(wallaUrl).catch(() => {});
-          } else {
-            navigation.navigate('ShopWrite', {
-              initialCategory: category,
-              boothKind: isShareCategory ? boothTab : undefined,
-            });
-          }
+          navigation.navigate('ShopWrite', {
+            initialCategory: category,
+            boothKind: isShareCategory ? boothTab : undefined,
+          });
         }}
       >
         <PenIcon size={20} color={COLORS.black} />
@@ -841,7 +837,7 @@ const ShopMatchingScreen = () => {
       {/* Overseas country filter */}
       <ShareFilterBottomSheet<string>
         visible={activeFilterSheet === 'overseasCountry'}
-        title="국가 선택"
+        title={t('shop.filter.selectCountry')}
         options={OVERSEAS_COUNTRY_OPTIONS}
         selected={overseasCountry}
         onSelect={(v) => setOverseasCountry(v)}
@@ -953,6 +949,49 @@ const styles = StyleSheet.create({
   },
 
   /* editor sub-tab */
+  boothToggleWrap: {
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  boothToggle: {
+    flexDirection: 'row',
+    height: 44,
+    backgroundColor: COLORS.card,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  boothToggleThumb: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    left: 4,
+    width: '50%',
+    borderRadius: 18,
+    backgroundColor: COLORS.gold,
+  },
+  boothToggleThumbRight: {
+    left: '50%',
+    transform: [{ translateX: -4 }],
+  },
+  boothToggleSegment: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boothToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.gray2,
+    lineHeight: 18,
+  },
+  boothToggleTextActive: {
+    color: COLORS.black,
+    fontWeight: '700',
+  },
+
   subTabRow: {
     flexDirection: 'row',
     gap: 8,
@@ -1009,6 +1048,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
     gap: 6,
+    marginHorizontal: -16,
+    paddingLeft: 16,
   },
   filterScroll: {
     gap: 6,

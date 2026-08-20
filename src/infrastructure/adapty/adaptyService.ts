@@ -1,4 +1,4 @@
-import { adapty, AdaptyPaywall } from 'react-native-adapty';
+import { adapty, AdaptyFlow } from 'react-native-adapty';
 
 type AdaptyProduct = any;
 
@@ -62,8 +62,8 @@ export const adaptyService = {
 
   /** 페이월 상품 목록 로드 */
   async getProducts(): Promise<TrootProduct[]> {
-    const paywall: AdaptyPaywall = await adapty.getPaywall(PAYWALL_ID);
-    const products: AdaptyProduct[] = await adapty.getPaywallProducts(paywall);
+    const flow: AdaptyFlow = await adapty.getFlow(PAYWALL_ID);
+    const products: AdaptyProduct[] = await adapty.getPaywallProducts(flow);
 
     return products.map((p) => ({
       productId: p.vendorProductId,
@@ -85,8 +85,8 @@ export const adaptyService = {
 
   /** 광고 소모품 구매 — Adapty ad products 페이월에서 productId로 제품 찾아 결제 */
   async purchaseAdProduct(productId: string): Promise<void> {
-    const paywall = await adapty.getPaywall(AD_PAYWALL_ID);
-    const products = await adapty.getPaywallProducts(paywall);
+    const flow = await adapty.getFlow(AD_PAYWALL_ID);
+    const products = await adapty.getPaywallProducts(flow);
     const product = products.find((p: AdaptyProduct) => p.vendorProductId === productId);
     if (!product) throw new Error(`Ad product not found: ${productId}`);
     await adapty.makePurchase(product);

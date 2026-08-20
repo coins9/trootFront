@@ -49,19 +49,21 @@ const AdCard = memo(({
       </TouchableOpacity>
     </View>
 
-    {/* Stats grid */}
-    <View style={styles.statsRow}>
-      <StatBar label="노출수" metric={ad.impressions} />
-      <View style={styles.statDivider} />
-      <StatBar label="클릭수" metric={ad.clicks} />
-      <View style={styles.statDivider} />
-      <StatBar label="문의 건수" metric={ad.inquiries} />
-    </View>
-
-    {/* Chart */}
-    <View style={styles.chartWrap}>
-      <MiniLineChart data={ad.trend} height={92} />
-    </View>
+    {/* Stats grid — 활성 광고일 때만 표시 */}
+    {ad.status !== 'idle' && (
+      <>
+        <View style={styles.statsRow}>
+          <StatBar label="노출수" metric={ad.impressions} />
+          <View style={styles.statDivider} />
+          <StatBar label="클릭수" metric={ad.clicks} />
+          <View style={styles.statDivider} />
+          <StatBar label="문의 건수" metric={ad.inquiries} />
+        </View>
+        <View style={styles.chartWrap}>
+          <MiniLineChart data={ad.trend} height={92} />
+        </View>
+      </>
+    )}
 
     {/* Action buttons */}
     <View style={styles.actionsRow}>

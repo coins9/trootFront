@@ -4,8 +4,6 @@ import {
   Dimensions, Platform, TextInput, ScrollView, KeyboardAvoidingView, Image,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
-import Config from 'react-native-config';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import {
@@ -14,15 +12,7 @@ import {
 } from '../icons';
 import { ArtistSelfProfile } from '../../../domain/entities/artistMyPageTypes';
 import { ARTIST_TAGS } from '../../../domain/entities/artistTags';
-
-interface LocationMeta {
-  lat?: number;
-  lng?: number;
-  countryCode?: string | null;
-  countryName?: string | null;
-  regionSido?: string | null;
-  regionSigungu?: string | null;
-}
+import { CITIES, DISTRICTS } from '../../../data/mock/mockData';
 
 interface Props {
   visible: boolean;
@@ -37,35 +27,47 @@ const INTRO_MAX = 80;
 const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => {
   const translate = useRef(new Animated.Value(SH)).current;
   const insets = useSafeAreaInsets();
-  const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
+
   const [nickname, setNickname] = useState(profile.nickname);
   const [coverImage, setCoverImage] = useState<string | null>(profile.coverImage ?? null);
   const [avatarImage, setAvatarImage] = useState<string | null>((profile as any).avatarImage ?? null);
-  const [location, setLocation] = useState(profile.location);
-  const [locationMeta, setLocationMeta] = useState<LocationMeta>({});
+  const [regionSido, setRegionSido] = useState<string | null>(profile.regionSido ?? null);
+  const [regionSigungu, setRegionSigungu] = useState<string | null>(profile.regionSigungu ?? null);
+  const [detailAddress, setDetailAddress] = useState((profile as any).detailAddress ?? '');
   const [intro, setIntro] = useState(profile.intro);
   const [tags, setTags] = useState<string[]>(profile.tags ?? []);
   const [openChatUrl, setOpenChatUrl] = useState(profile.openChatUrl ?? '');
   const [availableHours, setAvailableHours] = useState(profile.availableHours ?? '');
   const [closedDay, setClosedDay] = useState(profile.closedDay ?? '');
-  const [detailAddress, setDetailAddress] = useState((profile as any).detailAddress ?? '');
+
+  const districtOptions: string[] = regionSido ? (DISTRICTS[regionSido] ?? []) : [];
 
   const handlePickCover = useCallback(async () => {
-    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, selectionLimit: 1 });
-    if (result.assets?.[0]?.uri) {
-      setCoverImage(result.assets[0].uri);
-    }
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 1, selectionLimit: 1 });
+    if (result.assets?.[0]?.uri) setCoverImage(result.assets[0].uri);
   }, []);
 
   const handlePickAvatar = useCallback(async () => {
-    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, selectionLimit: 1 });
-    if (result.assets?.[0]?.uri) {
-      setAvatarImage(result.assets[0].uri);
-    }
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 1, selectionLimit: 1 });
+    if (result.assets?.[0]?.uri) setAvatarImage(result.assets[0].uri);
   }, []);
 
   const toggleTag = useCallback((code: string) => {
     setTags((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
+  }, []);
+
+  const handleCityPress = useCallback((city: string) => {
+    if (regionSido === city) {
+      setRegionSido(null);
+      setRegionSigungu(null);
+    } else {
+      setRegionSido(city);
+      setRegionSigungu(null);
+    }
+  }, [regionSido]);
+
+  const handleDistrictPress = useCallback((dist: string) => {
+    setRegionSigungu((prev) => (prev === dist ? null : dist));
   }, []);
 
   useEffect(() => {
@@ -73,18 +75,14 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       setNickname(profile.nickname);
       setCoverImage(profile.coverImage ?? null);
       setAvatarImage((profile as any).avatarImage ?? null);
-      setLocation(profile.location);
-      setLocationMeta({});
+      setRegionSido(profile.regionSido ?? null);
+      setRegionSigungu(profile.regionSigungu ?? null);
+      setDetailAddress((profile as any).detailAddress ?? '');
       setIntro(profile.intro);
       setTags(profile.tags ?? []);
       setOpenChatUrl(profile.openChatUrl ?? '');
       setAvailableHours(profile.availableHours ?? '');
       setClosedDay(profile.closedDay ?? '');
-      setDetailAddress((profile as any).detailAddress ?? '');
-      // 기존 위치 텍스트를 Places 입력창에 미리 채운다
-      setTimeout(() => {
-        placesRef.current?.setAddressText(profile.location ?? '');
-      }, 80);
     }
     Animated.timing(translate, {
       toValue: visible ? 0 : SH,
@@ -94,21 +92,24 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   }, [visible, profile, translate]);
 
   const handleSave = useCallback(() => {
-    const addressText = placesRef.current?.getAddressText() ?? location;
+    const location = [regionSido, regionSigungu].filter(Boolean).join(' ') || profile.location;
     onSave({
       nickname: nickname.trim() || profile.nickname,
       coverImage,
       ...(avatarImage !== null ? { avatarImage } : {}),
-      location: addressText.trim() || profile.location,
+      location,
       intro: intro.trim() || profile.intro,
       tags,
       openChatUrl: openChatUrl.trim() || null,
       availableHours: availableHours.trim() || null,
       closedDay: closedDay.trim() || null,
-      ...locationMeta,
+      regionSido: regionSido ?? null,
+      regionSigungu: regionSigungu ?? null,
+      countryCode: regionSido ? 'KR' : null,
+      countryName: regionSido ? '대한민국' : null,
       detailAddress: detailAddress.trim() || null,
     } as any);
-  }, [nickname, coverImage, avatarImage, location, locationMeta, intro, tags, openChatUrl, availableHours, closedDay, profile, onSave]);
+  }, [nickname, coverImage, avatarImage, regionSido, regionSigungu, detailAddress, intro, tags, openChatUrl, availableHours, closedDay, profile, onSave]);
 
   if (!visible) return null;
 
@@ -123,7 +124,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       <View style={styles.modalRoot}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.kavWrap}
           pointerEvents="box-none"
         >
@@ -134,247 +135,220 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
               { transform: [{ translateY: translate }] },
             ]}
           >
-            <View>
-              <View style={styles.handle} />
-              <View style={styles.headerRow}>
-                <Text style={styles.title}>프로필 편집</Text>
-                <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <XIcon size={20} color={COLORS.gray} />
-                </TouchableOpacity>
-              </View>
+            <View style={styles.handle} />
+            <View style={styles.headerRow}>
+              <Text style={styles.title}>프로필 편집</Text>
+              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <XIcon size={20} color={COLORS.gray} />
+              </TouchableOpacity>
+            </View>
 
-              {/* Location — outside ScrollView so dropdown isn't clipped */}
-              <View style={styles.fieldOutside}>
-                <Text style={styles.label}>활동 지역</Text>
-                <View style={styles.placesRow}>
-                  <View style={styles.placesIcon}>
-                    <LocationPinIcon size={15} color={COLORS.gray} />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {/* Cover Image */}
+              <TouchableOpacity onPress={handlePickCover} activeOpacity={0.8} style={styles.coverBlock}>
+                {coverImage ? (
+                  <Image source={{ uri: coverImage }} style={styles.coverImg} resizeMode="cover" />
+                ) : (
+                  <View style={styles.coverPlaceholder}>
+                    <Text style={styles.coverPlaceholderText}>배경 사진 없음</Text>
                   </View>
-                  <GooglePlacesAutocomplete
-                    ref={placesRef}
-                    placeholder="주소·건물명 검색 (예: 홍대 스튜디오, 강남구)"
-                    query={{
-                      key: Config.GOOGLE_PLACES_API_KEY ?? '',
-                      language: 'ko',
-                      types: 'geocode|establishment',
-                    }}
-                    fetchDetails
-                    onPress={(data, details) => {
-                      const address = data.description;
-                      const lat = details?.geometry?.location?.lat;
-                      const lng = details?.geometry?.location?.lng;
-                      const comps = details?.address_components ?? [];
-                      const countryComp = comps.find((c) => c.types.includes('country'));
-                      const adminComp = comps.find((c) =>
-                        c.types.includes('administrative_area_level_1'),
-                      );
-                      const subComp = comps.find((c) =>
-                        c.types.includes('administrative_area_level_2') ||
-                        c.types.includes('locality'),
-                      );
-                      setLocation(address);
-                      setLocationMeta({
-                        lat,
-                        lng,
-                        countryCode: countryComp?.short_name ?? null,
-                        countryName: countryComp?.long_name ?? null,
-                        regionSido: adminComp?.long_name ?? null,
-                        regionSigungu: subComp?.long_name ?? null,
-                      });
-                    }}
-                    textInputProps={{
-                      placeholderTextColor: COLORS.gray2,
-                      onChangeText: setLocation,
-                    }}
-                    enablePoweredByContainer={false}
-                    styles={{
-                      container: placesStyles.container,
-                      textInputContainer: placesStyles.textInputContainer,
-                      textInput: placesStyles.textInput,
-                      listView: placesStyles.listView,
-                      row: placesStyles.row,
-                      description: placesStyles.description,
-                      separator: placesStyles.separator,
-                    }}
+                )}
+                <View style={styles.coverEditBadge}>
+                  <CameraSolidIcon size={13} color={COLORS.black} strokeWidth={1.9} />
+                  <Text style={styles.coverEditText}>배경 변경</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Avatar */}
+              <TouchableOpacity onPress={handlePickAvatar} activeOpacity={0.8} style={styles.avatarBlock}>
+                <View style={styles.avatarCircle}>
+                  {avatarImage ? (
+                    <Image source={{ uri: avatarImage }} style={styles.avatarImg} resizeMode="cover" />
+                  ) : (
+                    <PersonSilhouette size={72} color="#3a3a3a" />
+                  )}
+                  <View style={styles.avatarBadge}>
+                    <CameraSolidIcon size={14} color={COLORS.black} strokeWidth={1.9} />
+                  </View>
+                </View>
+                <Text style={styles.avatarHint}>프로필 사진 변경</Text>
+              </TouchableOpacity>
+
+              {/* Nickname */}
+              <View style={styles.field}>
+                <Text style={styles.label}>닉네임</Text>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    value={nickname}
+                    onChangeText={setNickname}
+                    placeholder="아티스트명"
+                    placeholderTextColor={COLORS.gray2}
+                    style={styles.input}
+                    maxLength={20}
+                    autoCorrect={false}
                   />
                 </View>
               </View>
 
+              {/* 활동 지역 — 칩 선택 */}
+              <View style={styles.field}>
+                <Text style={styles.label}>활동 지역</Text>
+                <View style={styles.chipRow}>
+                  {CITIES.map((city) => {
+                    const active = regionSido === city;
+                    return (
+                      <TouchableOpacity
+                        key={city}
+                        onPress={() => handleCityPress(city)}
+                        activeOpacity={0.75}
+                        style={[styles.chip, active && styles.chipActive]}
+                      >
+                        <Text style={[styles.chipText, active && styles.chipTextActive]}>{city}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
 
-              {/* Detail Address */}
-              <View style={[styles.fieldOutside, { marginTop: 0 }]}>
+                {/* 구/군 선택 — 시/도 선택 후 표시 */}
+                {districtOptions.length > 0 && (
+                  <>
+                    <Text style={[styles.label, { marginTop: 10 }]}>구/군 선택 <Text style={{ color: COLORS.gray2 }}>(선택)</Text></Text>
+                    <View style={styles.chipRow}>
+                      {districtOptions.map((dist) => {
+                        const active = regionSigungu === dist;
+                        return (
+                          <TouchableOpacity
+                            key={dist}
+                            onPress={() => handleDistrictPress(dist)}
+                            activeOpacity={0.75}
+                            style={[styles.chip, active && styles.chipActive]}
+                          >
+                            <Text style={[styles.chipText, active && styles.chipTextActive]}>{dist}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </>
+                )}
+              </View>
+
+              {/* 상세 주소 */}
+              <View style={styles.field}>
                 <Text style={styles.label}>상세 주소 <Text style={{ color: COLORS.gray2, fontSize: 11 }}>(선택)</Text></Text>
-                <View style={styles.placesRow}>
-                  <View style={styles.placesIcon}>
-                    <LocationPinIcon size={15} color={COLORS.gray} />
-                  </View>
+                <View style={styles.inputRow}>
+                  <LocationPinIcon size={15} color={COLORS.gray} />
                   <TextInput
                     value={detailAddress}
                     onChangeText={setDetailAddress}
                     placeholder="건물명, 층수, 상세 위치 (예: B1F 스튜디오 루츠)"
                     placeholderTextColor={COLORS.gray2}
-                    style={[styles.input, { flex: 1 }]}
+                    style={[styles.input, { marginLeft: 8 }]}
                     maxLength={200}
                   />
                 </View>
               </View>
 
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                style={styles.scroll}
-              >
-                {/* Cover Image */}
-                <TouchableOpacity
-                  onPress={handlePickCover}
-                  activeOpacity={0.8}
-                  style={styles.coverBlock}
-                >
-                  {coverImage ? (
-                    <Image source={{ uri: coverImage }} style={styles.coverImg} resizeMode="cover" />
-                  ) : (
-                    <View style={styles.coverPlaceholder}>
-                      <Text style={styles.coverPlaceholderText}>배경 사진 없음</Text>
-                    </View>
-                  )}
-                  <View style={styles.coverEditBadge}>
-                    <CameraSolidIcon size={13} color={COLORS.black} strokeWidth={1.9} />
-                    <Text style={styles.coverEditText}>배경 변경</Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* Avatar */}
-                <TouchableOpacity
-                  onPress={handlePickAvatar}
-                  activeOpacity={0.8}
-                  style={styles.avatarBlock}
-                >
-                  <View style={styles.avatarCircle}>
-                    {avatarImage ? (
-                      <Image source={{ uri: avatarImage }} style={styles.avatarImg} resizeMode="cover" />
-                    ) : (
-                      <PersonSilhouette size={72} color="#3a3a3a" />
-                    )}
-                    <View style={styles.avatarBadge}>
-                      <CameraSolidIcon size={14} color={COLORS.black} strokeWidth={1.9} />
-                    </View>
-                  </View>
-                  <Text style={styles.avatarHint}>프로필 사진 변경</Text>
-                </TouchableOpacity>
-
-                {/* Nickname */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>닉네임</Text>
-                  <View style={styles.inputRow}>
-                    <TextInput
-                      value={nickname}
-                      onChangeText={setNickname}
-                      placeholder="아티스트명"
-                      placeholderTextColor={COLORS.gray2}
-                      style={styles.input}
-                      maxLength={20}
-                      autoCorrect={false}
-                    />
-                  </View>
+              {/* Intro */}
+              <View style={styles.field}>
+                <Text style={styles.label}>한 줄 소개</Text>
+                <View style={styles.introWrap}>
+                  <TextInput
+                    value={intro}
+                    onChangeText={(v) => v.length <= INTRO_MAX && setIntro(v)}
+                    placeholder="예: 블랙워크 · 라인워크 전문. 감성 디테일에 집중합니다."
+                    placeholderTextColor={COLORS.gray2}
+                    multiline
+                    maxLength={INTRO_MAX}
+                    style={styles.introInput}
+                    textAlignVertical="top"
+                  />
+                  <Text style={styles.counter}>{intro.length}/{INTRO_MAX}</Text>
                 </View>
+              </View>
 
-                {/* Intro */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>한 줄 소개</Text>
-                  <View style={styles.introWrap}>
-                    <TextInput
-                      value={intro}
-                      onChangeText={(v) => v.length <= INTRO_MAX && setIntro(v)}
-                      placeholder="예: 블랙워크 · 라인워크 전문. 감성 디테일에 집중합니다."
-                      placeholderTextColor={COLORS.gray2}
-                      multiline
-                      maxLength={INTRO_MAX}
-                      style={styles.introInput}
-                      textAlignVertical="top"
-                    />
-                    <Text style={styles.counter}>{intro.length}/{INTRO_MAX}</Text>
-                  </View>
+              {/* Available Hours */}
+              <View style={styles.field}>
+                <Text style={styles.label}>상담 가능 시간</Text>
+                <View style={styles.inputRow}>
+                  <ClockIcon size={15} color={COLORS.gray} />
+                  <TextInput
+                    value={availableHours}
+                    onChangeText={setAvailableHours}
+                    placeholder="예: 10:00~22:00"
+                    placeholderTextColor={COLORS.gray2}
+                    style={[styles.input, { marginLeft: 8 }]}
+                    maxLength={30}
+                  />
                 </View>
+              </View>
 
-                {/* Available Hours */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>상담 가능 시간</Text>
-                  <View style={styles.inputRow}>
-                    <ClockIcon size={15} color={COLORS.gray} />
-                    <TextInput
-                      value={availableHours}
-                      onChangeText={setAvailableHours}
-                      placeholder="예: 10:00~22:00"
-                      placeholderTextColor={COLORS.gray2}
-                      style={[styles.input, { marginLeft: 8 }]}
-                      maxLength={30}
-                    />
-                  </View>
+              {/* Closed Day */}
+              <View style={styles.field}>
+                <Text style={styles.label}>휴무일</Text>
+                <View style={styles.inputRow}>
+                  <CalendarIcon size={15} color={COLORS.gray} />
+                  <TextInput
+                    value={closedDay}
+                    onChangeText={setClosedDay}
+                    placeholder="예: 매주 월요일"
+                    placeholderTextColor={COLORS.gray2}
+                    style={[styles.input, { marginLeft: 8 }]}
+                    maxLength={30}
+                  />
                 </View>
+              </View>
 
-                {/* Closed Day */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>휴무일</Text>
-                  <View style={styles.inputRow}>
-                    <CalendarIcon size={15} color={COLORS.gray} />
-                    <TextInput
-                      value={closedDay}
-                      onChangeText={setClosedDay}
-                      placeholder="예: 매주 월요일"
-                      placeholderTextColor={COLORS.gray2}
-                      style={[styles.input, { marginLeft: 8 }]}
-                      maxLength={30}
-                    />
-                  </View>
+              {/* Open KakaoTalk URL */}
+              <View style={styles.field}>
+                <Text style={styles.label}>카카오 오픈채팅 링크</Text>
+                <View style={styles.inputRow}>
+                  <ChatBubbleIcon size={15} color={COLORS.gray} />
+                  <TextInput
+                    value={openChatUrl}
+                    onChangeText={setOpenChatUrl}
+                    placeholder="https://open.kakao.com/o/..."
+                    placeholderTextColor={COLORS.gray2}
+                    style={[styles.input, { marginLeft: 8 }]}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                  />
                 </View>
+              </View>
 
-                {/* Open KakaoTalk URL */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>카카오 오픈채팅 링크</Text>
-                  <View style={styles.inputRow}>
-                    <ChatBubbleIcon size={15} color={COLORS.gray} />
-                    <TextInput
-                      value={openChatUrl}
-                      onChangeText={setOpenChatUrl}
-                      placeholder="https://open.kakao.com/o/..."
-                      placeholderTextColor={COLORS.gray2}
-                      style={[styles.input, { marginLeft: 8 }]}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      keyboardType="url"
-                    />
-                  </View>
+              {/* Tags */}
+              <View style={styles.field}>
+                <Text style={styles.label}>편의 · 특성 태그</Text>
+                <View style={styles.tagWrap}>
+                  {ARTIST_TAGS.map((t) => {
+                    const on = tags.includes(t.code);
+                    return (
+                      <TouchableOpacity
+                        key={t.code}
+                        onPress={() => toggleTag(t.code)}
+                        activeOpacity={0.75}
+                        style={[styles.tagChip, on && styles.tagChipOn]}
+                      >
+                        <Text style={[styles.tagChipText, on && styles.tagChipTextOn]}>{t.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
+              </View>
+            </ScrollView>
 
-                {/* Tags */}
-                <View style={styles.field}>
-                  <Text style={styles.label}>편의 · 특성 태그</Text>
-                  <View style={styles.tagWrap}>
-                    {ARTIST_TAGS.map((t) => {
-                      const on = tags.includes(t.code);
-                      return (
-                        <TouchableOpacity
-                          key={t.code}
-                          onPress={() => toggleTag(t.code)}
-                          activeOpacity={0.75}
-                          style={[styles.tagChip, on && styles.tagChipOn]}
-                        >
-                          <Text style={[styles.tagChipText, on && styles.tagChipTextOn]}>{t.label}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              </ScrollView>
-
-              <TouchableOpacity
-                onPress={handleSave}
-                activeOpacity={0.85}
-                style={styles.saveBtn}
-              >
-                <Text style={styles.saveText}>저장하기</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              onPress={handleSave}
+              activeOpacity={0.85}
+              style={styles.saveBtn}
+            >
+              <Text style={styles.saveText}>저장하기</Text>
+            </TouchableOpacity>
           </Animated.View>
         </KeyboardAvoidingView>
       </View>
@@ -399,7 +373,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 22,
     paddingHorizontal: 20,
     paddingTop: 10,
-    maxHeight: SH * 0.85,
+    maxHeight: SH * 0.90,
   },
   handle: {
     alignSelf: 'center',
@@ -412,7 +386,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    marginBottom: 14,
   },
   title: {
     color: COLORS.white,
@@ -421,7 +395,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   scroll: {
-    maxHeight: SH * 0.55,
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 8,
   },
   coverBlock: {
     height: 120,
@@ -500,10 +477,6 @@ const styles = StyleSheet.create({
   field: {
     marginBottom: 20,
   },
-  fieldOutside: {
-    marginBottom: 8,
-    zIndex: 20,
-  },
   label: {
     color: COLORS.gray,
     fontSize: 12,
@@ -526,17 +499,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
   },
-  placesRow: {
+  chipRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: COLORS.elevated,
-    borderRadius: 10,
-    paddingLeft: 12,
-    zIndex: 20,
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  placesIcon: {
-    marginTop: 14,
-    marginRight: 4,
+  chip: {
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.chipBorder,
+    backgroundColor: COLORS.elevated,
+  },
+  chipActive: {
+    borderColor: COLORS.gold,
+    backgroundColor: COLORS.goldDim,
+  },
+  chipText: {
+    color: COLORS.gray,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  chipTextActive: {
+    color: COLORS.gold,
+    fontWeight: '600',
   },
   introWrap: {
     backgroundColor: COLORS.elevated,
@@ -596,45 +583,3 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
-
-const placesStyles = {
-  container: {
-    flex: 1,
-  },
-  textInputContainer: {
-    backgroundColor: 'transparent',
-  },
-  textInput: {
-    backgroundColor: 'transparent',
-    color: COLORS.white,
-    fontSize: 15,
-    lineHeight: 21,
-    height: 44,
-    paddingLeft: 4,
-    margin: 0,
-  },
-  listView: {
-    position: 'absolute' as const,
-    top: 48,
-    left: -16,
-    right: 0,
-    backgroundColor: COLORS.elevated,
-    borderRadius: 10,
-    zIndex: 200,
-    elevation: 10,
-  },
-  row: {
-    backgroundColor: COLORS.elevated,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
-  description: {
-    color: COLORS.white,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  separator: {
-    backgroundColor: COLORS.border,
-    height: 1,
-  },
-};
