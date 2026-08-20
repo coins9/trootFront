@@ -764,9 +764,11 @@ const ShopWriteScreen = () => {
   const [modelForm, setModelForm] = useState<ModelForm>(EMPTY_MODEL);
   const [mediaForm, setMediaForm] = useState<MediaForm>(EMPTY_MEDIA);
   const [submitting, setSubmitting] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(isEdit);
 
   useEffect(() => {
     if (!postId) return;
+    setDetailLoading(true);
     shopApi.detail(postId).then((post) => {
       const a = post.attributes as Record<string, unknown>;
       setImages(post.images ?? []);
@@ -830,8 +832,10 @@ const ShopWriteScreen = () => {
           contact: post.contact ?? '',
         });
       }
-    }).catch(() => {});
-  }, [postId]);
+    }).catch(() => {
+      toast('게시물 정보를 불러오지 못했습니다.', { variant: 'error' });
+    }).finally(() => setDetailLoading(false));
+  }, [postId, toast]);
 
   const { pickAndUpload, uploading } = useImageUpload({
     scope: 'shop',
@@ -1060,6 +1064,12 @@ const ShopWriteScreen = () => {
         </View>
       </View>
 
+      {detailLoading ? (
+        <View style={s.loadingWrap}>
+          <ActivityIndicator size="large" color={COLORS.gold} />
+        </View>
+      ) : null}
+
       <KeyboardAvoidingView
         style={s.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -1117,6 +1127,14 @@ export default ShopWriteScreen;
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.black },
   flex1: { flex: 1 },
+  loadingWrap: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
   scroll: { flex: 1, backgroundColor: COLORS.bg },
   scrollContent: { padding: 20 },
 

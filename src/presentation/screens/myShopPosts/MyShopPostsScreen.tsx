@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
@@ -156,7 +156,15 @@ const MyShopPostsScreen = () => {
     loadingMore,
     loadMore,
     setItems,
+    reload,
   } = usePagedApi((cursor) => shopApi.mine({ cursor }), []);
+
+  // 화면 포커스 복귀 시 목록 재조회 (글 작성/수정 후 반영)
+  const hasFocused = useRef(false);
+  useFocusEffect(useCallback(() => {
+    if (!hasFocused.current) { hasFocused.current = true; return; }
+    reload();
+  }, [reload]));
 
   const posts = useMemo(() => rawItems.map(toMyPost), [rawItems]);
 
