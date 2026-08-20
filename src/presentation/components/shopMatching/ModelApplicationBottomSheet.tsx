@@ -18,6 +18,7 @@ import {
   Gender,
   BodyStatus,
 } from '../../../domain/entities/shopTypes';
+import { useTranslation } from '../../store/languageStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;

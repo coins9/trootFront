@@ -1,24 +1,26 @@
 import React, { memo, useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, Animated,
-  Dimensions, Platform,
+  Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import { XIcon } from '../icons';
+import { useTranslation } from '../../store/languageStore';
 
 export interface BannerAdPlan {
   id: string;
-  label: string;
+  labelKey: string;
   days: number;
   price: number;
   isBest?: boolean;
 }
 
 const PLANS: BannerAdPlan[] = [
-  { id: 'ba3',  label: '3일권',  days: 3,  price: 19000 },
-  { id: 'ba7',  label: '7일권',  days: 7,  price: 35000, isBest: true },
-  { id: 'ba14', label: '14일권', days: 14, price: 59000 },
-  { id: 'ba30', label: '30일권', days: 30, price: 99000 },
+  { id: 'ba3',  labelKey: 'planDay3',  days: 3,  price: 19000 },
+  { id: 'ba7',  labelKey: 'planDay7',  days: 7,  price: 35000, isBest: true },
+  { id: 'ba14', labelKey: 'planDay14', days: 14, price: 59000 },
+  { id: 'ba30', labelKey: 'planDay30', days: 30, price: 99000 },
 ];
 
 interface Props {
@@ -31,6 +33,8 @@ const { height: SH } = Dimensions.get('window');
 const formatPrice = (v: number) => v.toLocaleString();
 
 const BannerAdBottomSheet = memo(({ visible, onClose, onPurchase }: Props) => {
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const translate = useRef(new Animated.Value(SH)).current;
   const defaultId = useMemo(() => PLANS.find((p) => p.isBest)?.id ?? PLANS[0].id, []);
   const [selectedId, setSelectedId] = useState<string>(defaultId);
@@ -59,8 +63,8 @@ const BannerAdBottomSheet = memo(({ visible, onClose, onPurchase }: Props) => {
     if (plan.id === PLANS[0].id) return null;
     const off = Math.round((1 - perDay / base) * 100);
     if (off <= 0) return null;
-    return `일 ${Math.round(perDay).toLocaleString()}원 · ${off}%↓`;
-  }, []);
+    return t('adStats.daySaving', { perDay: Math.round(perDay).toLocaleString(), off: String(off) });
+  }, [t]);
 
   if (!visible) return null;
 
@@ -74,17 +78,15 @@ const BannerAdBottomSheet = memo(({ visible, onClose, onPurchase }: Props) => {
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Animated.View
-          style={[styles.sheet, { transform: [{ translateY: translate }] }]}
+          style={[styles.sheet, { paddingBottom: insets.bottom + 16, transform: [{ translateY: translate }] }]}
         >
           <Pressable onPress={() => {}}>
             <View style={styles.handle} />
 
             <View style={styles.headerRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.title}>피드 배너광고 기간 선택</Text>
-                <Text style={styles.desc}>
-                  T:ROOT 피드 중간에 도안을 배너 형태로 단독 노출합니다.
-                </Text>
+                <Text style={styles.title}>{t('adStats.bannerAdTitle')}</Text>
+                <Text style={styles.desc}>{t('adStats.bannerAdDesc')}</Text>
               </View>
               <TouchableOpacity
                 onPress={onClose}
@@ -116,7 +118,7 @@ const BannerAdBottomSheet = memo(({ visible, onClose, onPurchase }: Props) => {
                         {selectedActive && <View style={styles.radioDot} />}
                       </View>
                       <View style={styles.optionLabelWrap}>
-                        <Text style={styles.optionLabel}>{plan.label}</Text>
+                        <Text style={styles.optionLabel}>{t(`adStats.${plan.labelKey}` as any)}</Text>
                         {savingHint && (
                           <Text style={styles.optionHint}>{savingHint}</Text>
                         )}
@@ -139,13 +141,11 @@ const BannerAdBottomSheet = memo(({ visible, onClose, onPurchase }: Props) => {
               style={styles.payBtn}
             >
               <Text style={styles.payText}>
-                {formatPrice(selected.price)}원 결제하기
+                {t('adStats.payBtn', { price: formatPrice(selected.price) })}
               </Text>
             </TouchableOpacity>
 
-            <Text style={styles.noteText}>
-              결제 후 즉시 노출이 시작되며 기간 중 부분 환불이 불가합니다.
-            </Text>
+            <Text style={styles.noteText}>{t('adStats.adNote')}</Text>
           </Pressable>
         </Animated.View>
       </Pressable>
@@ -167,7 +167,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 22,
     borderTopWidth: 1,
     borderColor: COLORS.border,
   },
