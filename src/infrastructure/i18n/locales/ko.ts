@@ -402,7 +402,7 @@ export const ko = {
     pending: '입금 대기중',
     confirmed: '확정 완료',
     status: {
-      requested: '대기',
+      requested: '예약 확인 대기',
       confirmed: '확정',
       completed: '완료',
       cancelled: '취소',

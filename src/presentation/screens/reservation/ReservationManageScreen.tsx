@@ -209,7 +209,7 @@ const ReservationManageScreen = () => {
         )
       )}
     </View>
-  ), [isOngoingTab, handleOpenChat, handleDetail, t]);
+  ), [isOngoingTab, handleOpenChat, handleWriteReview, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -366,6 +366,7 @@ const styles = StyleSheet.create({
   },
   statusChip: {
     alignSelf: 'flex-start',
+    flexShrink: 1,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.gold,
@@ -377,6 +378,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 17,
+    flexShrink: 1,
   },
   numberBlock: {
     flexDirection: 'row',

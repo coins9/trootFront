@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, StatusBar, TouchableOpacity, FlatList,
-  ActivityIndicator, Image, ScrollView,
+  ActivityIndicator, Image, ScrollView, Modal, Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -10,10 +10,13 @@ import { COLORS } from '../../theme/colors';
 import { BackArrowIcon, CheckCircleIcon, XIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
+import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
 import { ApiError } from '../../../data/api/client';
 import { reservationApi, type ArtistReservationView } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -46,6 +49,15 @@ const ArtistReservationRequestsScreen = () => {
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewerImages, setViewerImages] = useState<string[] | null>(null);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  const openViewer = useCallback((images: string[], idx: number) => {
+    setViewerImages(images);
+    setViewerIndex(idx);
+  }, []);
+
+  const closeViewer = useCallback(() => setViewerImages(null), []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -123,12 +135,17 @@ const ArtistReservationRequestsScreen = () => {
           contentContainerStyle={s.refRow}
         >
           {item.referenceImages.map((uri, idx) => (
-            <Image
+            <TouchableOpacity
               key={`${uri}-${idx}`}
-              source={{ uri }}
-              style={s.refThumb}
-              resizeMode="cover"
-            />
+              activeOpacity={0.85}
+              onPress={() => openViewer(item.referenceImages, idx)}
+            >
+              <Image
+                source={{ uri }}
+                style={s.refThumb}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
           ))}
         </ScrollView>
       )}
@@ -161,7 +178,7 @@ const ArtistReservationRequestsScreen = () => {
         </TouchableOpacity>
       </View>
     </View>
-  ), [busyId, doConfirm, doReject, t, language]);
+  ), [busyId, doConfirm, doReject, openViewer, t, language]);
 
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
@@ -200,6 +217,44 @@ const ArtistReservationRequestsScreen = () => {
       )}
 
       <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
+
+      <Modal
+        visible={viewerImages !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={closeViewer}
+      >
+        <View style={s.viewerBackdrop}>
+          <TouchableOpacity
+            style={s.viewerClose}
+            onPress={closeViewer}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <XIcon size={22} color={COLORS.white} strokeWidth={2} />
+          </TouchableOpacity>
+          {viewerImages && (
+            <>
+              <PagerCarousel
+                data={viewerImages}
+                width={SCREEN_WIDTH}
+                height={SCREEN_HEIGHT}
+                initialIndex={viewerIndex}
+                onIndexChange={setViewerIndex}
+                keyExtractor={(uri, idx) => `${uri}-${idx}`}
+                renderItem={(uri) => (
+                  <Image source={{ uri }} style={s.viewerImage} resizeMode="contain" />
+                )}
+              />
+              {viewerImages.length > 1 && (
+                <View style={s.viewerDots}>
+                  <PagerDots count={viewerImages.length} activeIndex={viewerIndex} />
+                </View>
+              )}
+            </>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -266,4 +321,13 @@ const s = StyleSheet.create({
   },
   confirmText: { color: COLORS.black, fontSize: 14, fontWeight: '700', lineHeight: 19 },
   btnBusy: { opacity: 0.6 },
+
+  viewerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center' },
+  viewerClose: {
+    position: 'absolute', top: 48, right: 16, zIndex: 1,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center',
+  },
+  viewerImage: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT },
+  viewerDots: { position: 'absolute', bottom: 40, left: 0, right: 0 },
 });

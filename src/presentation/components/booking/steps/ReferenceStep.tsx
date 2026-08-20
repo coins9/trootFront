@@ -5,11 +5,12 @@ import {
 import { launchImageLibrary } from 'react-native-image-picker';
 import { COLORS } from '../../../theme/colors';
 import { CameraAddIcon, XIcon } from '../../icons';
+import { BookingReferenceImage } from '../../../../domain/entities/bookingTypes';
 
 interface ReferenceStepProps {
-  images: string[];
+  images: BookingReferenceImage[];
   text: string;
-  onImagesChange: (images: string[]) => void;
+  onImagesChange: (images: BookingReferenceImage[]) => void;
   onTextChange: (text: string) => void;
 }
 
@@ -19,20 +20,28 @@ const MAX_TEXT = 500;
 const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: ReferenceStepProps) => {
   const hasAny = images.length > 0 || text.trim().length > 0;
 
-  const handleAdd = useCallback(() => {
+  // Android content:// URI 는 확장자가 없어 fetch().blob() 전 MIME 추론이 실패하기 쉬우므로
+  // 피커가 제공하는 type/fileSize 를 그대로 보존해 업로드 단계로 넘긴다.
+  const handleAdd = useCallback(async () => {
     if (images.length >= MAX_IMAGES) {
       Alert.alert('최대 5장까지 첨부 가능합니다.');
       return;
     }
-    launchImageLibrary(
-      { mediaType: 'photo', selectionLimit: MAX_IMAGES - images.length, quality: 0.8 },
-      (response) => {
-        if (response.didCancel || response.errorCode) return;
-        const uris = (response.assets ?? []).map((a) => a.uri!).filter(Boolean);
-        if (!uris.length) return;
-        onImagesChange([...images, ...uris].slice(0, MAX_IMAGES));
-      },
-    );
+    try {
+      const response = await launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: MAX_IMAGES - images.length,
+        quality: 0.8,
+      });
+      if (response.didCancel || response.errorCode) return;
+      const picked = (response.assets ?? [])
+        .filter((a) => !!a.uri)
+        .map((a) => ({ uri: a.uri!, type: a.type, fileSize: a.fileSize }));
+      if (!picked.length) return;
+      onImagesChange([...images, ...picked].slice(0, MAX_IMAGES));
+    } catch {
+      Alert.alert('이미지를 불러오지 못했습니다. 다시 시도해 주세요.');
+    }
   }, [images, onImagesChange]);
 
   const handleRemove = useCallback((idx: number) => {
@@ -58,10 +67,10 @@ const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: Refe
       {/* 사진 첨부 */}
       <Text style={styles.subLabel}>사진 첨부 (최대 {MAX_IMAGES}장)</Text>
       <View style={styles.imageRow}>
-        {images.map((uri, idx) => (
-          <View key={`${uri}-${idx}`} style={styles.thumbWrapper}>
-            {uri ? (
-              <Image source={{ uri }} style={styles.thumb} resizeMode="cover" />
+        {images.map((img, idx) => (
+          <View key={`${img.uri}-${idx}`} style={styles.thumbWrapper}>
+            {img.uri ? (
+              <Image source={{ uri: img.uri }} style={styles.thumb} resizeMode="cover" />
             ) : (
               <View style={[styles.thumb, { backgroundColor: COLORS.elevated }]} />
             )}

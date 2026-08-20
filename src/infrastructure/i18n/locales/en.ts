@@ -405,7 +405,7 @@ export const en: TranslationSchema = {
     pending: 'Awaiting payment',
     confirmed: 'Confirmed',
     status: {
-      requested: 'Pending',
+      requested: 'Confirmation Pending',
       confirmed: 'Confirmed',
       completed: 'Done',
       cancelled: 'Cancelled',

@@ -95,7 +95,7 @@ const BookingBottomSheet = memo(({
     setSubmitting(true);
     try {
       const referenceImages = form.referenceImages.length
-        ? await uploadImages('misc', form.referenceImages.map((uri) => ({ uri })))
+        ? await uploadImages('misc', form.referenceImages)
         : undefined;
 
       await reservationApi.create({

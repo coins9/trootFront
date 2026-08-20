@@ -1,9 +1,15 @@
+export interface BookingReferenceImage {
+  uri: string;
+  type?: string;
+  fileSize?: number;
+}
+
 export interface BookingFormData {
   selectedDate: string | null;
   selectedTime: string | null;
   bodyPart: string | null;
   size: string | null;
-  referenceImages: string[];
+  referenceImages: BookingReferenceImage[];
   referenceText: string;
   agreedToTerms: boolean;
 }
