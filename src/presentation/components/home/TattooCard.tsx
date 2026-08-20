@@ -6,6 +6,7 @@ import {
   TattooPlaceholderIcon, PersonSilhouette, CrownIcon,
 } from '../icons';
 import { Tattoo } from '../../../domain/entities/types';
+import { useTranslation } from '../../store/languageStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 16 * 2 - 8) / 2;
@@ -24,12 +25,16 @@ const formatCount = (n: number | string) => {
   return String(n);
 };
 
-const formatPrice = (price: number) => {
-  if (price >= 10000) return `${Math.floor(price / 10000)}만원~`;
-  return `${price.toLocaleString()}원~`;
+const formatPrice = (price: number, language: string) => {
+  if (language === 'ko') {
+    if (price >= 10000) return `${Math.floor(price / 10000)}만원~`;
+    return `${price.toLocaleString()}원~`;
+  }
+  return `₩${price.toLocaleString()}~`;
 };
 
 const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooCardProps) => {
+  const { language } = useTranslation();
   const isMaster = !!tattoo.artist.isSelectedMaster;
 
   return (
@@ -100,7 +105,7 @@ const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooC
           </View>
         </TouchableOpacity>
 
-        <Text style={styles.price}>{formatPrice(tattoo.minPrice)}</Text>
+        <Text style={styles.price}>{formatPrice(tattoo.minPrice, language)}</Text>
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>

@@ -161,6 +161,7 @@ export const en: TranslationSchema = {
     bannerTitle: "This Week's Featured Artists",
     bannerSubtitle: 'Consult with top tattoo artists right now',
     bannerCta: 'View now',
+    sponsored: 'Sponsored',
   },
 
   filter: {
@@ -676,6 +677,24 @@ export const en: TranslationSchema = {
     submitting: 'Applying...',
     applySuccess: 'Application submitted. We will notify you after review.',
     applyFailed: 'Application failed. Please try again.',
+    statusSuspended: 'Suspended',
+    statusLabel: 'Status',
+    sellerInfoTitle: 'Seller Info & Payouts',
+    sellerInfoSection: 'Seller Information',
+    settlementSection: 'Payout Information',
+    labelOpenChat: 'Open chat link',
+    placeholderOpenChat: 'open.kakao.com/...',
+    entryPhaseLabel: 'Plan',
+    entryPhaseFree: 'Free',
+    entryPhasePaid: 'Paid',
+    commissionRateLabel: 'Commission rate',
+    productCountLabel: 'Listed products',
+    inquiryCountLabel: 'Total inquiries',
+    saveBtn: 'Save',
+    saving: 'Saving...',
+    saveSuccess: 'Seller information saved.',
+    saveFailed: 'Failed to save.',
+    loadFailed: 'Could not load seller information.',
   },
 
   favorites: {

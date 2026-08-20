@@ -35,6 +35,7 @@ import SupportScreen from '../../presentation/screens/support/SupportScreen';
 import MyProductsScreen from '../../presentation/screens/vendor/MyProductsScreen';
 import VendorApplyScreen from '../../presentation/screens/vendor/VendorApplyScreen';
 import ProductFormScreen from '../../presentation/screens/vendor/ProductFormScreen';
+import SellerInfoScreen from '../../presentation/screens/vendor/SellerInfoScreen';
 import AdManageScreen from '../../presentation/screens/ad/AdManageScreen';
 import ArtistReservationRequestsScreen from '../../presentation/screens/artistReservation/ArtistReservationRequestsScreen';
 import NotificationListScreen from '../../presentation/screens/notificationList/NotificationListScreen';
@@ -78,6 +79,7 @@ export type RootStackParamList = {
   MyProducts: undefined;
   VendorApply: undefined;
   ProductForm: { productId?: string } | undefined;
+  SellerInfo: undefined;
   AdManage: AdManageParams;
   ArtistReservationRequests: undefined;
   NotificationList: undefined;
@@ -124,6 +126,11 @@ const RootNavigator = () => {
       name="ProductForm"
       component={ProductFormScreen}
       options={{ animation: 'slide_from_bottom' }}
+    />
+    <Stack.Screen
+      name="SellerInfo"
+      component={SellerInfoScreen}
+      options={{ animation: 'slide_from_right' }}
     />
     <Stack.Screen name="Main" component={BottomTabNavigator} />
     <Stack.Screen

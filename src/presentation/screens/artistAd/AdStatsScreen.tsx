@@ -23,7 +23,7 @@ import { useMemo } from 'react';
 import { MOCK_PROMO_BANNERS } from '../../../data/mock/artistAdMockData';
 import { ArtistAdItem, ArtistAdStatus } from '../../../domain/entities/artistAdTypes';
 import { useApi, usePagedApi } from '../../hooks/useApi';
-import { artistApi, adApi, type Artwork, type AdCampaign } from '../../../data/api';
+import { artistApi, adApi, reservationApi, type Artwork, type AdCampaign } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
 import { adaptyService } from '../../../infrastructure/adapty/adaptyService';
@@ -54,6 +54,7 @@ const AdStatsScreen = () => {
   const { items: artworks } = usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
   const { data: campaigns } = useApi(() => adApi.mine(), []);
   const { data: artistProfile } = useApi(() => artistApi.me(), []);
+  const { data: inquiryCounts } = useApi(() => reservationApi.countByArtwork(), []);
 
   const adItems = useMemo(() => {
     const campaignMap = new Map((campaigns ?? []).map((c) => [c.targetId, c]));
@@ -77,11 +78,11 @@ const AdStatsScreen = () => {
         periodEnd: FMT_DATE(campaign?.expiresAt ?? null),
         impressions: { current: campaign?.impressions ?? 0, goal: 0, unit: t('adStats.unitViews') },
         clicks: { current: campaign?.clicks ?? 0, goal: 0, unit: t('adStats.unitCount') },
-        inquiries: { current: 0, goal: 0, unit: t('adStats.unitCount') },
+        inquiries: { current: inquiryCounts?.[aw.id] ?? 0, goal: 0, unit: t('adStats.unitCount') },
         trend: [],
       } as ArtistAdItem;
     });
-  }, [artworks, campaigns, t]);
+  }, [artworks, campaigns, inquiryCounts, t]);
 
   const openBottomSheet = useCallback((kind: SheetKind) => {
     // NOTE: superUp → 슈퍼UP 횟수권 결제 바텀시트가 올라옵니다.

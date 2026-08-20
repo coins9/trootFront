@@ -30,7 +30,7 @@ const TattooDetailScreen = () => {
   const route = useRoute<DetailRoute>();
   const { tattoo } = route.params;
 
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [liked, setLiked] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
@@ -55,10 +55,13 @@ const TattooDetailScreen = () => {
   }, [navigation, tattoo.artist]);
 
   const formatPrice = (price: number) => {
-    if (price >= 10000) {
-      return `${Math.floor(price / 10000).toLocaleString()}만원~`;
+    if (language === 'ko') {
+      if (price >= 10000) {
+        return `${Math.floor(price / 10000).toLocaleString()}만원~`;
+      }
+      return `${price.toLocaleString()}원~`;
     }
-    return `${price.toLocaleString()}원~`;
+    return `₩${price.toLocaleString()}~`;
   };
 
   return (

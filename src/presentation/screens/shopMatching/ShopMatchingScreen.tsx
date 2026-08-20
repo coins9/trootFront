@@ -47,9 +47,21 @@ import { useTranslation } from '../../store/languageStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type ShareFilterKind = 'region' | 'lighting' | 'bed' | 'occupancy' | 'sort';
+type OverseasFilterKind = 'overseasCountry' | 'oLighting' | 'oBed' | 'oOccupancy' | 'oSort';
 type BeginnerFilterKind = 'bRegion' | 'bStyle' | 'bPrice' | 'bSort';
 type ExpertFilterKind = 'eRegion' | 'eCareer' | 'eWorkKind' | 'eSort';
-type AnyFilterKind = ShareFilterKind | BeginnerFilterKind | ExpertFilterKind;
+type AnyFilterKind = ShareFilterKind | OverseasFilterKind | BeginnerFilterKind | ExpertFilterKind;
+
+interface OverseasFilterState {
+  lighting: ShareLighting;
+  bedCount: ShareBedCount;
+  occupancy: ShareOccupancy;
+  sort: ShareSort;
+}
+
+const INITIAL_OVERSEAS_FILTER: OverseasFilterState = {
+  lighting: '전체', bedCount: '전체', occupancy: '전체', sort: '최신순',
+};
 
 const OVERSEAS_COUNTRY_OPTIONS = ['전체', '일본', '미국', '프랑스', '독일', '영국', '태국', '싱가포르', '홍콩', '대만', '호주', '캐나다', '이탈리아', '기타'];
 
@@ -218,6 +230,7 @@ const ShopMatchingScreen = () => {
 
   /* ── Filter states ── */
   const [shareFilter, setShareFilter] = useState<ShareFilterState>(INITIAL_SHARE_FILTER);
+  const [overseasFilter, setOverseasFilter] = useState<OverseasFilterState>(INITIAL_OVERSEAS_FILTER);
   const [beginnerFilter, setBeginnerFilter] = useState<BeginnerFilterState>(INITIAL_BEGINNER_FILTER);
   const [expertFilter, setExpertFilter] = useState<ExpertFilterState>(INITIAL_EXPERT_FILTER);
   const [activeFilterSheet, setActiveFilterSheet] = useState<AnyFilterKind | null>(null);
@@ -247,9 +260,14 @@ const ShopMatchingScreen = () => {
   const boothPosts = useMemo(() => rawBooth.map(toShareShop), [rawBooth]);
   const overseasBoothPosts = useMemo(() => {
     const all = rawOverseasBooth.map(toShareShop);
-    if (overseasCountry === '전체') return all;
-    return all.filter((s) => s.address.includes(overseasCountry));
-  }, [rawOverseasBooth, overseasCountry]);
+    const byCountry = overseasCountry === '전체' ? all : all.filter((s) => s.address.includes(overseasCountry));
+    const filtered = byCountry.filter((s) =>
+      matchLighting(s.lighting, overseasFilter.lighting)
+      && matchBedCount(s.bedCount, overseasFilter.bedCount)
+      && matchOccupancy(s.maxOccupancy, overseasFilter.occupancy),
+    );
+    return applyShareSort(filtered, overseasFilter.sort);
+  }, [rawOverseasBooth, overseasCountry, overseasFilter]);
   const modelPosts = useMemo(() => rawModel.map(toModelRecruit), [rawModel]);
   const mediaPosts = useMemo(() => rawMedia.map(toMediaExpert), [rawMedia]);
 
@@ -346,6 +364,33 @@ const ShopMatchingScreen = () => {
     },
   ], [shareFilter, t]);
 
+  const overseasFilterButtons = useMemo(() => [
+    {
+      label: overseasCountry === '전체' ? t('shop.filter.country') : overseasCountry,
+      Icon: RegionIcon,
+      kind: 'overseasCountry' as const,
+      active: overseasCountry !== '전체',
+    },
+    {
+      label: overseasFilter.lighting === '전체' ? t('shop.filter.lighting') : overseasFilter.lighting.replace(/ \(.*\)/, ''),
+      Icon: LightIcon,
+      kind: 'oLighting' as const,
+      active: overseasFilter.lighting !== '전체',
+    },
+    {
+      label: overseasFilter.bedCount === '전체' ? t('shop.filter.bed') : overseasFilter.bedCount,
+      Icon: BedIcon,
+      kind: 'oBed' as const,
+      active: overseasFilter.bedCount !== '전체',
+    },
+    {
+      label: overseasFilter.occupancy === '전체' ? t('shop.filter.occupancy') : overseasFilter.occupancy.split(' ')[0],
+      Icon: PeopleIcon,
+      kind: 'oOccupancy' as const,
+      active: overseasFilter.occupancy !== '전체',
+    },
+  ], [overseasCountry, overseasFilter, t]);
+
   const isShareCategory = !isBeginnerCategory && !isEditorCategory;
 
   const nonShareFilters = useMemo(() => {
@@ -370,7 +415,9 @@ const ShopMatchingScreen = () => {
   }, [isEditorCategory, isBeginnerCategory, expertTab, t, beginnerFilter, expertFilter]);
 
   const sortLabel = isShareCategory
-    ? `↑↓ ${shareFilter.sort.split(' (')[0]}`
+    ? boothTab === 'domestic'
+      ? `↑↓ ${shareFilter.sort.split(' (')[0]}`
+      : `↑↓ ${overseasFilter.sort.split(' (')[0]}`
     : isBeginnerCategory
       ? `↑↓ ${beginnerFilter.sort}`
       : isEditorCategory
@@ -537,19 +584,25 @@ const ShopMatchingScreen = () => {
                 </TouchableOpacity>
               ))
             : isShareCategory && boothTab === 'overseas'
-              ? (
+              ? overseasFilterButtons.map((f) => (
                   <TouchableOpacity
-                    style={[styles.filterBtn, overseasCountry !== '전체' && styles.filterBtnActive]}
-                    activeOpacity={0.8}
-                    onPress={() => setActiveFilterSheet('overseasCountry' as any)}
+                    key={f.kind}
+                    onPress={() => setActiveFilterSheet(f.kind)}
+                    activeOpacity={0.75}
+                    style={[styles.filterBtn, f.active && styles.filterBtnActive]}
                   >
-                    <RegionIcon size={13} color={overseasCountry !== '전체' ? COLORS.gold : COLORS.gray} />
-                    <Text style={[styles.filterText, overseasCountry !== '전체' && styles.filterTextActive]}>
-                      {overseasCountry === '전체' ? t('shop.filter.country') : overseasCountry}
+                    <f.Icon size={13} color={f.active ? COLORS.gold : COLORS.gray} />
+                    <Text
+                      style={[styles.filterText, f.active && styles.filterTextActive]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                    >
+                      {f.label}
                     </Text>
-                    <ChevronDownIcon size={11} color={overseasCountry !== '전체' ? COLORS.gold : COLORS.gray} />
+                    <ChevronDownIcon size={11} color={f.active ? COLORS.gold : COLORS.gray} />
                   </TouchableOpacity>
-                )
+                ))
               : nonShareFilters.map((f) => (
                   <TouchableOpacity
                     key={f.kind}
@@ -570,11 +623,13 @@ const ShopMatchingScreen = () => {
           onPress={
             isShareCategory && boothTab === 'domestic'
               ? () => setActiveFilterSheet('sort')
-              : isBeginnerCategory
-                ? () => setActiveFilterSheet('bSort')
-                : isEditorCategory
-                  ? () => setActiveFilterSheet('eSort')
-                  : undefined
+              : isShareCategory && boothTab === 'overseas'
+                ? () => setActiveFilterSheet('oSort')
+                : isBeginnerCategory
+                  ? () => setActiveFilterSheet('bSort')
+                  : isEditorCategory
+                    ? () => setActiveFilterSheet('eSort')
+                    : undefined
           }
         >
           <Text style={styles.sortText}>{sortLabel}</Text>
@@ -715,6 +770,40 @@ const ShopMatchingScreen = () => {
         onClose={() => setActiveFilterSheet(null)}
       />
 
+      {/* Overseas booth share filter bottom sheets */}
+      <ShareFilterBottomSheet<ShareLighting>
+        visible={activeFilterSheet === 'oLighting'}
+        title={t('shop.filter.selectLighting')}
+        options={SHARE_LIGHTING_OPTIONS}
+        selected={overseasFilter.lighting}
+        onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, lighting: v }))}
+        onClose={() => setActiveFilterSheet(null)}
+      />
+      <ShareFilterBottomSheet<ShareBedCount>
+        visible={activeFilterSheet === 'oBed'}
+        title={t('shop.filter.selectBed')}
+        options={SHARE_BED_OPTIONS}
+        selected={overseasFilter.bedCount}
+        onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, bedCount: v }))}
+        onClose={() => setActiveFilterSheet(null)}
+      />
+      <ShareFilterBottomSheet<ShareOccupancy>
+        visible={activeFilterSheet === 'oOccupancy'}
+        title={t('shop.filter.selectOccupancy')}
+        options={SHARE_OCCUPANCY_OPTIONS}
+        selected={overseasFilter.occupancy}
+        onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, occupancy: v }))}
+        onClose={() => setActiveFilterSheet(null)}
+      />
+      <ShareFilterBottomSheet<ShareSort>
+        visible={activeFilterSheet === 'oSort'}
+        title={t('shop.filter.sort')}
+        options={SHARE_SORT_OPTIONS}
+        selected={overseasFilter.sort}
+        onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, sort: v }))}
+        onClose={() => setActiveFilterSheet(null)}
+      />
+
       {/* Beginner filter bottom sheets */}
       <ShareFilterBottomSheet<ShareRegion>
         visible={activeFilterSheet === 'bRegion'}
@@ -751,7 +840,7 @@ const ShopMatchingScreen = () => {
 
       {/* Overseas country filter */}
       <ShareFilterBottomSheet<string>
-        visible={(activeFilterSheet as any) === 'overseasCountry'}
+        visible={activeFilterSheet === 'overseasCountry'}
         title="국가 선택"
         options={OVERSEAS_COUNTRY_OPTIONS}
         selected={overseasCountry}

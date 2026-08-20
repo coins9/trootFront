@@ -122,10 +122,12 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
                 <EyeIcon size={14} color={COLORS.gold} />
                 <Text style={styles.statText}>{artwork.views.toLocaleString()}</Text>
               </View>
-              <View style={styles.statItem}>
-                <StarIcon size={14} color={COLORS.gold} filled />
-                <Text style={styles.statText}>{artwork.duration}</Text>
-              </View>
+              {!!artwork.sizePreset && (
+                <View style={styles.statItem}>
+                  <StarIcon size={14} color={COLORS.gold} filled />
+                  <Text style={styles.statText}>{artwork.sizePreset}</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.actionsRow}>

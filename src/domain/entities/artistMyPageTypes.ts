@@ -38,7 +38,7 @@ export interface ArtistArtwork {
   subjects: string[];
   moods: string[];
   priceFrom: number;
-  duration: string;
+  sizePreset: string;
   description: string;
   descriptionEn?: string;
   isPromoted?: boolean;

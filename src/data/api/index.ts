@@ -191,6 +191,10 @@ export const reservationApi = {
       '/app/reservations/artist/deposits/summary',
     ),
 
+  /** 작품별 예약 요청(문의) 건수 — 광고 및 통계 관리 화면 */
+  countByArtwork: () =>
+    api.get<Record<string, number>>('/app/reservations/artist/counts-by-artwork'),
+
   detail: (id: string) => api.get<Reservation>(`/app/reservations/${id}`),
 
   changeStatus: (id: string, status: ReservationStatus, reason?: string) =>
@@ -467,6 +471,13 @@ export const adApi = {
   /** 목록/피드가 세그먼트 광고를 받아감 (라운드로빈) */
   serving: (placement: AdPlacement, type: AdType, regionKey?: string, genreKey?: string) =>
     api.get<AdCampaign[]>(`/app/ads/serving${qs({ placement, type, regionKey, genreKey })}`),
+  /** 홈 피드용 — 카드광고 + 슈퍼UP 캠페인을 대상 작품 정보와 함께 받아온다 */
+  servingArtworks: (regionKey?: string, genreKey?: string) =>
+    api.get<{ campaignId: string; type: AdType; artwork: Artwork }[]>(
+      `/app/ads/serving/artworks${qs({ regionKey, genreKey })}`,
+    ),
+  impression: (campaignId: string) => api.post<{ tracked: boolean }>(`/app/ads/${campaignId}/impression`),
+  click: (campaignId: string) => api.post<{ tracked: boolean }>(`/app/ads/${campaignId}/click`),
 };
 
 // ── 타투용품 ──────────────────────────────────────────────

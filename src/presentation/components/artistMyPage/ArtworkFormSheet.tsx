@@ -14,6 +14,7 @@ import { ArtistArtwork } from '../../../domain/entities/artistMyPageTypes';
 import {
   GENRES, BODY_PARTS, SUBJECTS, MOODS,
 } from '../../../data/mock/mockData';
+import { SIZES } from '../../../domain/entities/bookingTypes';
 import { useTranslation } from '../../store/languageStore';
 import { useImageUpload } from '../../hooks/useImageUpload';
 import { deleteUpload } from '../../../data/api/upload';
@@ -41,6 +42,7 @@ const BODY_PARTS_EN = [
   { category: 'Lower Body & Feet', parts: ['Hip/Pelvis', 'Thigh', 'Knee', 'Calf', 'Ankle', 'Instep', 'Toes'] },
   { category: 'Special', parts: ['Sleeve', 'Full Body', 'Cover-up', 'Touch-up'] },
 ];
+const SIZE_LABELS_EN = ['Coin-sized', 'Fist-sized', 'Palm-sized', 'Larger'];
 
 type Lang = 'ko' | 'en';
 
@@ -69,7 +71,7 @@ const emptyForm = (): ArtistArtwork => ({
   subjects: [],
   moods: [],
   priceFrom: 100000,
-  duration: '2시간',
+  sizePreset: '',
   description: '',
   descriptionEn: '',
   likes: 0,
@@ -336,19 +338,24 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                           <Text style={styles.suffix}>원~</Text>
                         </View>
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <FieldLabel>소요 시간</FieldLabel>
-                        <View style={styles.inputRow}>
-                          <TextInput
-                            value={form.duration}
-                            onChangeText={(v) => setSingle('duration', v)}
-                            placeholder={t('artistMyPage.artworkFormDurationPlaceholder')}
-                            placeholderTextColor={COLORS.gray2}
-                            style={styles.input}
-                            maxLength={20}
-                          />
-                        </View>
-                      </View>
+                    </View>
+
+                    {/* Size */}
+                    <FieldLabel>사이즈</FieldLabel>
+                    <View style={styles.chipGrid}>
+                      {SIZES.map((sz) => {
+                        const active = form.sizePreset === sz.label;
+                        return (
+                          <TouchableOpacity
+                            key={sz.id}
+                            onPress={() => setSingle('sizePreset', active ? '' : sz.label)}
+                            activeOpacity={0.85}
+                            style={[styles.chip, active && styles.chipActive]}
+                          >
+                            <Text style={[styles.chipText, active && styles.chipTextActive]}>{sz.label}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
 
                     {/* Description (Korean) */}
@@ -439,7 +446,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                       })}
                     </View>
 
-                    {/* Price + duration (shared, shown in both tabs) */}
+                    {/* Price (shared, shown in both tabs) */}
                     <View style={styles.rowFields}>
                       <View style={{ flex: 1 }}>
                         <FieldLabel>Starting Price</FieldLabel>
@@ -455,19 +462,24 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                           <Text style={styles.suffix}>KRW~</Text>
                         </View>
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <FieldLabel>Duration</FieldLabel>
-                        <View style={styles.inputRow}>
-                          <TextInput
-                            value={form.duration}
-                            onChangeText={(v) => setSingle('duration', v)}
-                            placeholder="e.g. 2h"
-                            placeholderTextColor={COLORS.gray2}
-                            style={styles.input}
-                            maxLength={20}
-                          />
-                        </View>
-                      </View>
+                    </View>
+
+                    {/* Size (shared, shown in both tabs) */}
+                    <FieldLabel>Size</FieldLabel>
+                    <View style={styles.chipGrid}>
+                      {SIZES.map((sz, i) => {
+                        const active = form.sizePreset === sz.label;
+                        return (
+                          <TouchableOpacity
+                            key={sz.id}
+                            onPress={() => setSingle('sizePreset', active ? '' : sz.label)}
+                            activeOpacity={0.85}
+                            style={[styles.chip, active && styles.chipActive]}
+                          >
+                            <Text style={[styles.chipText, active && styles.chipTextActive]}>{SIZE_LABELS_EN[i] ?? sz.label}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
 
                     {/* Description (English) */}

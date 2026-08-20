@@ -224,7 +224,7 @@ const MyProfileScreen = () => {
       Icon: BarChartIcon,
       label: t('profile.sellerInfo'),
       description: t('profile.vendorDescSeller'),
-      onPress: goTo('MyProducts'),
+      onPress: goTo('SellerInfo'),
     },
     {
       Icon: BarChartIcon,

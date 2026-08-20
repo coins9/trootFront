@@ -158,6 +158,7 @@ export const ko = {
     bannerTitle: '이번 주 추천 작가',
     bannerSubtitle: '지금 인기 아티스트와 상담해보세요',
     bannerCta: '바로 보기',
+    sponsored: '스폰서 작품',
   },
 
   filter: {
@@ -673,6 +674,24 @@ export const ko = {
     submitting: '신청 중...',
     applySuccess: '입점 신청이 접수되었습니다. 심사 후 알려드릴게요.',
     applyFailed: '신청에 실패했습니다.',
+    statusSuspended: '판매 정지',
+    statusLabel: '상태',
+    sellerInfoTitle: '판매자 정보 · 정산',
+    sellerInfoSection: '판매자 정보',
+    settlementSection: '정산 정보',
+    labelOpenChat: '오픈채팅 링크',
+    placeholderOpenChat: 'open.kakao.com/...',
+    entryPhaseLabel: '입점 단계',
+    entryPhaseFree: '무료',
+    entryPhasePaid: '유료',
+    commissionRateLabel: '수수료율',
+    productCountLabel: '등록 상품 수',
+    inquiryCountLabel: '누적 문의 수',
+    saveBtn: '저장하기',
+    saving: '저장 중...',
+    saveSuccess: '판매자 정보가 저장되었습니다.',
+    saveFailed: '저장에 실패했습니다.',
+    loadFailed: '판매자 정보를 불러오지 못했습니다.',
   },
 
   favorites: {
