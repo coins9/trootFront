@@ -81,13 +81,12 @@ const ReservationManageScreen = () => {
       : all.filter((r) => !isOngoing(r.status))
   ), [all, tab]);
 
-  const handleOpenChat = useCallback(async (r: Reservation) => {
+  const handleOpenChat = useCallback((r: Reservation) => {
     if (r.artist.openChatUrl) {
-      const can = await Linking.canOpenURL(r.artist.openChatUrl);
-      if (can) {
-        Linking.openURL(r.artist.openChatUrl);
-        return;
-      }
+      Linking.openURL(r.artist.openChatUrl).catch(() => {
+        toast(t('reservation.chatCannotOpen').replace('{{name}}', r.artist.nickname), { variant: 'error' });
+      });
+      return;
     }
     toast(t('reservation.chatCannotOpen').replace('{{name}}', r.artist.nickname), { variant: 'error' });
   }, [toast, t]);

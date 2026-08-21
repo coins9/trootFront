@@ -241,7 +241,7 @@ const MyProfileScreen = () => {
       Icon: BarChartIcon,
       label: '용품샵 광고 문의하기',
       description: '왈라폼을 통해 광고를 문의하세요',
-      onPress: () => openLink(siteSettings?.banner_supply_url),
+      onPress: () => openLink(siteSettings?.ad_inquiry_url),
     },
   ];
 

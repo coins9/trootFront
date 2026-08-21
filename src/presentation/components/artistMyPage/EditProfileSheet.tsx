@@ -368,14 +368,15 @@ const styles = StyleSheet.create({
   kavWrap: {
     flex: 1,
     justifyContent: 'flex-end',
+    maxHeight: SH * 0.90,
   },
   sheet: {
+    flex: 1,
     backgroundColor: COLORS.card,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     paddingHorizontal: 20,
     paddingTop: 10,
-    maxHeight: SH * 0.90,
   },
   handle: {
     alignSelf: 'center',
