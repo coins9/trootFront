@@ -17,6 +17,7 @@ import {
   formatWorkInquiryMessage,
   MediaWorkKind,
 } from '../../../domain/entities/shopTypes';
+import { useTranslation } from '../../store/languageStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;
@@ -36,6 +37,7 @@ const WorkInquiryBottomSheet = memo(({
   visible, expertName, defaultWorkKind, expertKakaoLink, expertSmsPhone, onClose,
 }: Props) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const [form, setForm] = useState<WorkInquiryForm>({
     ...INITIAL_WORK_INQUIRY_FORM,
@@ -100,7 +102,7 @@ const WorkInquiryBottomSheet = memo(({
     } else {
       setTimeout(() => {
         Alert.alert(
-          '연락처 준비 중',
+          t('common.noContactTitle'),
           '전문가가 등록한 연락망이 아직 없습니다.\n문의 내용은 클립보드에 복사되었습니다.',
         );
       }, 400);
@@ -109,6 +111,13 @@ const WorkInquiryBottomSheet = memo(({
 
   const valid = isWorkInquiryValid(form);
   const extraLen = form.extraRequest.length;
+
+  const workKindLabels: Record<MediaWorkKind, string> = {
+    '사진 촬영': t('shop.workKindPhoto'),
+    '영상 촬영': t('shop.workKindVideo'),
+    '사진 보정': t('shop.workKindPhotoEdit'),
+    '영상 편집': t('shop.workKindVideoEdit'),
+  };
 
   return (
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={handleClose}>
@@ -125,10 +134,8 @@ const WorkInquiryBottomSheet = memo(({
 
           <View style={styles.header}>
             <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>작업 문의하기</Text>
-              <Text style={styles.headerSub}>
-                아래 정보를 작성하시면 전문가에게 전달됩니다.
-              </Text>
+              <Text style={styles.headerTitle}>{t('shop.workInquiryTitle')}</Text>
+              <Text style={styles.headerSub}>{t('shop.workHeaderSub')}</Text>
             </View>
             <TouchableOpacity
               onPress={handleClose}
@@ -149,8 +156,8 @@ const WorkInquiryBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>1.</Text>
-                <Text style={styles.fieldLabel}>의뢰 분류</Text>
-                <Text style={styles.required}>필수</Text>
+                <Text style={styles.fieldLabel}>{t('shop.workCategoryLabel')}</Text>
+                <Text style={styles.required}>{t('common.required')}</Text>
               </View>
               <View style={styles.radioColumn}>
                 {WORK_KINDS.map((k) => {
@@ -166,7 +173,7 @@ const WorkInquiryBottomSheet = memo(({
                         {isSelected && <View style={styles.radioDotInner} />}
                       </View>
                       <Text style={[styles.radioText, isSelected && styles.radioTextActive]}>
-                        {k}
+                        {workKindLabels[k]}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -178,8 +185,8 @@ const WorkInquiryBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>2.</Text>
-                <Text style={styles.fieldLabel}>희망 일정</Text>
-                <Text style={styles.required}>필수</Text>
+                <Text style={styles.fieldLabel}>{t('shop.workScheduleLabel')}</Text>
+                <Text style={styles.required}>{t('common.required')}</Text>
               </View>
               <View style={styles.dateInputWrap}>
                 <TextInput
@@ -199,8 +206,8 @@ const WorkInquiryBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>3.</Text>
-                <Text style={styles.fieldLabel}>작업 분량</Text>
-                <Text style={styles.required}>필수</Text>
+                <Text style={styles.fieldLabel}>{t('shop.workVolumeLabel')}</Text>
+                <Text style={styles.required}>{t('common.required')}</Text>
               </View>
               <TextInput
                 style={styles.textInput}
@@ -215,8 +222,8 @@ const WorkInquiryBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>4.</Text>
-                <Text style={styles.fieldLabel}>레퍼런스 (참고 자료)</Text>
-                <Text style={styles.optional}>선택</Text>
+                <Text style={styles.fieldLabel}>{t('shop.workReferenceLabel')}</Text>
+                <Text style={styles.optional}>{t('common.optional')}</Text>
               </View>
               <TextInput
                 style={styles.textInput}
@@ -234,8 +241,8 @@ const WorkInquiryBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>5.</Text>
-                <Text style={styles.fieldLabel}>추가 요청 사항</Text>
-                <Text style={styles.optional}>선택</Text>
+                <Text style={styles.fieldLabel}>{t('shop.workExtraLabel')}</Text>
+                <Text style={styles.optional}>{t('common.optional')}</Text>
               </View>
               <View>
                 <TextInput
@@ -256,20 +263,20 @@ const WorkInquiryBottomSheet = memo(({
             <View style={styles.infoBox}>
               <View style={styles.infoTitleRow}>
                 <InfoIcon size={14} color={COLORS.gray} />
-                <Text style={styles.infoTitle}>알려드려요!</Text>
+                <Text style={styles.infoTitle}>{t('shop.workInfoTitle')}</Text>
               </View>
               <View style={styles.infoBullets}>
                 <View style={styles.infoRow}>
                   <View style={styles.infoDot} />
-                  <Text style={styles.infoText}>입력하신 내용은 복사되어 전문가에게 전달됩니다.</Text>
+                  <Text style={styles.infoText}>{t('shop.workInfo1')}</Text>
                 </View>
                 <View style={styles.infoRow}>
                   <View style={styles.infoDot} />
-                  <Text style={styles.infoText}>사진/영상 파일은 채팅방에서 직접 전달해주세요.</Text>
+                  <Text style={styles.infoText}>{t('shop.workInfo2')}</Text>
                 </View>
                 <View style={styles.infoRow}>
                   <View style={styles.infoDot} />
-                  <Text style={styles.infoText}>평균 응답 시간은 1시간 이내입니다.</Text>
+                  <Text style={styles.infoText}>{t('shop.workInfo3')}</Text>
                 </View>
               </View>
             </View>
@@ -289,20 +296,18 @@ const WorkInquiryBottomSheet = memo(({
                 strokeWidth={2}
               />
               <Text style={[styles.submitText, !valid && styles.submitTextDisabled]}>
-                {valid ? '[ 문의 내용 복사 및 연락하기 ]' : '필수 항목을 모두 입력해 주세요'}
+                {valid ? t('shop.workCopyAndContact') : t('common.fillAllRequired')}
               </Text>
             </TouchableOpacity>
 
-            <Text style={styles.footerHint}>
-              * 클릭 시 문의 내용이 복사되고, 전문가의 카카오톡 오픈채팅으로 연결됩니다.
-            </Text>
+            <Text style={styles.footerHint}>* {t('shop.workFooterHint')}</Text>
 
             {showCopiedNotice && (
               <View style={styles.copiedNotice}>
                 <CheckCircleIcon size={20} color={COLORS.gold} />
                 <View>
-                  <Text style={styles.copiedTitle}>문의 내용이 복사되었습니다.</Text>
-                  <Text style={styles.copiedSub}>채팅창에 붙여넣기 해주세요!</Text>
+                  <Text style={styles.copiedTitle}>{t('shop.workCopiedMsg')}</Text>
+                  <Text style={styles.copiedSub}>{t('common.copiedToChat')}</Text>
                 </View>
               </View>
             )}
@@ -316,9 +321,7 @@ const WorkInquiryBottomSheet = memo(({
               ]}
               pointerEvents="none"
             >
-              <Text style={styles.toastText}>
-                문의 내용이 복사되었습니다.{'\n'}채팅창에 붙여넣기 해주세요!
-              </Text>
+              <Text style={styles.toastText}>{t('common.copiedToChat')}</Text>
             </Animated.View>
           )}
         </Animated.View>

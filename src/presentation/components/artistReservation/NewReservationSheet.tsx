@@ -12,6 +12,7 @@ import {
 import {
   PersonalTimelineItem, DepositStatus,
 } from '../../../domain/entities/artistScheduleTypes';
+import { useTranslation } from '../../store/languageStore';
 
 interface Props {
   visible: boolean;
@@ -66,9 +67,32 @@ const NewReservationSheet = memo(({
   visible, dateLabel, editing, onClose, onSubmit,
 }: Props) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const translate = useRef(new Animated.Value(SH)).current;
   const [form, setForm] = useState<PersonalTimelineItem>(emptyForm());
   const isEdit = editing !== null;
+
+  const kindLabelMap: Record<KindKey, string> = {
+    procedure: t('reservation.kindSession'),
+    consulting: t('reservation.kindConsult'),
+    retouch: t('reservation.kindRetouch'),
+    meeting: t('reservation.kindMeeting'),
+  };
+  const durationLabel = (value: number): string => {
+    if (value === 0.5) return t('reservation.duration30m');
+    if (value === 1) return t('reservation.duration1h');
+    if (value === 1.5) return t('reservation.duration1h30m');
+    if (value === 2) return t('reservation.duration2h');
+    if (value === 3) return t('reservation.duration3h');
+    if (value === 4) return t('reservation.duration4h');
+    if (value >= 5) return t('reservation.duration5h');
+    return `${value}h`;
+  };
+  const depositLabel = (s: DepositStatus): string => {
+    if (s === 'none') return t('reservation.depositNone');
+    if (s === 'pending') return t('reservation.depositPendingOption');
+    return t('reservation.depositPaidOption');
+  };
 
   useEffect(() => {
     if (visible) setForm(editing ? { ...editing } : emptyForm());
@@ -131,7 +155,7 @@ const NewReservationSheet = memo(({
               <View style={styles.headerRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.title}>
-                    {isEdit ? '예약 수정' : '새 예약 등록'}
+                    {isEdit ? t('reservation.sheetTitleEdit') : t('reservation.sheetTitleNew')}
                   </Text>
                   <Text style={styles.dateText}>{dateLabel}</Text>
                 </View>
@@ -147,7 +171,7 @@ const NewReservationSheet = memo(({
                 contentContainerStyle={{ paddingBottom: 8 }}
               >
                 {/* Kind */}
-                <Label>예약 종류</Label>
+                <Label>{t('reservation.fieldKind')}</Label>
                 <View style={styles.kindGrid}>
                   {KIND_ITEMS.map((k) => {
                     const active = form.kind === k.key;
@@ -164,7 +188,7 @@ const NewReservationSheet = memo(({
                           strokeWidth={1.7}
                         />
                         <Text style={[styles.kindText, active && styles.kindTextActive]}>
-                          {k.label}
+                          {kindLabelMap[k.key]}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -172,7 +196,7 @@ const NewReservationSheet = memo(({
                 </View>
 
                 {/* Title */}
-                <Label>예약 제목</Label>
+                <Label>{t('reservation.fieldTitle')}</Label>
                 <View style={styles.inputRow}>
                   <TextInput
                     value={form.title}
@@ -185,7 +209,7 @@ const NewReservationSheet = memo(({
                 </View>
 
                 {/* Customer name */}
-                <Label>고객명</Label>
+                <Label>{t('reservation.fieldCustomer')}</Label>
                 <View style={styles.inputRow}>
                   <TextInput
                     value={form.customerName}
@@ -198,7 +222,7 @@ const NewReservationSheet = memo(({
                 </View>
 
                 {/* Start hour */}
-                <Label>시작 시간</Label>
+                <Label>{t('reservation.fieldTime')}</Label>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -222,7 +246,7 @@ const NewReservationSheet = memo(({
                 </ScrollView>
 
                 {/* Duration */}
-                <Label>소요 시간</Label>
+                <Label>{t('reservation.fieldDuration')}</Label>
                 <View style={styles.chipGrid}>
                   {DURATIONS.map((d) => {
                     const active = form.durationH === d.value;
@@ -234,7 +258,7 @@ const NewReservationSheet = memo(({
                         style={[styles.chip, active && styles.chipActive]}
                       >
                         <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                          {d.label}
+                          {durationLabel(d.value)}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -242,7 +266,7 @@ const NewReservationSheet = memo(({
                 </View>
 
                 {/* Body part */}
-                <Label>부위 (선택)</Label>
+                <Label>{t('reservation.fieldBodyPart')}</Label>
                 <View style={styles.inputRow}>
                   <TextInput
                     value={form.bodyPart}
@@ -255,11 +279,11 @@ const NewReservationSheet = memo(({
                 </View>
 
                 {/* Deposit */}
-                <Label>예약금</Label>
+                <Label>{t('reservation.fieldDeposit')}</Label>
                 <View style={styles.depositRow}>
                   {(['none', 'pending', 'paid'] as DepositStatus[]).map((s) => {
                     const active = (form.depositStatus ?? 'none') === s;
-                    const label = s === 'none' ? '없음' : s === 'pending' ? '입금 대기' : '입금 완료';
+                    const label = depositLabel(s);
                     return (
                       <TouchableOpacity
                         key={s}
@@ -292,7 +316,7 @@ const NewReservationSheet = memo(({
                 )}
 
                 {/* Memo */}
-                <Label>기획서 메모 (선택)</Label>
+                <Label>{t('reservation.fieldNote')}</Label>
                 <View style={styles.memoWrap}>
                   <TextInput
                     value={form.memo}
@@ -320,7 +344,7 @@ const NewReservationSheet = memo(({
                       <CheckCircleIcon size={14} color={COLORS.black} />
                     )}
                   </View>
-                  <Text style={styles.linkLabel}>T:ROOT 앱 연동 예약으로 표시</Text>
+                  <Text style={styles.linkLabel}>{t('reservation.fieldAppLink')}</Text>
                 </TouchableOpacity>
               </ScrollView>
 
@@ -332,7 +356,7 @@ const NewReservationSheet = memo(({
               >
                 <CheckCircleIcon size={16} color={COLORS.black} />
                 <Text style={styles.saveText}>
-                  {isEdit ? '예약 수정 저장' : '예약 등록하기'}
+                  {isEdit ? t('reservation.submitEdit') : t('reservation.submitNew')}
                 </Text>
               </TouchableOpacity>
             </View>

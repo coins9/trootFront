@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Linking, Dimensions, Image,
+  View, Text, StyleSheet, TouchableOpacity, Linking, Dimensions,
 } from 'react-native';
+import CachedImage from './CachedImage';
 import { COLORS } from '../../theme/colors';
 import { ArrowRightIcon } from '../icons';
 
@@ -39,11 +40,7 @@ const ScreenBanner = memo(({
         activeOpacity={0.92}
         style={styles.imageWrap}
       >
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        <CachedImage uri={imageUrl} style={styles.image} resizeMode="cover" />
       </TouchableOpacity>
     );
   }

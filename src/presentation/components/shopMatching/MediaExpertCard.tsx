@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import {
-  View, Text, Image, TouchableOpacity, StyleSheet, Dimensions,
+  View, Text, TouchableOpacity, StyleSheet, Dimensions,
 } from 'react-native';
+import CachedImage from '../common/CachedImage';
 import { COLORS } from '../../theme/colors';
 import {
   LocationPinIcon, BookmarkIcon, TattooPlaceholderIcon, PlayCircleIcon,
@@ -28,7 +29,7 @@ const MediaExpertCard = memo(({ expert, onPress, onBookmark }: Props) => {
         {/* Left cover image */}
         <View style={styles.mainImage}>
           {cover?.uri ? (
-            <Image source={{ uri: cover.uri }} style={styles.imgFill} resizeMode="cover" />
+            <CachedImage uri={cover.uri} style={styles.imgFill} resizeMode="cover" />
           ) : (
             <View style={styles.placeholder}>
               <TattooPlaceholderIcon size={44} color="#2e2e2e" />

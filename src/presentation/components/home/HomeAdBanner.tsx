@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import {
-  View, Text, Image, TouchableOpacity, StyleSheet, Dimensions,
+  View, Text, TouchableOpacity, StyleSheet, Dimensions,
 } from 'react-native';
+import CachedImage from '../common/CachedImage';
 import { COLORS } from '../../theme/colors';
 import {
   TattooPlaceholderIcon, LocationPinIcon, ChevronRightIcon,
@@ -30,7 +31,7 @@ const HomeAdBanner = memo(({ ad, onPress, onWhyAdPress }: Props) => {
     >
       <View style={styles.imageWrap}>
         {ad.imageUri ? (
-          <Image source={{ uri: ad.imageUri }} style={styles.image} resizeMode="cover" />
+          <CachedImage uri={ad.imageUri} style={styles.image} resizeMode="cover" />
         ) : (
           <View style={styles.placeholder}>
             <TattooPlaceholderIcon size={38} color="#2e2e2e" />

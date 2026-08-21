@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import CachedImage from '../common/CachedImage';
 import { COLORS } from '../../theme/colors';
 import {
   BookmarkIcon, HeartIcon, CommentIcon, EyeIcon,
@@ -42,11 +43,7 @@ const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooC
       <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
         <View style={styles.imageWrapper}>
           {tattoo.images[0] ? (
-            <Image
-              source={{ uri: tattoo.images[0] }}
-              style={styles.image}
-              resizeMode="cover"
-            />
+            <CachedImage uri={tattoo.images[0]} style={styles.image} resizeMode="cover" />
           ) : (
             <View style={styles.placeholder}>
               <TattooPlaceholderIcon size={56} color="#2e2e2e" />
@@ -80,11 +77,7 @@ const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooC
           <View style={[styles.avatarOuter, isMaster && styles.avatarOuterMaster]}>
             <View style={styles.avatarWrapper}>
               {tattoo.artist.profileImage ? (
-                <Image
-                  source={{ uri: tattoo.artist.profileImage }}
-                  style={styles.avatar}
-                  resizeMode="cover"
-                />
+                <CachedImage uri={tattoo.artist.profileImage} style={styles.avatar} resizeMode="cover" />
               ) : (
                 <PersonSilhouette size={24} color="#3a3a3a" />
               )}

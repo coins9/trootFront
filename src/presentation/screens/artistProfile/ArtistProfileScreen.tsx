@@ -3,6 +3,7 @@ import {
   View, Text, Image, TouchableOpacity, ScrollView,
   StyleSheet, Dimensions, StatusBar, Share, Linking,
 } from 'react-native';
+import CachedImage from '../../components/common/CachedImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -178,8 +179,8 @@ const ArtistProfileScreen = () => {
           </View>
           {rv.images.length > 0 && (
             <View style={styles.reviewImages}>
-              {rv.images.slice(0, 2).map((uri, i) => (
-                <Image key={i} source={{ uri }} style={styles.reviewImageReal} resizeMode="cover" />
+              {rv.images.slice(0, 2).filter(Boolean).map((uri, i) => (
+                <CachedImage key={i} uri={uri} style={styles.reviewImageReal} resizeMode="cover" />
               ))}
             </View>
           )}

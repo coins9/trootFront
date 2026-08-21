@@ -13,6 +13,7 @@ import {
 import { ArtistSelfProfile } from '../../../domain/entities/artistMyPageTypes';
 import { ARTIST_TAGS } from '../../../domain/entities/artistTags';
 import { CITIES, DISTRICTS } from '../../../data/mock/mockData';
+import { useTranslation } from '../../store/languageStore';
 
 interface Props {
   visible: boolean;
@@ -27,6 +28,7 @@ const INTRO_MAX = 80;
 const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => {
   const translate = useRef(new Animated.Value(SH)).current;
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const [nickname, setNickname] = useState(profile.nickname);
   const [coverImage, setCoverImage] = useState<string | null>(profile.coverImage ?? null);
@@ -137,7 +139,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
           >
             <View style={styles.handle} />
             <View style={styles.headerRow}>
-              <Text style={styles.title}>프로필 편집</Text>
+              <Text style={styles.title}>{t('artistMyPage.editSheetTitle')}</Text>
               <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <XIcon size={20} color={COLORS.gray} />
               </TouchableOpacity>
@@ -155,12 +157,12 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                   <Image source={{ uri: coverImage }} style={styles.coverImg} resizeMode="cover" />
                 ) : (
                   <View style={styles.coverPlaceholder}>
-                    <Text style={styles.coverPlaceholderText}>배경 사진 없음</Text>
+                    <Text style={styles.coverPlaceholderText}>{t('artistMyPage.editBgNone')}</Text>
                   </View>
                 )}
                 <View style={styles.coverEditBadge}>
                   <CameraSolidIcon size={13} color={COLORS.black} strokeWidth={1.9} />
-                  <Text style={styles.coverEditText}>배경 변경</Text>
+                  <Text style={styles.coverEditText}>{t('artistMyPage.editBgChange')}</Text>
                 </View>
               </TouchableOpacity>
 
@@ -176,12 +178,12 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                     <CameraSolidIcon size={14} color={COLORS.black} strokeWidth={1.9} />
                   </View>
                 </View>
-                <Text style={styles.avatarHint}>프로필 사진 변경</Text>
+                <Text style={styles.avatarHint}>{t('artistMyPage.editAvatarChange')}</Text>
               </TouchableOpacity>
 
               {/* Nickname */}
               <View style={styles.field}>
-                <Text style={styles.label}>닉네임</Text>
+                <Text style={styles.label}>{t('artistMyPage.editNickname')}</Text>
                 <View style={styles.inputRow}>
                   <TextInput
                     value={nickname}
@@ -197,7 +199,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
 
               {/* 활동 지역 — 칩 선택 */}
               <View style={styles.field}>
-                <Text style={styles.label}>활동 지역</Text>
+                <Text style={styles.label}>{t('artistMyPage.editRegion')}</Text>
                 <View style={styles.chipRow}>
                   {CITIES.map((city) => {
                     const active = regionSido === city;
@@ -217,7 +219,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                 {/* 구/군 선택 — 시/도 선택 후 표시 */}
                 {districtOptions.length > 0 && (
                   <>
-                    <Text style={[styles.label, { marginTop: 10 }]}>구/군 선택 <Text style={{ color: COLORS.gray2 }}>(선택)</Text></Text>
+                    <Text style={[styles.label, { marginTop: 10 }]}>{t('artistMyPage.editDistrict')} <Text style={{ color: COLORS.gray2 }}>({t('common.optional')})</Text></Text>
                     <View style={styles.chipRow}>
                       {districtOptions.map((dist) => {
                         const active = regionSigungu === dist;
@@ -239,7 +241,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
 
               {/* 상세 주소 */}
               <View style={styles.field}>
-                <Text style={styles.label}>상세 주소 <Text style={{ color: COLORS.gray2, fontSize: 11 }}>(선택)</Text></Text>
+                <Text style={styles.label}>{t('artistMyPage.editAddress')} <Text style={{ color: COLORS.gray2, fontSize: 11 }}>({t('common.optional')})</Text></Text>
                 <View style={styles.inputRow}>
                   <LocationPinIcon size={15} color={COLORS.gray} />
                   <TextInput
@@ -255,7 +257,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
 
               {/* Intro */}
               <View style={styles.field}>
-                <Text style={styles.label}>한 줄 소개</Text>
+                <Text style={styles.label}>{t('artistMyPage.editBio')}</Text>
                 <View style={styles.introWrap}>
                   <TextInput
                     value={intro}
@@ -273,7 +275,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
 
               {/* Available Hours */}
               <View style={styles.field}>
-                <Text style={styles.label}>상담 가능 시간</Text>
+                <Text style={styles.label}>{t('artistMyPage.editConsultTime')}</Text>
                 <View style={styles.inputRow}>
                   <ClockIcon size={15} color={COLORS.gray} />
                   <TextInput
@@ -289,7 +291,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
 
               {/* Closed Day */}
               <View style={styles.field}>
-                <Text style={styles.label}>휴무일</Text>
+                <Text style={styles.label}>{t('artistMyPage.editDayOff')}</Text>
                 <View style={styles.inputRow}>
                   <CalendarIcon size={15} color={COLORS.gray} />
                   <TextInput
@@ -305,7 +307,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
 
               {/* Open KakaoTalk URL */}
               <View style={styles.field}>
-                <Text style={styles.label}>카카오 오픈채팅 링크</Text>
+                <Text style={styles.label}>{t('artistMyPage.editKakao')}</Text>
                 <View style={styles.inputRow}>
                   <ChatBubbleIcon size={15} color={COLORS.gray} />
                   <TextInput
@@ -323,7 +325,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
 
               {/* Tags */}
               <View style={styles.field}>
-                <Text style={styles.label}>편의 · 특성 태그</Text>
+                <Text style={styles.label}>{t('artistMyPage.editTags')}</Text>
                 <View style={styles.tagWrap}>
                   {ARTIST_TAGS.map((t) => {
                     const on = tags.includes(t.code);
@@ -347,7 +349,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
               activeOpacity={0.85}
               style={styles.saveBtn}
             >
-              <Text style={styles.saveText}>저장하기</Text>
+              <Text style={styles.saveText}>{t('artistMyPage.editSheetSave')}</Text>
             </TouchableOpacity>
           </Animated.View>
         </KeyboardAvoidingView>

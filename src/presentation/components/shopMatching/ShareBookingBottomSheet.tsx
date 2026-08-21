@@ -16,6 +16,7 @@ import {
   ShareBookingPurpose,
   BedRequest,
 } from '../../../domain/entities/shopTypes';
+import { useTranslation } from '../../store/languageStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.9;
@@ -36,6 +37,7 @@ const ShareBookingBottomSheet = memo(({
   visible, shopTitle, hostName, hostKakaoLink, hostSmsPhone, onClose,
 }: Props) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const [form, setForm] = useState<ShareBookingForm>(INITIAL_SHARE_BOOKING_FORM);
   const [showBedDropdown, setShowBedDropdown] = useState(false);
@@ -97,7 +99,7 @@ const ShareBookingBottomSheet = memo(({
       }
     } else {
       Alert.alert(
-        '연락처 준비 중',
+        t('common.noContactTitle'),
         '호스트가 등록한 연락망이 아직 없습니다.\n문의 내용은 클립보드에 복사되었습니다.',
       );
     }
@@ -106,6 +108,17 @@ const ShareBookingBottomSheet = memo(({
   }, [form, shopTitle, hostName, hostKakaoLink, hostSmsPhone, showToast, handleClose]);
 
   const valid = isShareBookingFormValid(form);
+
+  const purposeLabels: Record<ShareBookingPurpose, string> = {
+    '단기 쉐어': t('shop.purposeShortTerm'),
+    '장기 쉐어': t('shop.purposeLongTerm'),
+    '게스트 워크': t('shop.purposeGuestWork'),
+  };
+  const bedLabels: Record<BedRequest, string> = {
+    '1대': t('shop.bedOption1'),
+    '2대': t('shop.bedOption2'),
+    '무관': t('shop.bedOptionAny'),
+  };
 
   return (
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={handleClose}>
@@ -121,7 +134,7 @@ const ShareBookingBottomSheet = memo(({
           <View style={styles.handle} />
 
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>예약 문의 작성</Text>
+            <Text style={styles.headerTitle}>{t('shop.shareBookingTitle')}</Text>
             <TouchableOpacity
               onPress={handleClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -132,7 +145,7 @@ const ShareBookingBottomSheet = memo(({
           </View>
 
           <View style={styles.contextRow}>
-            <Text style={styles.contextLabel}>공간</Text>
+            <Text style={styles.contextLabel}>{t('shop.fieldSpace')}</Text>
             <Text
               style={styles.contextValue}
               numberOfLines={1}
@@ -152,8 +165,8 @@ const ShareBookingBottomSheet = memo(({
             {/* 1. 이용 목적 */}
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
-                <Text style={styles.fieldLabel}>이용 목적</Text>
-                <Text style={styles.required}>필수</Text>
+                <Text style={styles.fieldLabel}>{t('shop.purposeLabel')}</Text>
+                <Text style={styles.required}>{t('common.required')}</Text>
               </View>
               <View style={styles.radioRow}>
                 {PURPOSES.map((p) => {
@@ -169,7 +182,7 @@ const ShareBookingBottomSheet = memo(({
                         {isSelected && <View style={styles.radioDotInner} />}
                       </View>
                       <Text style={[styles.radioText, isSelected && styles.radioTextActive]}>
-                        {p}
+                        {purposeLabels[p]}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -180,8 +193,8 @@ const ShareBookingBottomSheet = memo(({
             {/* 2. 희망 일정 */}
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
-                <Text style={styles.fieldLabel}>희망 일정</Text>
-                <Text style={styles.required}>필수</Text>
+                <Text style={styles.fieldLabel}>{t('shop.shareDateLabel')}</Text>
+                <Text style={styles.required}>{t('common.required')}</Text>
               </View>
               <TextInput
                 style={styles.textInput}
@@ -195,8 +208,8 @@ const ShareBookingBottomSheet = memo(({
             {/* 3. 필요 베드 수 */}
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
-                <Text style={styles.fieldLabel}>필요 베드 수</Text>
-                <Text style={styles.required}>필수</Text>
+                <Text style={styles.fieldLabel}>{t('shop.bedLabel')}</Text>
+                <Text style={styles.required}>{t('common.required')}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => setShowBedDropdown((v) => !v)}
@@ -204,7 +217,7 @@ const ShareBookingBottomSheet = memo(({
                 style={styles.dropdownBtn}
               >
                 <Text style={[styles.dropdownText, !form.bedRequest && styles.dropdownPlaceholder]}>
-                  {form.bedRequest ?? '선택해 주세요'}
+                  {form.bedRequest ? bedLabels[form.bedRequest] : t('common.selectPlaceholder')}
                 </Text>
                 <ChevronDownIcon size={14} color={COLORS.gray} />
               </TouchableOpacity>
@@ -223,7 +236,7 @@ const ShareBookingBottomSheet = memo(({
                         style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
                       >
                         <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}>
-                          {b}
+                          {bedLabels[b]}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -277,7 +290,7 @@ const ShareBookingBottomSheet = memo(({
               style={[styles.submitBtn, !valid && styles.submitBtnDisabled]}
             >
               <Text style={[styles.submitText, !valid && styles.submitTextDisabled]}>
-                {valid ? '호스트에게 문의 내용 보내기' : '필수 항목을 모두 입력해 주세요'}
+                {valid ? t('shop.sendToHost') : t('common.fillAllRequired')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -290,9 +303,7 @@ const ShareBookingBottomSheet = memo(({
               ]}
               pointerEvents="none"
             >
-              <Text style={styles.toastText}>
-                문의 내용이 복사되었습니다.{'\n'}채팅창에 붙여넣기 해주세요!
-              </Text>
+              <Text style={styles.toastText}>{t('common.copiedToChat')}</Text>
             </Animated.View>
           )}
         </Animated.View>

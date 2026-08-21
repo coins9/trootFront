@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import {
-  View, Text, Image, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet,
 } from 'react-native';
+import CachedImage from '../common/CachedImage';
 import { COLORS } from '../../theme/colors';
 import {
   LocationPinIcon, StarIcon, PersonSilhouette,
@@ -30,11 +31,7 @@ const ArtistCard = memo(({ artist, isActive, onPress }: ArtistCardProps) => {
     >
       <View style={styles.imageWrapper}>
         {artist.profileImage ? (
-          <Image
-            source={{ uri: artist.profileImage }}
-            style={styles.image}
-            resizeMode="cover"
-          />
+          <CachedImage uri={artist.profileImage} style={styles.image} resizeMode="cover" />
         ) : (
           <View style={styles.placeholder}>
             <PersonSilhouette size={64} color="#2e2e2e" />

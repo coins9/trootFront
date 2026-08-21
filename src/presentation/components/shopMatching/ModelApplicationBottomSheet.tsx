@@ -43,6 +43,7 @@ const ModelApplicationBottomSheet = memo(({
   visible, postTitle, artistName, artistKakaoLink, artistSmsPhone, onClose,
 }: Props) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const [form, setForm] = useState<ModelApplicationForm>(INITIAL_MODEL_APPLICATION_FORM);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
@@ -106,7 +107,7 @@ const ModelApplicationBottomSheet = memo(({
     } else {
       setTimeout(() => {
         Alert.alert(
-          '연락처 준비 중',
+          t('common.noContactTitle'),
           '타투이스트가 등록한 연락망이 아직 없습니다.\n지원 내용은 클립보드에 복사되었습니다.',
         );
       }, 400);
@@ -115,6 +116,17 @@ const ModelApplicationBottomSheet = memo(({
 
   const valid = isModelApplicationValid(form);
   const messageLen = form.message.length;
+
+  const genderLabels: Record<Gender, string> = {
+    '남성': t('shop.genderMale'),
+    '여성': t('shop.genderFemale'),
+    '기타': t('shop.genderOther'),
+  };
+  const bodyStatusLabels: Record<BodyStatus, string> = {
+    '타투/흉터 없음': t('shop.bodyStatusNone'),
+    '기존 타투 있음': t('shop.bodyStatusExisting'),
+    '흉터 있음 (커버업 요망)': t('shop.bodyStatusScar'),
+  };
 
   return (
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={handleClose}>
@@ -131,10 +143,8 @@ const ModelApplicationBottomSheet = memo(({
 
           <View style={styles.header}>
             <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>모델 지원하기</Text>
-              <Text style={styles.headerSub}>
-                아래 정보를 작성하시면 타투이스트에게 전달됩니다.
-              </Text>
+              <Text style={styles.headerTitle}>{t('shop.modelAppTitle')}</Text>
+              <Text style={styles.headerSub}>{t('shop.modelAppDesc')}</Text>
             </View>
             <TouchableOpacity
               onPress={handleClose}
@@ -155,8 +165,8 @@ const ModelApplicationBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>1.</Text>
-                <Text style={styles.fieldLabel}>성별 및 나이</Text>
-                <Text style={styles.required}>필수</Text>
+                <Text style={styles.fieldLabel}>{t('shop.fieldGenderAge')}</Text>
+                <Text style={styles.required}>{t('common.required')}</Text>
               </View>
               <View style={styles.rowGap}>
                 <View style={styles.genderWrap}>
@@ -168,7 +178,7 @@ const ModelApplicationBottomSheet = memo(({
                     <Text
                       style={[styles.dropdownText, !form.gender && styles.dropdownPlaceholder]}
                     >
-                      {form.gender ?? '성별 선택'}
+                      {form.gender ? genderLabels[form.gender] : t('common.selectPlaceholder')}
                     </Text>
                     <ChevronDownIcon size={14} color={COLORS.gray} />
                   </TouchableOpacity>
@@ -189,7 +199,7 @@ const ModelApplicationBottomSheet = memo(({
                             <Text
                               style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}
                             >
-                              {g}
+                              {genderLabels[g]}
                             </Text>
                           </TouchableOpacity>
                         );
@@ -219,8 +229,8 @@ const ModelApplicationBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>2.</Text>
-                <Text style={styles.fieldLabel}>희망 작업일</Text>
-                <Text style={styles.required}>필수</Text>
+                <Text style={styles.fieldLabel}>{t('shop.fieldWorkDate')}</Text>
+                <Text style={styles.required}>{t('common.required')}</Text>
               </View>
               <View style={styles.dateInputWrap}>
                 <TextInput
@@ -240,8 +250,8 @@ const ModelApplicationBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>3.</Text>
-                <Text style={styles.fieldLabel}>작업 부위 상태</Text>
-                <Text style={styles.required}>필수</Text>
+                <Text style={styles.fieldLabel}>{t('shop.fieldBodyArea')}</Text>
+                <Text style={styles.required}>{t('common.required')}</Text>
               </View>
               <View style={styles.radioColumn}>
                 {BODY_STATUSES.map((s) => {
@@ -257,7 +267,7 @@ const ModelApplicationBottomSheet = memo(({
                         {isSelected && <View style={styles.radioDotInner} />}
                       </View>
                       <Text style={[styles.radioText, isSelected && styles.radioTextActive]}>
-                        {s}
+                        {bodyStatusLabels[s]}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -269,7 +279,7 @@ const ModelApplicationBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>4.</Text>
-                <Text style={styles.fieldLabel}>기존 타투/피부 상태 사진</Text>
+                <Text style={styles.fieldLabel}>{t('shop.fieldBodyPhoto')}</Text>
               </View>
               <View style={styles.photoNotice}>
                 <CalendarIcon size={22} color={COLORS.gray} />
@@ -288,8 +298,8 @@ const ModelApplicationBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>5.</Text>
-                <Text style={styles.fieldLabel}>사전 문의 및 남길 말</Text>
-                <Text style={styles.optional}>선택</Text>
+                <Text style={styles.fieldLabel}>{t('shop.fieldInquiry')}</Text>
+                <Text style={styles.optional}>{t('common.optional')}</Text>
               </View>
               <View>
                 <TextInput
@@ -321,7 +331,7 @@ const ModelApplicationBottomSheet = memo(({
                 strokeWidth={2}
               />
               <Text style={[styles.submitText, !valid && styles.submitTextDisabled]}>
-                {valid ? '[ 지원 내용 복사 및 연락하기 ]' : '필수 항목을 모두 입력해 주세요'}
+                {valid ? t('shop.copyAndContact') : t('common.fillAllRequired')}
               </Text>
             </TouchableOpacity>
 
@@ -329,8 +339,8 @@ const ModelApplicationBottomSheet = memo(({
               <View style={styles.copiedNotice}>
                 <CheckCircleIcon size={20} color={COLORS.gold} />
                 <View>
-                  <Text style={styles.copiedTitle}>지원 내용이 복사되었습니다.</Text>
-                  <Text style={styles.copiedSub}>채팅창에 붙여넣기 해주세요!</Text>
+                  <Text style={styles.copiedTitle}>{t('shop.copiedMsg')}</Text>
+                  <Text style={styles.copiedSub}>{t('common.copiedToChat')}</Text>
                 </View>
               </View>
             )}
@@ -344,9 +354,7 @@ const ModelApplicationBottomSheet = memo(({
               ]}
               pointerEvents="none"
             >
-              <Text style={styles.toastText}>
-                지원 내용이 복사되었습니다.{'\n'}채팅창에 붙여넣기 해주세요!
-              </Text>
+              <Text style={styles.toastText}>{t('common.copiedToChat')}</Text>
             </Animated.View>
           )}
         </Animated.View>

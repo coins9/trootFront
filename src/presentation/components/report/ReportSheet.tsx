@@ -7,6 +7,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import { XIcon, CheckCircleIcon, WarningTriangleIcon } from '../icons';
+import { useTranslation } from '../../store/languageStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -37,6 +38,7 @@ interface Props {
 
 const ReportSheetInner = ({ visible, targetName, onClose, onSubmit, onViewPolicy }: Props) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const maxSheetH = SCREEN_HEIGHT * 0.85;
   const translateY = useRef(new Animated.Value(maxSheetH)).current;
   const [reason, setReason] = useState<ReportReason | null>(null);
@@ -69,6 +71,14 @@ const ReportSheetInner = ({ visible, targetName, onClose, onSubmit, onViewPolicy
     handleClose();
   }, [reason, detail, onSubmit, handleClose]);
 
+  const reasonLabels: Record<ReportReason, string> = {
+    '가격 기망 (앱 표기가와 현장가 상이)': t('report.reason1'),
+    '도안 · 포트폴리오 도용': t('report.reason2'),
+    '등록된 타투이스트와 다른 사람이 시술 (대리 · 수강생)': t('report.reason3'),
+    '허위 · 과장 정보': t('report.reason4'),
+    '기타': t('report.reason5'),
+  };
+
   const handleViewPolicy = useCallback(() => {
     if (!onViewPolicy) return;
     Animated.timing(translateY, {
@@ -92,7 +102,7 @@ const ReportSheetInner = ({ visible, targetName, onClose, onSubmit, onViewPolicy
           <View style={styles.handle} />
 
           <View style={styles.header}>
-            <Text style={styles.title}>신고하기</Text>
+            <Text style={styles.title}>{t('report.title')}</Text>
             <TouchableOpacity
               onPress={handleClose}
               style={styles.closeBtn}
@@ -104,17 +114,15 @@ const ReportSheetInner = ({ visible, targetName, onClose, onSubmit, onViewPolicy
 
           <ScrollView showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled">
             <Text style={styles.target} numberOfLines={1}>
-              <Text style={styles.targetName}>{targetName}</Text> 님을 신고합니다
+              {t('report.subtitle', { name: targetName })}
             </Text>
 
             <View style={styles.noticeBox}>
               <WarningTriangleIcon size={16} color={COLORS.gold} />
-              <Text style={styles.noticeText}>
-                허위 신고는 제재 대상이 될 수 있습니다. 접수된 신고는 운영팀이 검토 후 조치합니다.
-              </Text>
+              <Text style={styles.noticeText}>{t('report.notice')}</Text>
             </View>
 
-            <Text style={styles.sectionLabel}>신고 사유</Text>
+            <Text style={styles.sectionLabel}>{t('report.reasonLabel')}</Text>
             {REPORT_REASONS.map((r) => {
               const active = r === reason;
               return (
@@ -125,7 +133,7 @@ const ReportSheetInner = ({ visible, targetName, onClose, onSubmit, onViewPolicy
                   style={[styles.reasonRow, active && styles.reasonRowActive]}
                 >
                   <Text style={[styles.reasonText, active && styles.reasonTextActive]}>
-                    {r}
+                    {reasonLabels[r]}
                   </Text>
                   {active && <CheckCircleIcon size={20} color={COLORS.gold} />}
                 </TouchableOpacity>
@@ -139,14 +147,14 @@ const ReportSheetInner = ({ visible, targetName, onClose, onSubmit, onViewPolicy
                 style={styles.policyLink}
                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               >
-                <Text style={styles.policyLinkText}>이용 안전 정책 · 제재 기준 자세히 보기</Text>
+                <Text style={styles.policyLinkText}>{t('report.policyLink')}</Text>
               </TouchableOpacity>
             )}
 
-            <Text style={styles.sectionLabel}>상세 내용 (선택)</Text>
+            <Text style={styles.sectionLabel}>{t('report.detailLabel')}</Text>
             <TextInput
               style={styles.textarea}
-              placeholder="상황을 구체적으로 적어주시면 심사에 도움이 됩니다."
+              placeholder={t('report.detailPlaceholder')}
               placeholderTextColor={COLORS.gray2}
               value={detail}
               onChangeText={(v) => setDetail(v.slice(0, DETAIL_MAX))}
@@ -166,7 +174,7 @@ const ReportSheetInner = ({ visible, targetName, onClose, onSubmit, onViewPolicy
               activeOpacity={0.85}
             >
               <Text style={[styles.submitText, !reason && styles.submitTextDisabled]}>
-                신고 접수
+                {t('report.submit')}
               </Text>
             </TouchableOpacity>
           </View>

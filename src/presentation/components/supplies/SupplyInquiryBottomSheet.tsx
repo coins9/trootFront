@@ -10,6 +10,7 @@ import { COLORS } from '../../theme/colors';
 import { XIcon, CopyIcon, InfoIcon } from '../icons';
 import { useToast } from '../common/Toast';
 import { TattooSupply } from '../../../domain/entities/supplyTypes';
+import { useTranslation } from '../../store/languageStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.9;
@@ -25,6 +26,7 @@ const SupplyInquiryBottomSheet = memo(({
   visible, supply, selectedOptions, onClose,
 }: Props) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const [quantity, setQuantity] = useState('1');
@@ -94,7 +96,7 @@ const SupplyInquiryBottomSheet = memo(({
       target = `sms:${supply.seller.smsPhone}${Platform.OS === 'ios' ? '&' : '?'}body=${encodeURIComponent(text)}`;
     }
 
-    toast('문의 내용이 복사되었습니다.\n채팅창에 붙여넣기 해주세요!', { variant: 'success' });
+    toast(t('common.copiedToChat'), { variant: 'success' });
 
     if (target) {
       const can = await Linking.canOpenURL(target);
@@ -122,7 +124,7 @@ const SupplyInquiryBottomSheet = memo(({
 
           <View style={styles.header}>
             <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>1:1 구매 문의</Text>
+              <Text style={styles.headerTitle}>{t('supplies.inquiryTitle')}</Text>
               <Text
                 style={styles.headerSub}
                 numberOfLines={1}
@@ -150,7 +152,7 @@ const SupplyInquiryBottomSheet = memo(({
             {/* Selected options summary */}
             {Object.keys(selectedOptions).length > 0 && (
               <View style={styles.optionSummary}>
-                <Text style={styles.optionSummaryLabel}>선택한 옵션</Text>
+                <Text style={styles.optionSummaryLabel}>{t('supplies.inquirySelectedOption')}</Text>
                 <View style={styles.optionChipRow}>
                   {Object.entries(selectedOptions).map(([k, v]) =>
                     v ? (
@@ -167,8 +169,8 @@ const SupplyInquiryBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>1.</Text>
-                <Text style={styles.fieldLabel}>수량</Text>
-                <Text style={styles.required}>필수</Text>
+                <Text style={styles.fieldLabel}>{t('supplies.inquiryFieldQty')}</Text>
+                <Text style={styles.required}>{t('common.required')}</Text>
               </View>
               <View style={styles.qtyRow}>
                 <TouchableOpacity
@@ -199,8 +201,8 @@ const SupplyInquiryBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>2.</Text>
-                <Text style={styles.fieldLabel}>연락처</Text>
-                <Text style={styles.optional}>선택</Text>
+                <Text style={styles.fieldLabel}>{t('supplies.inquiryFieldContact')}</Text>
+                <Text style={styles.optional}>{t('common.optional')}</Text>
               </View>
               <TextInput
                 style={styles.textInput}
@@ -216,8 +218,8 @@ const SupplyInquiryBottomSheet = memo(({
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Text style={styles.numLabel}>3.</Text>
-                <Text style={styles.fieldLabel}>문의 내용</Text>
-                <Text style={styles.optional}>선택</Text>
+                <Text style={styles.fieldLabel}>{t('supplies.inquiryFieldMessage')}</Text>
+                <Text style={styles.optional}>{t('common.optional')}</Text>
               </View>
               <TextInput
                 style={styles.textArea}
@@ -236,7 +238,7 @@ const SupplyInquiryBottomSheet = memo(({
             <View style={styles.infoBox}>
               <View style={styles.infoTitleRow}>
                 <InfoIcon size={14} color={COLORS.gray} />
-                <Text style={styles.infoTitle}>알려드려요!</Text>
+                <Text style={styles.infoTitle}>{t('common.infoTitle')}</Text>
               </View>
               <Text style={styles.infoText}>
                 · 결제는 앱 내에서 진행되지 않습니다.{'\n'}
@@ -254,7 +256,7 @@ const SupplyInquiryBottomSheet = memo(({
             >
               <CopyIcon size={17} color={valid ? COLORS.black : COLORS.gray2} strokeWidth={2} />
               <Text style={[styles.submitText, !valid && styles.submitTextDisabled]}>
-                문의 내용 복사 및 연락하기
+                {t('supplies.inquiryCopyContact')}
               </Text>
             </TouchableOpacity>
           </View>

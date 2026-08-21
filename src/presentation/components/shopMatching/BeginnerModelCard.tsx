@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import {
-  View, Text, Image, TouchableOpacity, StyleSheet, Dimensions,
+  View, Text, TouchableOpacity, StyleSheet, Dimensions,
 } from 'react-native';
+import CachedImage from '../common/CachedImage';
 import { COLORS } from '../../theme/colors';
 import {
   LocationPinIcon, BookmarkIcon, HeartIcon, CommentIcon,
@@ -35,7 +36,7 @@ const BeginnerModelCard = memo(({ post, onPress, onBookmark }: Props) => {
         <View style={styles.gallery}>
           <View style={styles.mainImage}>
             {post.images[0] ? (
-              <Image source={{ uri: post.images[0] }} style={styles.imgFill} resizeMode="cover" />
+              <CachedImage uri={post.images[0]} style={styles.imgFill} resizeMode="cover" />
             ) : (
               <View style={styles.placeholder}>
                 <TattooPlaceholderIcon size={38} color="#2e2e2e" />
@@ -45,7 +46,7 @@ const BeginnerModelCard = memo(({ post, onPress, onBookmark }: Props) => {
           <View style={styles.thumbCol}>
             <View style={styles.thumb}>
               {post.images[1] ? (
-                <Image source={{ uri: post.images[1] }} style={styles.imgFill} resizeMode="cover" />
+                <CachedImage uri={post.images[1]} style={styles.imgFill} resizeMode="cover" />
               ) : (
                 <View style={styles.placeholder}>
                   <TattooPlaceholderIcon size={22} color="#2e2e2e" />
@@ -54,7 +55,7 @@ const BeginnerModelCard = memo(({ post, onPress, onBookmark }: Props) => {
             </View>
             <View style={styles.thumb}>
               {post.images[2] ? (
-                <Image source={{ uri: post.images[2] }} style={styles.imgFill} resizeMode="cover" />
+                <CachedImage uri={post.images[2]} style={styles.imgFill} resizeMode="cover" />
               ) : (
                 <View style={styles.placeholder}>
                   <TattooPlaceholderIcon size={22} color="#2e2e2e" />
@@ -130,7 +131,7 @@ const BeginnerModelCard = memo(({ post, onPress, onBookmark }: Props) => {
         <View style={styles.artistBlock}>
           <View style={styles.artistAvatar}>
             {post.artist.profileImage ? (
-              <Image source={{ uri: post.artist.profileImage }} style={styles.imgFill} resizeMode="cover" />
+              <CachedImage uri={post.artist.profileImage} style={styles.imgFill} resizeMode="cover" />
             ) : (
               <PersonSilhouette size={28} color="#3a3a3a" />
             )}

@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Image,
+  View, Text, TouchableOpacity, StyleSheet,
 } from 'react-native';
+import CachedImage from '../common/CachedImage';
 import { COLORS } from '../../theme/colors';
 import { TattooPlaceholderIcon, ChevronRightIcon } from '../icons';
 import { ArtistAdItem } from '../../../domain/entities/artistAdTypes';
@@ -25,7 +26,7 @@ const AdCard = memo(({
     <View style={styles.topRow}>
       <View style={styles.thumbWrap}>
         {ad.thumbnailUri ? (
-          <Image source={{ uri: ad.thumbnailUri }} style={styles.thumb} resizeMode="cover" />
+          <CachedImage uri={ad.thumbnailUri} style={styles.thumb} resizeMode="cover" />
         ) : (
           <View style={styles.thumbPlaceholder}>
             <TattooPlaceholderIcon size={30} color="#3a3a3a" />

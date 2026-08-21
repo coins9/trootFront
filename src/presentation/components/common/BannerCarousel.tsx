@@ -1,7 +1,8 @@
 import React, { memo, useCallback, useRef, useState } from 'react';
 import {
-  Dimensions, FlatList, Image, StyleSheet, TouchableOpacity, View,
+  Dimensions, FlatList, StyleSheet, TouchableOpacity, View,
 } from 'react-native';
+import CachedImage from './CachedImage';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { BannerImageItem } from '../../../data/content/settingsApi';
@@ -37,7 +38,7 @@ const BannerCarousel = memo(({ items }: Props) => {
       style={styles.slide}
       onPress={() => handleBannerLink(item.linkUrl, navigation)}
     >
-      <Image source={{ uri: item.imageUrl }} style={styles.img} resizeMode="cover" />
+      <CachedImage uri={item.imageUrl} style={styles.img} resizeMode="cover" />
     </TouchableOpacity>
   ), [navigation]);
 
