@@ -9,6 +9,7 @@ import {
   PersonSilhouette, TattooPlaceholderIcon, CalendarIcon,
 } from '../icons';
 import { BeginnerModelRecruit } from '../../../domain/entities/shopTypes';
+import { useTranslation } from '../../store/languageStore';
 
 const { width: W } = Dimensions.get('window');
 const CARD_PAD = 16;
@@ -26,6 +27,7 @@ interface Props {
 }
 
 const BeginnerModelCard = memo(({ post, onPress, onBookmark }: Props) => {
+  const { t, language } = useTranslation();
   const totalImages = post.images.length;
   const extraCount = Math.max(0, totalImages - 2);
 
@@ -88,10 +90,13 @@ const BeginnerModelCard = memo(({ post, onPress, onBookmark }: Props) => {
           </View>
 
           <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
-            {post.title}
+            {(language === 'en' && post.titleEn) ? post.titleEn : post.title}
           </Text>
           <Text style={styles.price}>
-            {post.materialFee.toLocaleString()}원 <Text style={styles.priceSub}>(재료비)</Text>
+            {language === 'en'
+              ? `₩${post.materialFee.toLocaleString()}`
+              : `${post.materialFee.toLocaleString()}${t('shop.card.wonSuffix')}`}
+            {' '}<Text style={styles.priceSub}>{t('shop.card.materialFeeSuffix')}</Text>
           </Text>
           <View style={styles.metaRow}>
             <LocationPinIcon size={11} color={COLORS.gray} />
@@ -116,9 +121,9 @@ const BeginnerModelCard = memo(({ post, onPress, onBookmark }: Props) => {
             </Text>
           </View>
           <View style={styles.tagRow}>
-            {post.tags.slice(0, 3).map((t) => (
-              <View key={t} style={styles.tag}>
-                <Text style={styles.tagText}>#{t}</Text>
+            {post.tags.slice(0, 3).map((tag) => (
+              <View key={tag} style={styles.tag}>
+                <Text style={styles.tagText}>#{tag}</Text>
               </View>
             ))}
           </View>

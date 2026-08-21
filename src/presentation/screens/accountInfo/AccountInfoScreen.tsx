@@ -94,7 +94,7 @@ const AccountInfoScreen = () => {
   const providerLabel = user?.provider ? t(PROVIDER_LABEL_KEY[user.provider] as any) : '';
 
   const handlePickAvatar = useCallback(async () => {
-    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, selectionLimit: 1 });
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 1, selectionLimit: 1 });
     if (result.didCancel || !result.assets?.[0]) return;
     const asset = result.assets[0];
     if (!asset.uri) return;
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   },
   avatarImg: { width: '100%', height: '100%' },
   avatarOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill as object,
     backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',

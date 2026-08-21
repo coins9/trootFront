@@ -3,7 +3,7 @@ import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
-import { BellIcon, SearchIcon } from '../icons';
+import { BellIcon, SearchIcon, GearIcon } from '../icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 const LOGO = require('../../../assets/logo.png');
@@ -12,9 +12,11 @@ interface LogoHeaderProps {
   onBellPress?: () => void;
   onSearchPress?: () => void;
   showSearch?: boolean;
+  showGear?: boolean;
+  onGearPress?: () => void;
 }
 
-const LogoHeader = memo(function LogoHeader({ onBellPress, onSearchPress, showSearch = false }: LogoHeaderProps) {
+const LogoHeader = memo(function LogoHeader({ onBellPress, onSearchPress, showSearch = false, showGear = false, onGearPress }: LogoHeaderProps) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const handleBellPress = onBellPress ?? (() => navigation.navigate('NotificationList'));
@@ -34,6 +36,15 @@ const LogoHeader = memo(function LogoHeader({ onBellPress, onSearchPress, showSe
             style={styles.iconBtn}
           >
             <SearchIcon size={22} color={COLORS.white} strokeWidth={1.9} />
+          </TouchableOpacity>
+        )}
+        {showGear && (
+          <TouchableOpacity
+            onPress={onGearPress}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.iconBtn}
+          >
+            <GearIcon size={22} color={COLORS.white} strokeWidth={1.9} />
           </TouchableOpacity>
         )}
         <TouchableOpacity

@@ -108,7 +108,7 @@ const ModelApplicationBottomSheet = memo(({
       setTimeout(() => {
         Alert.alert(
           t('common.noContactTitle'),
-          '타투이스트가 등록한 연락망이 아직 없습니다.\n지원 내용은 클립보드에 복사되었습니다.',
+          t('shop.bs.noContactArtistMsg'),
         );
       }, 400);
     }
@@ -215,12 +215,12 @@ const ModelApplicationBottomSheet = memo(({
                     style={styles.textInput}
                     value={form.age}
                     onChangeText={(t) => update('age', t.replace(/[^0-9]/g, '').slice(0, 3))}
-                    placeholder="나이 입력"
+                    placeholder={t('shop.bs.agePlaceholder')}
                     placeholderTextColor={COLORS.gray2}
                     keyboardType="number-pad"
                     maxLength={3}
                   />
-                  <Text style={styles.ageSuffix}>세</Text>
+                  <Text style={styles.ageSuffix}>{t('shop.bs.ageSuffix')}</Text>
                 </View>
               </View>
             </View>
@@ -237,7 +237,7 @@ const ModelApplicationBottomSheet = memo(({
                   style={[styles.textInput, { flex: 1, paddingRight: 40 }]}
                   value={form.desiredDate}
                   onChangeText={(t) => update('desiredDate', t)}
-                  placeholder="날짜 선택"
+                  placeholder={t('shop.bs.datePlaceholder')}
                   placeholderTextColor={COLORS.gray2}
                 />
                 <View style={styles.dateIconAbs}>
@@ -285,10 +285,10 @@ const ModelApplicationBottomSheet = memo(({
                 <CalendarIcon size={22} color={COLORS.gray} />
                 <View style={styles.photoNoticeText}>
                   <Text style={styles.photoNoticeMain}>
-                    사진은 업로드 기능이 지원되지 않습니다.
+                    {t('shop.bs.photoNotice')}
                   </Text>
                   <Text style={styles.photoNoticeSub}>
-                    사진은 채팅방 입장 후{'\n'}직접 전송해주세요.
+                    {t('shop.bs.photoNoticeSub')}
                   </Text>
                 </View>
               </View>
@@ -306,7 +306,7 @@ const ModelApplicationBottomSheet = memo(({
                   style={styles.textArea}
                   value={form.message}
                   onChangeText={(t) => update('message', t.slice(0, 500))}
-                  placeholder={'궁금한 점이나 하고 싶은 말을 남겨주세요.\n(최대 500자)'}
+                  placeholder={t('shop.bs.messagePlaceholder')}
                   placeholderTextColor={COLORS.gray2}
                   multiline
                   textAlignVertical="top"

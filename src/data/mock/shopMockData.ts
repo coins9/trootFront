@@ -34,6 +34,8 @@ export const MOCK_TATTOO_SHARE_SHOPS: TattooShareShop[] = [
     },
     likeCount: 24,
     commentCount: 8,
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -68,6 +70,8 @@ export const MOCK_TATTOO_SHARE_SHOPS: TattooShareShop[] = [
     },
     likeCount: 31,
     commentCount: 12,
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -100,6 +104,8 @@ export const MOCK_TATTOO_SHARE_SHOPS: TattooShareShop[] = [
     },
     likeCount: 18,
     commentCount: 0,
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
 ];
@@ -130,6 +136,8 @@ export const MOCK_BEGINNER_MODEL_RECRUITS: BeginnerModelRecruit[] = [
     },
     likeCount: 42,
     commentCount: 6,
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -155,6 +163,8 @@ export const MOCK_BEGINNER_MODEL_RECRUITS: BeginnerModelRecruit[] = [
     },
     likeCount: 21,
     commentCount: 3,
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -176,6 +186,8 @@ export const MOCK_BEGINNER_MODEL_RECRUITS: BeginnerModelRecruit[] = [
     },
     likeCount: 24,
     commentCount: 7,
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -197,6 +209,8 @@ export const MOCK_BEGINNER_MODEL_RECRUITS: BeginnerModelRecruit[] = [
     },
     likeCount: 18,
     commentCount: 5,
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -218,6 +232,8 @@ export const MOCK_BEGINNER_MODEL_RECRUITS: BeginnerModelRecruit[] = [
     },
     likeCount: 31,
     commentCount: 9,
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -239,6 +255,8 @@ export const MOCK_BEGINNER_MODEL_RECRUITS: BeginnerModelRecruit[] = [
     },
     likeCount: 12,
     commentCount: 2,
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
 ];
@@ -288,6 +306,8 @@ export const MOCK_MEDIA_EXPERTS: MediaExpert[] = [
     avgResponseTime: '평균 1시간 이내',
     primaryKind: '사진 촬영',
     kakaoLink: 'https://open.kakao.com/o/tattoosnap',
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -315,6 +335,8 @@ export const MOCK_MEDIA_EXPERTS: MediaExpert[] = [
     avgResponseTime: '평균 3시간 이내',
     primaryKind: '사진 촬영',
     kakaoLink: 'https://open.kakao.com/o/inkshooter',
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -339,6 +361,8 @@ export const MOCK_MEDIA_EXPERTS: MediaExpert[] = [
     avgResponseTime: '평균 30분 이내',
     primaryKind: '사진 촬영',
     kakaoLink: 'https://open.kakao.com/o/blackarchive',
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -362,6 +386,8 @@ export const MOCK_MEDIA_EXPERTS: MediaExpert[] = [
     totalWorks: 71,
     avgResponseTime: '평균 2시간 이내',
     primaryKind: '사진 촬영',
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -385,6 +411,8 @@ export const MOCK_MEDIA_EXPERTS: MediaExpert[] = [
     totalWorks: 156,
     avgResponseTime: '평균 1시간 이내',
     primaryKind: '사진 촬영',
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
 
@@ -411,6 +439,8 @@ export const MOCK_MEDIA_EXPERTS: MediaExpert[] = [
     avgResponseTime: '평균 2시간 이내',
     primaryKind: '영상 편집',
     kakaoLink: 'https://open.kakao.com/o/reelmaster',
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -435,6 +465,8 @@ export const MOCK_MEDIA_EXPERTS: MediaExpert[] = [
     avgResponseTime: '평균 1시간 이내',
     primaryKind: '영상 편집',
     kakaoLink: 'https://open.kakao.com/o/motionink',
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -458,6 +490,8 @@ export const MOCK_MEDIA_EXPERTS: MediaExpert[] = [
     totalWorks: 62,
     avgResponseTime: '평균 30분 이내',
     primaryKind: '영상 편집',
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -482,6 +516,8 @@ export const MOCK_MEDIA_EXPERTS: MediaExpert[] = [
     avgResponseTime: '평균 2시간 이내',
     primaryKind: '영상 편집',
     kakaoLink: 'https://open.kakao.com/o/sliceedit',
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
   {
@@ -505,6 +541,8 @@ export const MOCK_MEDIA_EXPERTS: MediaExpert[] = [
     totalWorks: 97,
     avgResponseTime: '평균 1시간 이내',
     primaryKind: '영상 편집',
+    titleEn: null,
+    descriptionEn: null,
     isBookmarked: false,
   },
 ];

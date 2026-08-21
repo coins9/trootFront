@@ -41,6 +41,7 @@ import AdManageScreen from '../../presentation/screens/ad/AdManageScreen';
 import ArtistReservationRequestsScreen from '../../presentation/screens/artistReservation/ArtistReservationRequestsScreen';
 import NotificationListScreen from '../../presentation/screens/notificationList/NotificationListScreen';
 import RootsPickScreen from '../../presentation/screens/rootsPick/RootsPickScreen';
+import SettingsScreen from '../../presentation/screens/settings/SettingsScreen';
 import { useAuthStore } from '../../presentation/store/authStore';
 
 export type AdManageParams = {
@@ -86,6 +87,7 @@ export type RootStackParamList = {
   ArtistReservationRequests: undefined;
   NotificationList: undefined;
   RootsPick: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -273,6 +275,11 @@ const RootNavigator = () => {
     <Stack.Screen
       name="RootsPick"
       component={RootsPickScreen}
+      options={{ animation: 'slide_from_right' }}
+    />
+    <Stack.Screen
+      name="Settings"
+      component={SettingsScreen}
       options={{ animation: 'slide_from_right' }}
     />
   </Stack.Navigator>

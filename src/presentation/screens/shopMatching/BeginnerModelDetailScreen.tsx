@@ -29,7 +29,7 @@ const BeginnerModelDetailScreen = () => {
   const route = useRoute<DetailRoute>();
   const { post } = route.params;
 
-  const { language } = useTranslation();
+  const { t, language } = useTranslation();
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(post.isBookmarked);
   const [expandDesc, setExpandDesc] = useState(false);
@@ -121,7 +121,7 @@ const BeginnerModelDetailScreen = () => {
               adjustsFontSizeToFit
               minimumFontScale={0.8}
             >
-              비기너 작업 · 플랫폼 책임 없음
+              {t('shop.beginnerDetail.caution')}
             </Text>
           </View>
 
@@ -166,7 +166,7 @@ const BeginnerModelDetailScreen = () => {
           )}
           <Text style={styles.title}>{displayTitle}</Text>
           <Text style={styles.price}>
-            {post.materialFee.toLocaleString()}원 <Text style={styles.priceSub}>(재료비)</Text>
+            {post.materialFee.toLocaleString()}{t('shop.card.wonSuffix')} <Text style={styles.priceSub}>{t('shop.card.materialFeeSuffix')}</Text>
           </Text>
           <View style={styles.metaRow}>
             <LocationPinIcon size={13} color={COLORS.gray} />
@@ -189,7 +189,7 @@ const BeginnerModelDetailScreen = () => {
 
         {/* ── 타투이스트 프로필 ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>타투이스트</Text>
+          <Text style={styles.sectionTitle}>{t('shop.tattooistLabel')}</Text>
           <View style={styles.artistCard}>
             <View style={styles.artistAvatar}>
               {post.artist.profileImage ? (
@@ -211,7 +211,7 @@ const BeginnerModelDetailScreen = () => {
 
         {/* ── 상세 소개 ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>상세 소개</Text>
+          <Text style={styles.sectionTitle}>{t('shop.introLabel')}</Text>
           <Text style={styles.description}>{displayedDesc}</Text>
           {shouldTruncate && (
             <TouchableOpacity
@@ -220,7 +220,7 @@ const BeginnerModelDetailScreen = () => {
               style={styles.expandBtn}
             >
               <Text style={styles.expandText}>
-                {expandDesc ? '접기' : '더보기'}
+                {expandDesc ? t('shop.collapse') : t('shop.expand')}
               </Text>
               {expandDesc
                 ? <ChevronUpIcon size={14} color={COLORS.gray} />
@@ -233,7 +233,7 @@ const BeginnerModelDetailScreen = () => {
         {/* ── 주의사항 ── */}
         {post.cautions.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>주의사항</Text>
+            <Text style={styles.sectionTitle}>{t('shop.cautionLabel')}</Text>
             <View style={styles.rulesList}>
               {post.cautions.map((c, i) => (
                 <View key={i} style={styles.ruleRow}>
@@ -253,14 +253,14 @@ const BeginnerModelDetailScreen = () => {
           style={styles.ctaBtn}
           activeOpacity={0.85}
         >
-          <Text style={styles.ctaText}>[ 타투 모델 지원하기 ]</Text>
+          <Text style={styles.ctaText}>{t('shop.applyModel')}</Text>
         </TouchableOpacity>
       </View>
 
       <ModelApplicationBottomSheet
         visible={applyVisible}
         postTitle={post.title}
-        artistName={post.artist.nickname}
+        artistName={post.artist.nickname ?? ''}
         artistKakaoLink={post.artist.kakaoLink}
         artistSmsPhone={post.artist.smsPhone}
         onClose={() => setApplyVisible(false)}

@@ -8,6 +8,7 @@ import {
   PersonSilhouette, TattooPlaceholderIcon,
 } from '../icons';
 import { TattooShareShop } from '../../../domain/entities/shopTypes';
+import { useTranslation } from '../../store/languageStore';
 
 const { width: W } = Dimensions.get('window');
 const CARD_PAD = 16;
@@ -23,9 +24,8 @@ interface Props {
   onBookmark: () => void;
 }
 
-const formatWon = (n: number) => `일 ${n.toLocaleString()}원`;
-
 const ShopShareCard = memo(({ shop, onPress, onBookmark }: Props) => {
+  const { t, language } = useTranslation();
   const thumbs = [shop.images[1], shop.images[2], shop.images[3]];
   const extra = Math.max(0, shop.images.length - 4);
 
@@ -68,7 +68,7 @@ const ShopShareCard = memo(({ shop, onPress, onBookmark }: Props) => {
           <View style={styles.topRow}>
             {shop.isNew ? (
               <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>신규</Text>
+                <Text style={styles.newBadgeText}>{t('shop.card.newBadge')}</Text>
               </View>
             ) : <View />}
             <TouchableOpacity
@@ -80,8 +80,8 @@ const ShopShareCard = memo(({ shop, onPress, onBookmark }: Props) => {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.title}>{shop.title}</Text>
-          <Text style={styles.price}>{formatWon(shop.pricePerDay)}</Text>
+          <Text style={styles.title}>{(language === 'en' && shop.titleEn) ? shop.titleEn : shop.title}</Text>
+          <Text style={styles.price}>{t('shop.card.pricePerDayFmt', { price: shop.pricePerDay.toLocaleString() })}</Text>
           <View style={styles.addressRow}>
             <LocationPinIcon size={11} color={COLORS.gray} />
             <Text style={styles.addressText}>{shop.address}</Text>
@@ -90,39 +90,39 @@ const ShopShareCard = memo(({ shop, onPress, onBookmark }: Props) => {
           {/* Spec grid 3x2 — 한 줄 안에 다 들어가도록 자동 폰트 축소 */}
           <View style={styles.specGrid}>
             <View style={styles.specCell}>
-              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>평수</Text>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>{t('shop.card.areaPyeong')}</Text>
               <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
-                {shop.areaPyeong}평
+                {shop.areaPyeong}{t('shop.card.unitPyeong')}
               </Text>
             </View>
             <View style={styles.specCell}>
-              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>베드 수</Text>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>{t('shop.card.bedCount')}</Text>
               <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
-                {shop.bedCount}대
+                {shop.bedCount}{t('shop.card.unitBed')}
               </Text>
             </View>
             <View style={styles.specCell}>
-              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>조명</Text>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>{t('shop.card.lighting')}</Text>
               <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {shop.lighting}
               </Text>
             </View>
             <View style={styles.specCell}>
-              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>프라이빗 룸</Text>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>{t('shop.card.privateRoom')}</Text>
               <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.75}>
-                {shop.privateRoomInfo ?? (shop.hasPrivateRoom ? '있음' : '없음')}
+                {shop.privateRoomInfo ?? (shop.hasPrivateRoom ? t('shop.card.privateYes') : t('shop.card.privateNo'))}
               </Text>
             </View>
             <View style={styles.specCell}>
-              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>최대 수용 인원</Text>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>{t('shop.card.maxOccupancy')}</Text>
               <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
-                {shop.maxOccupancy}명
+                {shop.maxOccupancy}{t('shop.card.unitPerson')}
               </Text>
             </View>
             <View style={styles.specCell}>
-              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.75}>현재 / 필요 인원</Text>
+              <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.75}>{t('shop.card.currentNeeded')}</Text>
               <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
-                {shop.currentOccupancy} / {shop.requiredOccupancy}명
+                {shop.currentOccupancy} / {shop.requiredOccupancy}{t('shop.card.unitPerson')}
               </Text>
             </View>
           </View>

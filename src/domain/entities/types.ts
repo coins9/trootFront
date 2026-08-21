@@ -29,7 +29,9 @@ export interface Tattoo {
   artistId: string;
   artist: Artist;
   title: string;
+  titleEn: string | null;
   description: string;
+  descriptionEn: string | null;
   images: string[];
   tags: string[];
   genres: string[];

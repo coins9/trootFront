@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import { XIcon, CheckCircleIcon } from '../icons';
+import { useTranslation } from '../../store/languageStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -16,12 +17,14 @@ interface Props<T extends string> {
   selected: T;
   onSelect: (value: T) => void;
   onClose: () => void;
+  renderLabel?: (opt: T) => string;
 }
 
 function ShareFilterBottomSheetInner<T extends string>({
-  visible, title, options, selected, onSelect, onClose,
+  visible, title, options, selected, onSelect, onClose, renderLabel,
 }: Props<T>) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const maxSheetH = SCREEN_HEIGHT * 0.7;
   const translateY = useRef(new Animated.Value(maxSheetH)).current;
   const [draft, setDraft] = useState<T>(selected);
@@ -91,7 +94,7 @@ function ShareFilterBottomSheetInner<T extends string>({
                   style={[styles.row, isActive && styles.rowActive]}
                 >
                   <Text style={[styles.rowText, isActive && styles.rowTextActive]}>
-                    {opt}
+                    {renderLabel ? renderLabel(opt) : opt}
                   </Text>
                   {isActive && <CheckCircleIcon size={22} color={COLORS.gold} />}
                 </TouchableOpacity>
@@ -106,14 +109,14 @@ function ShareFilterBottomSheetInner<T extends string>({
               style={styles.resetBtn}
               activeOpacity={0.85}
             >
-              <Text style={styles.resetText}>초기화</Text>
+              <Text style={styles.resetText}>{t('shop.bs.reset')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleApply}
               style={styles.applyBtn}
               activeOpacity={0.85}
             >
-              <Text style={styles.applyText}>적용하기</Text>
+              <Text style={styles.applyText}>{t('shop.bs.apply')}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

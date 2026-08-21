@@ -103,7 +103,7 @@ const WorkInquiryBottomSheet = memo(({
       setTimeout(() => {
         Alert.alert(
           t('common.noContactTitle'),
-          '전문가가 등록한 연락망이 아직 없습니다.\n문의 내용은 클립보드에 복사되었습니다.',
+          t('shop.bs.noContactExpertMsg'),
         );
       }, 400);
     }
@@ -193,7 +193,7 @@ const WorkInquiryBottomSheet = memo(({
                   style={[styles.textInput, { paddingRight: 40 }]}
                   value={form.desiredDate}
                   onChangeText={(t) => update('desiredDate', t)}
-                  placeholder="날짜 선택"
+                  placeholder={t('shop.bs.datePlaceholder')}
                   placeholderTextColor={COLORS.gray2}
                 />
                 <View style={styles.dateIconAbs}>
@@ -213,7 +213,7 @@ const WorkInquiryBottomSheet = memo(({
                 style={styles.textInput}
                 value={form.workVolume}
                 onChangeText={(t) => update('workVolume', t)}
-                placeholder="예) 쇼츠 영상 2개 (30초 이내)"
+                placeholder={t('shop.bs.volumePlaceholder')}
                 placeholderTextColor={COLORS.gray2}
               />
             </View>

@@ -27,7 +27,7 @@ const TattooShareDetailScreen = () => {
   const route = useRoute<DetailRoute>();
   const { shop } = route.params;
 
-  const { language } = useTranslation();
+  const { t, language } = useTranslation();
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(shop.isBookmarked);
   const [expandDescription, setExpandDescription] = useState(false);
@@ -41,12 +41,12 @@ const TattooShareDetailScreen = () => {
     : descLines.slice(0, 5).join('\n');
 
   const specs: { Icon: React.ComponentType<any>; label: string; value: string }[] = [
-    { Icon: AreaIcon, label: '평수', value: `${shop.areaPyeong}평` },
-    { Icon: BedIcon, label: '베드 수', value: `${shop.bedCount}대` },
-    { Icon: LightIcon, label: '조명', value: shop.lighting },
-    { Icon: DoorIcon, label: '프라이빗 룸', value: shop.privateRoomInfo ?? (shop.hasPrivateRoom ? '있음' : '없음') },
-    { Icon: PeopleIcon, label: '최대 수용 인원', value: `${shop.maxOccupancy}명` },
-    { Icon: PeopleIcon, label: '현재 / 필요 인원', value: `${shop.currentOccupancy} / ${shop.requiredOccupancy}명` },
+    { Icon: AreaIcon, label: t('shop.card.areaPyeong'), value: `${shop.areaPyeong}${t('shop.card.unitPyeong')}` },
+    { Icon: BedIcon, label: t('shop.card.bedCount'), value: `${shop.bedCount}${t('shop.card.unitBed')}` },
+    { Icon: LightIcon, label: t('shop.card.lighting'), value: shop.lighting },
+    { Icon: DoorIcon, label: t('shop.card.privateRoom'), value: shop.privateRoomInfo ?? (shop.hasPrivateRoom ? t('shop.card.privateYes') : t('shop.card.privateNo')) },
+    { Icon: PeopleIcon, label: t('shop.card.maxOccupancy'), value: `${shop.maxOccupancy}${t('shop.card.unitPerson')}` },
+    { Icon: PeopleIcon, label: t('shop.card.currentNeeded'), value: `${shop.currentOccupancy} / ${shop.requiredOccupancy}${t('shop.card.unitPerson')}` },
   ];
 
   const handlePageScroll = useCallback((e: { nativeEvent: { contentOffset: { x: number } } }) => {
@@ -123,11 +123,11 @@ const TattooShareDetailScreen = () => {
         <View style={styles.headerBlock}>
           {shop.isNew && (
             <View style={styles.newBadge}>
-              <Text style={styles.newBadgeText}>신규</Text>
+              <Text style={styles.newBadgeText}>{t('shop.card.newBadge')}</Text>
             </View>
           )}
           <Text style={styles.title}>{displayTitle}</Text>
-          <Text style={styles.price}>일 {shop.pricePerDay.toLocaleString()}원</Text>
+          <Text style={styles.price}>{t('shop.card.pricePerDayFmt', { price: shop.pricePerDay.toLocaleString() })}</Text>
           <View style={styles.addressRow}>
             <LocationPinIcon size={14} color={COLORS.gray} />
             <Text style={styles.addressText}>{shop.address}</Text>
@@ -156,7 +156,7 @@ const TattooShareDetailScreen = () => {
 
         {/* 상세 소개 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>공간 소개</Text>
+          <Text style={styles.sectionTitle}>{t('shop.detail.intro')}</Text>
           <Text style={styles.description}>{displayedDesc}</Text>
           {shouldTruncate && (
             <TouchableOpacity
@@ -165,7 +165,7 @@ const TattooShareDetailScreen = () => {
               style={styles.expandBtn}
             >
               <Text style={styles.expandText}>
-                {expandDescription ? '접기' : '더보기'}
+                {expandDescription ? t('shop.collapse') : t('shop.expand')}
               </Text>
               {expandDescription
                 ? <ChevronUpIcon size={14} color={COLORS.gray} />
@@ -178,7 +178,7 @@ const TattooShareDetailScreen = () => {
         {/* 이용 규정 */}
         {shop.rules.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>이용 규정</Text>
+            <Text style={styles.sectionTitle}>{t('shop.detail.rules')}</Text>
             <View style={styles.rulesList}>
               {shop.rules.map((rule, i) => (
                 <View key={i} style={styles.ruleRow}>
@@ -200,7 +200,7 @@ const TattooShareDetailScreen = () => {
             )}
           </View>
           <View style={styles.hostInfo}>
-            <Text style={styles.hostLabel}>호스트</Text>
+            <Text style={styles.hostLabel}>{t('shop.hostLabel')}</Text>
             <Text style={styles.hostName}>{shop.host.nickname}</Text>
             <Text style={styles.hostRole}>{shop.host.role}</Text>
           </View>
@@ -219,12 +219,12 @@ const TattooShareDetailScreen = () => {
               Linking.openURL(`tel:${digits}`).catch(() => {});
               return;
             }
-            Alert.alert('연락처 없음', '호스트가 등록한 연락망이 아직 없습니다.');
+            Alert.alert(t('common.noContactTitle'), t('shop.noContactMsg'));
           }}
           style={styles.ctaBtn}
           activeOpacity={0.85}
         >
-          <Text style={styles.ctaText}>예약 문의하기</Text>
+          <Text style={styles.ctaText}>{t('shop.bookingInquiry')}</Text>
         </TouchableOpacity>
       </View>
     </View>

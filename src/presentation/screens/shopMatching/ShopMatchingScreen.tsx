@@ -44,6 +44,12 @@ import SearchBar from '../../components/common/SearchBar';
 import ScreenBanner from '../../components/common/ScreenBanner';
 import BannerCarousel from '../../components/common/BannerCarousel';
 import { useTranslation } from '../../store/languageStore';
+import {
+  regionLabel, lightingLabel, bedLabel, occupancyLabel,
+  shareSortLabel, beginnerStyleLabel, beginnerPriceLabel, beginnerSortLabel,
+  expertCareerLabel, expertWorkKindLabel, expertSortLabel,
+  overseasCountryLabel,
+} from '../../utils/shopDisplayMap';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type ShareFilterKind = 'region' | 'lighting' | 'bed' | 'occupancy' | 'sort';
@@ -342,25 +348,25 @@ const ShopMatchingScreen = () => {
 
   const shareFilterButtons = useMemo(() => [
     {
-      label: shareFilter.region === '전체' ? t('shop.filter.region') : shareFilter.region.replace('서울 · ', ''),
+      label: shareFilter.region !== '전체' ? regionLabel(t, shareFilter.region) : t('shop.filter.region'),
       Icon: RegionIcon,
       kind: 'region' as const,
       active: shareFilter.region !== '전체',
     },
     {
-      label: shareFilter.lighting === '전체' ? t('shop.filter.lighting') : shareFilter.lighting.replace(/ \(.*\)/, ''),
+      label: shareFilter.lighting !== '전체' ? lightingLabel(t, shareFilter.lighting) : t('shop.filter.lighting'),
       Icon: LightIcon,
       kind: 'lighting' as const,
       active: shareFilter.lighting !== '전체',
     },
     {
-      label: shareFilter.bedCount === '전체' ? t('shop.filter.bed') : shareFilter.bedCount,
+      label: shareFilter.bedCount !== '전체' ? bedLabel(t, shareFilter.bedCount) : t('shop.filter.bed'),
       Icon: BedIcon,
       kind: 'bed' as const,
       active: shareFilter.bedCount !== '전체',
     },
     {
-      label: shareFilter.occupancy === '전체' ? t('shop.filter.occupancy') : shareFilter.occupancy.split(' ')[0],
+      label: shareFilter.occupancy !== '전체' ? occupancyLabel(t, shareFilter.occupancy) : t('shop.filter.occupancy'),
       Icon: PeopleIcon,
       kind: 'occupancy' as const,
       active: shareFilter.occupancy !== '전체',
@@ -369,25 +375,25 @@ const ShopMatchingScreen = () => {
 
   const overseasFilterButtons = useMemo(() => [
     {
-      label: overseasCountry === '전체' ? t('shop.filter.country') : overseasCountry,
+      label: overseasCountry !== '전체' ? overseasCountryLabel(t, overseasCountry) : t('shop.filter.country'),
       Icon: RegionIcon,
       kind: 'overseasCountry' as const,
       active: overseasCountry !== '전체',
     },
     {
-      label: overseasFilter.lighting === '전체' ? t('shop.filter.lighting') : overseasFilter.lighting.replace(/ \(.*\)/, ''),
+      label: overseasFilter.lighting !== '전체' ? lightingLabel(t, overseasFilter.lighting) : t('shop.filter.lighting'),
       Icon: LightIcon,
       kind: 'oLighting' as const,
       active: overseasFilter.lighting !== '전체',
     },
     {
-      label: overseasFilter.bedCount === '전체' ? t('shop.filter.bed') : overseasFilter.bedCount,
+      label: overseasFilter.bedCount !== '전체' ? bedLabel(t, overseasFilter.bedCount) : t('shop.filter.bed'),
       Icon: BedIcon,
       kind: 'oBed' as const,
       active: overseasFilter.bedCount !== '전체',
     },
     {
-      label: overseasFilter.occupancy === '전체' ? t('shop.filter.occupancy') : overseasFilter.occupancy.split(' ')[0],
+      label: overseasFilter.occupancy !== '전체' ? occupancyLabel(t, overseasFilter.occupancy) : t('shop.filter.occupancy'),
       Icon: PeopleIcon,
       kind: 'oOccupancy' as const,
       active: overseasFilter.occupancy !== '전체',
@@ -398,19 +404,19 @@ const ShopMatchingScreen = () => {
 
   const nonShareFilters = useMemo(() => {
     const photoFilters: { label: string; Icon: React.ComponentType<any>; kind: AnyFilterKind; active: boolean }[] = [
-      { label: expertFilter.region !== '전체' ? expertFilter.region.replace('서울 · ', '') : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
-      { label: expertFilter.career !== '전체' ? expertFilter.career : t('shop.filter.career'), Icon: StarIcon, kind: 'eCareer', active: expertFilter.career !== '전체' },
-      { label: expertFilter.workKind !== '전체' ? expertFilter.workKind : t('shop.filter.shootingStyle'), Icon: CalendarIcon, kind: 'eWorkKind', active: expertFilter.workKind !== '전체' },
+      { label: expertFilter.region !== '전체' ? regionLabel(t, expertFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
+      { label: expertFilter.career !== '전체' ? expertCareerLabel(t, expertFilter.career) : t('shop.filter.career'), Icon: StarIcon, kind: 'eCareer', active: expertFilter.career !== '전체' },
+      { label: expertFilter.workKind !== '전체' ? expertWorkKindLabel(t, expertFilter.workKind) : t('shop.filter.shootingStyle'), Icon: CalendarIcon, kind: 'eWorkKind', active: expertFilter.workKind !== '전체' },
     ];
     const videoFilters: { label: string; Icon: React.ComponentType<any>; kind: AnyFilterKind; active: boolean }[] = [
-      { label: expertFilter.region !== '전체' ? expertFilter.region.replace('서울 · ', '') : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
-      { label: expertFilter.career !== '전체' ? expertFilter.career : t('shop.filter.career'), Icon: StarIcon, kind: 'eCareer', active: expertFilter.career !== '전체' },
-      { label: expertFilter.workKind !== '전체' ? expertFilter.workKind : t('shop.filter.workType'), Icon: FilterSlidersIcon, kind: 'eWorkKind', active: expertFilter.workKind !== '전체' },
+      { label: expertFilter.region !== '전체' ? regionLabel(t, expertFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
+      { label: expertFilter.career !== '전체' ? expertCareerLabel(t, expertFilter.career) : t('shop.filter.career'), Icon: StarIcon, kind: 'eCareer', active: expertFilter.career !== '전체' },
+      { label: expertFilter.workKind !== '전체' ? expertWorkKindLabel(t, expertFilter.workKind) : t('shop.filter.workType'), Icon: FilterSlidersIcon, kind: 'eWorkKind', active: expertFilter.workKind !== '전체' },
     ];
     const beginnerFilters: { label: string; Icon: React.ComponentType<any>; kind: AnyFilterKind; active: boolean }[] = [
-      { label: beginnerFilter.region !== '전체' ? beginnerFilter.region.replace('서울 · ', '') : t('shop.filter.region'), Icon: RegionIcon, kind: 'bRegion', active: beginnerFilter.region !== '전체' },
-      { label: beginnerFilter.style !== '전체' ? beginnerFilter.style : t('shop.filter.style'), Icon: FilterSlidersIcon, kind: 'bStyle', active: beginnerFilter.style !== '전체' },
-      { label: beginnerFilter.price !== '전체' ? beginnerFilter.price : t('shop.filter.price'), Icon: StarIcon, kind: 'bPrice', active: beginnerFilter.price !== '전체' },
+      { label: beginnerFilter.region !== '전체' ? regionLabel(t, beginnerFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'bRegion', active: beginnerFilter.region !== '전체' },
+      { label: beginnerFilter.style !== '전체' ? beginnerStyleLabel(t, beginnerFilter.style) : t('shop.filter.style'), Icon: FilterSlidersIcon, kind: 'bStyle', active: beginnerFilter.style !== '전체' },
+      { label: beginnerFilter.price !== '전체' ? beginnerPriceLabel(t, beginnerFilter.price) : t('shop.filter.price'), Icon: StarIcon, kind: 'bPrice', active: beginnerFilter.price !== '전체' },
     ];
     if (isEditorCategory) return expertTab === 'photo' ? photoFilters : videoFilters;
     if (isBeginnerCategory) return beginnerFilters;
@@ -419,12 +425,12 @@ const ShopMatchingScreen = () => {
 
   const sortLabel = isShareCategory
     ? boothTab === 'domestic'
-      ? `↑↓ ${shareFilter.sort.split(' (')[0]}`
-      : `↑↓ ${overseasFilter.sort.split(' (')[0]}`
+      ? `↑↓ ${shareSortLabel(t, shareFilter.sort)}`
+      : `↑↓ ${shareSortLabel(t, overseasFilter.sort)}`
     : isBeginnerCategory
-      ? `↑↓ ${beginnerFilter.sort}`
+      ? `↑↓ ${beginnerSortLabel(t, beginnerFilter.sort)}`
       : isEditorCategory
-        ? `↑↓ ${expertFilter.sort}`
+        ? `↑↓ ${expertSortLabel(t, expertFilter.sort)}`
         : t('shop.sortLatest');
 
   const editorTitle = expertTab === 'photo' ? t('shop.photoExpert') : t('shop.videoExpert');
@@ -741,6 +747,7 @@ const ShopMatchingScreen = () => {
         selected={shareFilter.region}
         onSelect={(v) => setShareFilter((prev) => ({ ...prev, region: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => regionLabel(t, opt)}
       />
       <ShareFilterBottomSheet<ShareLighting>
         visible={activeFilterSheet === 'lighting'}
@@ -749,6 +756,7 @@ const ShopMatchingScreen = () => {
         selected={shareFilter.lighting}
         onSelect={(v) => setShareFilter((prev) => ({ ...prev, lighting: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => lightingLabel(t, opt)}
       />
       <ShareFilterBottomSheet<ShareBedCount>
         visible={activeFilterSheet === 'bed'}
@@ -757,6 +765,7 @@ const ShopMatchingScreen = () => {
         selected={shareFilter.bedCount}
         onSelect={(v) => setShareFilter((prev) => ({ ...prev, bedCount: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => bedLabel(t, opt)}
       />
       <ShareFilterBottomSheet<ShareOccupancy>
         visible={activeFilterSheet === 'occupancy'}
@@ -765,6 +774,7 @@ const ShopMatchingScreen = () => {
         selected={shareFilter.occupancy}
         onSelect={(v) => setShareFilter((prev) => ({ ...prev, occupancy: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => occupancyLabel(t, opt)}
       />
       <ShareFilterBottomSheet<ShareSort>
         visible={activeFilterSheet === 'sort'}
@@ -773,6 +783,7 @@ const ShopMatchingScreen = () => {
         selected={shareFilter.sort}
         onSelect={(v) => setShareFilter((prev) => ({ ...prev, sort: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => shareSortLabel(t, opt)}
       />
 
       {/* Overseas booth share filter bottom sheets */}
@@ -783,6 +794,7 @@ const ShopMatchingScreen = () => {
         selected={overseasFilter.lighting}
         onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, lighting: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => lightingLabel(t, opt)}
       />
       <ShareFilterBottomSheet<ShareBedCount>
         visible={activeFilterSheet === 'oBed'}
@@ -791,6 +803,7 @@ const ShopMatchingScreen = () => {
         selected={overseasFilter.bedCount}
         onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, bedCount: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => bedLabel(t, opt)}
       />
       <ShareFilterBottomSheet<ShareOccupancy>
         visible={activeFilterSheet === 'oOccupancy'}
@@ -799,6 +812,7 @@ const ShopMatchingScreen = () => {
         selected={overseasFilter.occupancy}
         onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, occupancy: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => occupancyLabel(t, opt)}
       />
       <ShareFilterBottomSheet<ShareSort>
         visible={activeFilterSheet === 'oSort'}
@@ -807,6 +821,7 @@ const ShopMatchingScreen = () => {
         selected={overseasFilter.sort}
         onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, sort: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => shareSortLabel(t, opt)}
       />
 
       {/* Beginner filter bottom sheets */}
@@ -817,6 +832,7 @@ const ShopMatchingScreen = () => {
         selected={beginnerFilter.region}
         onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, region: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => regionLabel(t, opt)}
       />
       <ShareFilterBottomSheet<BeginnerStyle>
         visible={activeFilterSheet === 'bStyle'}
@@ -825,6 +841,7 @@ const ShopMatchingScreen = () => {
         selected={beginnerFilter.style}
         onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, style: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => beginnerStyleLabel(t, opt)}
       />
       <ShareFilterBottomSheet<BeginnerPriceRange>
         visible={activeFilterSheet === 'bPrice'}
@@ -833,6 +850,7 @@ const ShopMatchingScreen = () => {
         selected={beginnerFilter.price}
         onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, price: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => beginnerPriceLabel(t, opt)}
       />
       <ShareFilterBottomSheet<BeginnerSort>
         visible={activeFilterSheet === 'bSort'}
@@ -841,6 +859,7 @@ const ShopMatchingScreen = () => {
         selected={beginnerFilter.sort}
         onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, sort: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => beginnerSortLabel(t, opt)}
       />
 
       {/* Overseas country filter */}
@@ -851,6 +870,7 @@ const ShopMatchingScreen = () => {
         selected={overseasCountry}
         onSelect={(v) => setOverseasCountry(v)}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => overseasCountryLabel(t, opt)}
       />
 
       {/* Expert filter bottom sheets */}
@@ -861,6 +881,7 @@ const ShopMatchingScreen = () => {
         selected={expertFilter.region}
         onSelect={(v) => setExpertFilter((prev) => ({ ...prev, region: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => regionLabel(t, opt)}
       />
       <ShareFilterBottomSheet<ExpertCareer>
         visible={activeFilterSheet === 'eCareer'}
@@ -869,6 +890,7 @@ const ShopMatchingScreen = () => {
         selected={expertFilter.career}
         onSelect={(v) => setExpertFilter((prev) => ({ ...prev, career: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => expertCareerLabel(t, opt)}
       />
       <ShareFilterBottomSheet<ExpertWorkKind>
         visible={activeFilterSheet === 'eWorkKind'}
@@ -877,6 +899,7 @@ const ShopMatchingScreen = () => {
         selected={expertFilter.workKind}
         onSelect={(v) => setExpertFilter((prev) => ({ ...prev, workKind: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => expertWorkKindLabel(t, opt)}
       />
       <ShareFilterBottomSheet<ExpertSort>
         visible={activeFilterSheet === 'eSort'}
@@ -885,6 +908,7 @@ const ShopMatchingScreen = () => {
         selected={expertFilter.sort}
         onSelect={(v) => setExpertFilter((prev) => ({ ...prev, sort: v }))}
         onClose={() => setActiveFilterSheet(null)}
+        renderLabel={(opt) => expertSortLabel(t, opt)}
       />
     </SafeAreaView>
   );

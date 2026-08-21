@@ -28,6 +28,7 @@ import {
   artistApi, reviewApi,
   type ArtistPage, type Artwork, type ReviewByArtist,
 } from '../../../data/api';
+import { uploadImage } from '../../../data/api/upload';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
 import { useAuthStore } from '../../store/authStore';
@@ -40,6 +41,8 @@ function toSelfProfile(p: ArtistPage): ArtistSelfProfile {
     nickname: p.pageName,
     handle: `@${p.handle}`,
     location: regionParts.join(' ') || '',
+    regionSido: p.regionSido ?? null,
+    regionSigungu: p.regionSigungu ?? null,
     intro: p.intro ?? p.bio ?? '',
     avatarUri: p.profileImage ?? '',
     coverImage: p.coverImage ?? null,
@@ -203,13 +206,29 @@ const ArtistMyPageScreen = () => {
   );
 
   /* ==== Profile ==== */
+  const isLocalUri = useCallback((uri?: string | null) => {
+    if (!uri) return false;
+    return !uri.startsWith('http://') && !uri.startsWith('https://');
+  }, []);
+
   const handleSaveProfile = useCallback(async (next: Partial<ArtistSelfProfile>) => {
     try {
+      let coverUrl = next.coverImage ?? undefined;
+      let profileUrl: string | undefined;
+
+      if (isLocalUri(next.coverImage)) {
+        coverUrl = await uploadImage('profile', { uri: next.coverImage! });
+      }
+      if (isLocalUri((next as any).avatarImage)) {
+        profileUrl = await uploadImage('profile', { uri: (next as any).avatarImage });
+      }
+
       await artistApi.updateMe({
         pageName: next.nickname,
         intro: next.intro,
         bio: next.intro,
-        coverImage: next.coverImage ?? undefined,
+        coverImage: coverUrl,
+        profileImage: profileUrl,
         regionSido: next.regionSido ?? undefined,
         regionSigungu: next.regionSigungu ?? undefined,
         countryCode: next.countryCode ?? undefined,
@@ -222,7 +241,12 @@ const ArtistMyPageScreen = () => {
         availableHours: next.availableHours ?? undefined,
         closedDay: next.closedDay ?? undefined,
       } as any);
-      setProfileOverride((prev) => ({ ...prev, ...next }));
+
+      const override: Partial<ArtistSelfProfile> = { ...next };
+      if (coverUrl) override.coverImage = coverUrl;
+      if (profileUrl) override.avatarUri = profileUrl;
+
+      setProfileOverride((prev) => ({ ...prev, ...override }));
       reloadProfile();
       setEditProfileOpen(false);
       toast(t('artistMyPage.saved'), { variant: 'success' });
@@ -230,7 +254,7 @@ const ArtistMyPageScreen = () => {
       setEditProfileOpen(false);
       toast(t('common.error'), { variant: 'error' });
     }
-  }, [toast, reloadProfile, t]);
+  }, [toast, reloadProfile, t, isLocalUri]);
 
   /* ==== Artwork ==== */
   const handleOpenArtworkForm = useCallback((aw: ArtistArtwork | null) => {
@@ -246,8 +270,10 @@ const ArtistMyPageScreen = () => {
     try {
       const body = {
         title: next.title,
+        titleEn: next.titleEn || null,
         description: next.description,
-        genres: Array.from(new Set([next.genre, ...next.subjects].filter(Boolean))),
+        descriptionEn: next.descriptionEn || null,
+        genres: Array.from(new Set([next.genre, ...next.subjects, ...next.moods].filter(Boolean))),
         bodyPart: next.bodyPart,
         sizePreset: next.sizePreset || null,
         priceKrw: next.priceFrom || null,

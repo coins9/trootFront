@@ -39,7 +39,7 @@ const MediaExpertDetailScreen = () => {
   const route = useRoute<DetailRoute>();
   const { expert } = route.params;
 
-  const { language } = useTranslation();
+  const { t, language } = useTranslation();
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(expert.isBookmarked);
   const [expandDesc, setExpandDesc] = useState(false);
@@ -324,7 +324,7 @@ const MediaExpertDetailScreen = () => {
 
       <WorkInquiryBottomSheet
         visible={inquiryVisible}
-        expertName={expert.nickname}
+        expertName={expert.nickname ?? ''}
         defaultWorkKind={expert.primaryKind}
         expertKakaoLink={expert.kakaoLink}
         expertSmsPhone={expert.smsPhone}

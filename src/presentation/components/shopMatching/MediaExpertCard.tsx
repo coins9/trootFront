@@ -8,6 +8,7 @@ import {
   LocationPinIcon, BookmarkIcon, TattooPlaceholderIcon, PlayCircleIcon,
 } from '../icons';
 import { MediaExpert } from '../../../domain/entities/shopTypes';
+import { useTranslation } from '../../store/languageStore';
 
 const { width: W } = Dimensions.get('window');
 const CARD_PAD = 16;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const MediaExpertCard = memo(({ expert, onPress, onBookmark }: Props) => {
+  const { t, language } = useTranslation();
   const cover = expert.portfolio[0];
 
   return (
@@ -60,7 +62,7 @@ const MediaExpertCard = memo(({ expert, onPress, onBookmark }: Props) => {
             adjustsFontSizeToFit
             minimumFontScale={0.85}
           >
-            {expert.nickname}
+            {(language === 'en' && expert.titleEn) ? expert.titleEn : expert.nickname}
           </Text>
 
           {/* Experience gold */}
@@ -68,15 +70,15 @@ const MediaExpertCard = memo(({ expert, onPress, onBookmark }: Props) => {
 
           {/* Tag lines (up to 2 rows) */}
           <View style={styles.tagList}>
-            {expert.tags.slice(0, 2).map((t) => (
+            {expert.tags.slice(0, 2).map((tag) => (
               <Text
-                key={t}
+                key={tag}
                 style={styles.tagLine}
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.8}
               >
-                {t}
+                {tag}
               </Text>
             ))}
           </View>
@@ -96,11 +98,13 @@ const MediaExpertCard = memo(({ expert, onPress, onBookmark }: Props) => {
 
           {/* Price block */}
           <View style={styles.priceBlock}>
-            <Text style={styles.priceLabel}>예상 금액 (건당)</Text>
+            <Text style={styles.priceLabel}>{t('shop.card.estimatedPrice')}</Text>
             <Text style={styles.priceRange}>
-              {expert.priceMin.toLocaleString()}원 ~ {expert.priceMax.toLocaleString()}원
+              {language === 'en'
+                ? `₩${expert.priceMin.toLocaleString()} ~ ₩${expert.priceMax.toLocaleString()}`
+                : `${expert.priceMin.toLocaleString()}${t('shop.card.wonSuffix')} ~ ${expert.priceMax.toLocaleString()}${t('shop.card.wonSuffix')}`}
             </Text>
-            <Text style={styles.priceNote}>(위치/거리 변동 포함)</Text>
+            <Text style={styles.priceNote}>{t('shop.card.priceFlexNote')}</Text>
           </View>
         </View>
       </View>

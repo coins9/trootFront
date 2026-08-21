@@ -15,14 +15,15 @@ import {
   CalendarIcon, HeartIcon, StoreIcon, FolderIcon,
   ListIcon, UserOutlineIcon, BellIcon, LockIcon, GlobeIcon, ChatBubbleIcon, ChevronRightIcon,
   PersonSilhouette, PaletteIcon, BarChartIcon,
-  EditPenIcon, LocationPinIcon, StarIcon, HandshakeIcon, CheckCircleIcon,
+  EditPenIcon, LocationPinIcon, StarIcon, HandshakeIcon, CheckCircleIcon, GearIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
 import { useAuthStore } from '../../store/authStore';
-import { artistApi, type ArtistPage, publicSettingsApi, type SiteSettings, userApi } from '../../../data/api';
+import { artistApi, type ArtistPage, userApi } from '../../../data/api';
 import { uploadImage } from '../../../data/api/upload';
 import { supplyVendorApi, type MyVendor } from '../../../data/api/vendor';
+import { usePublicSettings } from '../../hooks/usePublicSettings';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -56,7 +57,7 @@ const MyProfileScreen = () => {
   const [mode, setMode] = useState<ProfileMode>('user');
   const [artistInfo, setArtistInfo] = useState<ArtistPage | null>(null);
   const [vendorInfo, setVendorInfo] = useState<MyVendor | null>(null);
-  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const siteSettings = usePublicSettings();
   const [avatarUri, setAvatarUri] = useState<string | null>(session?.user.profileImage ?? null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
@@ -66,13 +67,6 @@ const MyProfileScreen = () => {
         .then((val) => {
           if (val === 'artist' || val === 'vendor' || val === 'user') setMode(val);
         })
-        .catch(() => {});
-  }, []);
-
-  // Preload artist page, vendor profile, and site settings
-  useEffect(() => {
-    publicSettingsApi.get()
-        .then(setSiteSettings)
         .catch(() => {});
   }, []);
 
@@ -93,7 +87,7 @@ const MyProfileScreen = () => {
   );
 
   const handlePickAvatar = useCallback(async () => {
-    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, selectionLimit: 1 });
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 1, selectionLimit: 1 });
     if (result.didCancel || !result.assets?.[0]) return;
     const asset = result.assets[0];
     if (!asset.uri) return;
@@ -205,7 +199,7 @@ const MyProfileScreen = () => {
     {
       Icon: BarChartIcon,
       label: t('profile.adInquiry'),
-      onPress: () => openLink(siteSettings?.ad_inquiry_url),
+      onPress: () => openLink(siteSettings.adInquiryUrl),
     },
   ];
   const userSettingItems: MenuItem[] = [
@@ -217,6 +211,12 @@ const MyProfileScreen = () => {
   ];
 
   const artistMenuItems: (MenuItem & { description: string })[] = [
+    {
+      Icon: EditPenIcon,
+      label: t('profile.portfolioReview'),
+      description: t('profile.artistDescPortfolio'),
+      onPress: goTo('ArtistMyPage'),
+    },
     {
       Icon: CheckCircleIcon,
       label: t('profile.reservationRequests'),
@@ -234,12 +234,6 @@ const MyProfileScreen = () => {
       label: t('profile.adStats'),
       description: t('profile.artistDescAdStats'),
       onPress: goTo('ArtistAdStats'),
-    },
-    {
-      Icon: EditPenIcon,
-      label: t('profile.portfolioReview'),
-      description: t('profile.artistDescPortfolio'),
-      onPress: goTo('ArtistMyPage'),
     },
   ];
 
@@ -266,7 +260,7 @@ const MyProfileScreen = () => {
       Icon: BarChartIcon,
       label: '용품샵 광고 문의하기',
       description: '왈라폼을 통해 광고를 문의하세요',
-      onPress: () => openLink(siteSettings?.ad_inquiry_url),
+      onPress: () => openLink(siteSettings.adInquiryUrl),
     },
   ];
 
@@ -310,7 +304,10 @@ const MyProfileScreen = () => {
   return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-        <LogoHeader />
+        <LogoHeader
+          showGear={mode === 'user'}
+          onGearPress={() => navigation.navigate('Settings')}
+        />
 
         {/* Profile card — outside ScrollView so tab bar stays sticky */}
         <View style={styles.profileBlock}>
@@ -401,7 +398,6 @@ const MyProfileScreen = () => {
               <>
                 {renderCompactSection(t('profile.myReservations'), userReservationItems)}
                 {renderCompactSection(t('profile.myPosts'), userPostItems)}
-                {renderCompactSection(t('settings.title'), userSettingItems)}
               </>
           )}
 
@@ -458,7 +454,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   avatarOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill as object,
     backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
