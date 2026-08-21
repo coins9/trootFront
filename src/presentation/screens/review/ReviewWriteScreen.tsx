@@ -14,6 +14,7 @@ import {
 import { useToast } from '../../components/common/Toast';
 import { useImageUpload } from '../../hooks/useImageUpload';
 import { deleteUpload } from '../../../data/api/upload';
+import { reviewApi, ApiError } from '../../../data/api';
 import {
   ReviewRatings, RATING_LABELS, RATING_GUIDES,
 } from '../../../domain/entities/reviewTypes';
@@ -116,7 +117,9 @@ const ReviewWriteScreen = () => {
   const textValid = text.trim().length >= TEXT_MIN;
   const canSubmit = allRated && textValid;
 
-  const handleSubmit = useCallback(() => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = useCallback(async () => {
     if (!allRated) {
       toast(t('review.noRatingError'), { variant: 'error' });
       return;
@@ -125,9 +128,26 @@ const ReviewWriteScreen = () => {
       toast(t('review.textTooShortError').replace('{{min}}', String(TEXT_MIN)), { variant: 'error' });
       return;
     }
-    toast(t('review.submitted'), { variant: 'success' });
-    navigation.goBack();
-  }, [allRated, textValid, toast, navigation, t]);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await reviewApi.create({
+        reservationId: review.id,
+        painScore: ratings.pain,
+        kindnessScore: ratings.kindness,
+        hygieneScore: ratings.hygiene,
+        satisfactionScore: ratings.satisfaction,
+        body: text.trim(),
+        images: photos.length > 0 ? photos : undefined,
+      });
+      toast(t('review.submitted'), { variant: 'success' });
+      navigation.goBack();
+    } catch (e) {
+      toast(e instanceof ApiError ? e.userMessage : t('common.error'), { variant: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [allRated, textValid, submitting, review.id, ratings, text, photos, toast, navigation, t]);
 
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
@@ -256,13 +276,17 @@ const ReviewWriteScreen = () => {
         <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={!canSubmit}
-            style={[s.submitBtn, !canSubmit && s.submitBtnDisabled]}
+            disabled={!canSubmit || submitting}
+            style={[s.submitBtn, (!canSubmit || submitting) && s.submitBtnDisabled]}
             activeOpacity={0.85}
           >
-            <Text style={[s.submitText, !canSubmit && s.submitTextDisabled]}>
-              {t('review.submitBtn')}
-            </Text>
+            {submitting ? (
+              <ActivityIndicator color={COLORS.black} />
+            ) : (
+              <Text style={[s.submitText, !canSubmit && s.submitTextDisabled]}>
+                {t('review.submitBtn')}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

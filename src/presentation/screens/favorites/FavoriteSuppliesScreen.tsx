@@ -158,21 +158,19 @@ const FavoriteSuppliesScreen = () => {
     }
   }, [toast, t]);
 
-  const handleInquiry = useCallback(async (supply: TattooSupply) => {
+  const handleInquiry = useCallback((supply: TattooSupply) => {
     if (supply.seller.kakaoLink) {
-      const can = await Linking.canOpenURL(supply.seller.kakaoLink);
-      if (can) {
-        Linking.openURL(supply.seller.kakaoLink);
-        return;
-      }
+      Linking.openURL(supply.seller.kakaoLink).catch(() => {
+        toast(t('favorites.inquiryChannelError').replace('{{name}}', supply.seller.nickname), { variant: 'error' });
+      });
+      return;
     }
     if (supply.seller.smsPhone) {
       const smsUrl = `sms:${supply.seller.smsPhone}?body=${encodeURIComponent(formatSupplyInquiryMessage(supply))}`;
-      const can = await Linking.canOpenURL(smsUrl);
-      if (can) {
-        Linking.openURL(smsUrl);
-        return;
-      }
+      Linking.openURL(smsUrl).catch(() => {
+        toast(t('favorites.inquiryChannelError').replace('{{name}}', supply.seller.nickname), { variant: 'error' });
+      });
+      return;
     }
     toast(t('favorites.inquiryChannelError').replace('{{name}}', supply.seller.nickname), { variant: 'error' });
   }, [toast, t]);

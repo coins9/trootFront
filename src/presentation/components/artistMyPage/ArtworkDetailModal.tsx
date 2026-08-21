@@ -1,8 +1,9 @@
 import React, { memo, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, Animated,
-  Dimensions, Platform, Alert,
+  Dimensions, Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import {
   XIcon, HeartIcon, EyeIcon, EditPenIcon, TattooPlaceholderIcon,
@@ -22,6 +23,7 @@ const { height: SH } = Dimensions.get('window');
 const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) => {
   const visible = artwork !== null;
   const translate = useRef(new Animated.Value(SH)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     Animated.timing(translate, {
@@ -60,7 +62,7 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Animated.View
-          style={[styles.sheet, { transform: [{ translateY: translate }] }]}
+          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 16, transform: [{ translateY: translate }] }]}
         >
           <Pressable onPress={() => {}}>
             <View style={styles.handle} />
@@ -168,7 +170,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 22,
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
+    paddingBottom: 16,
     maxHeight: SH * 0.9,
   },
   handle: {

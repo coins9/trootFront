@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
+import { useTranslation } from '../../store/languageStore';
 import {
   BackArrowIcon, ShareIcon, BookmarkIcon, LocationPinIcon,
   ChevronDownIcon, ChevronUpIcon, TattooPlaceholderIcon,
@@ -28,16 +29,19 @@ const BeginnerModelDetailScreen = () => {
   const route = useRoute<DetailRoute>();
   const { post } = route.params;
 
+  const { language } = useTranslation();
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(post.isBookmarked);
   const [expandDesc, setExpandDesc] = useState(false);
   const [applyVisible, setApplyVisible] = useState(false);
   const heroRef = useRef<ScrollView>(null);
 
-  const descLines = post.description.split('\n');
+  const displayTitle = language === 'en' && post.titleEn ? post.titleEn : post.title;
+  const displayDesc = language === 'en' && post.descriptionEn ? post.descriptionEn : post.description;
+  const descLines = displayDesc.split('\n');
   const shouldTruncate = descLines.length > 5;
   const displayedDesc = expandDesc || !shouldTruncate
-    ? post.description
+    ? displayDesc
     : descLines.slice(0, 5).join('\n');
 
   const handleHeroScroll = useCallback(
@@ -160,7 +164,7 @@ const BeginnerModelDetailScreen = () => {
               <Text style={styles.newBadgeText}>NEW</Text>
             </View>
           )}
-          <Text style={styles.title}>{post.title}</Text>
+          <Text style={styles.title}>{displayTitle}</Text>
           <Text style={styles.price}>
             {post.materialFee.toLocaleString()}원 <Text style={styles.priceSub}>(재료비)</Text>
           </Text>

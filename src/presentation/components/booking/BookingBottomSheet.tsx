@@ -110,9 +110,11 @@ const BookingBottomSheet = memo(({
 
       handleClose();
       // 접수 직후 작가 오픈톡으로 연결 (없으면 토스트 안내)
-      setTimeout(async () => {
-        if (artistKakaoLink && (await Linking.canOpenURL(artistKakaoLink))) {
-          Linking.openURL(artistKakaoLink).catch(() => {});
+      setTimeout(() => {
+        if (artistKakaoLink) {
+          Linking.openURL(artistKakaoLink).catch(() => {
+            toast(t('booking.successNoChat'), { variant: 'success' });
+          });
         } else {
           toast(t('booking.successNoChat'), { variant: 'success' });
         }

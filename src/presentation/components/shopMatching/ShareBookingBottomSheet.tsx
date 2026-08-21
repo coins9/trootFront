@@ -93,10 +93,7 @@ const ShareBookingBottomSheet = memo(({
     showToast();
 
     if (target) {
-      const can = await Linking.canOpenURL(target);
-      if (can) {
-        Linking.openURL(target);
-      }
+      Linking.openURL(target).catch(() => {});
     } else {
       Alert.alert(
         t('common.noContactTitle'),

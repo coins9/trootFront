@@ -99,10 +99,7 @@ const SupplyInquiryBottomSheet = memo(({
     toast(t('common.copiedToChat'), { variant: 'success' });
 
     if (target) {
-      const can = await Linking.canOpenURL(target);
-      if (can) {
-        setTimeout(() => Linking.openURL(target!), 500);
-      }
+      setTimeout(() => Linking.openURL(target!).catch(() => {}), 500);
     }
     setTimeout(handleClose, 900);
   }, [supply, buildMessage, toast, handleClose]);

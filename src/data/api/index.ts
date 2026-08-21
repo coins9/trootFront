@@ -335,6 +335,7 @@ export type ShopCategory = 'booth_share' | 'booth_share_overseas' | 'model_recru
 export interface ShopPost {
   id: string;
   authorId: string;
+  author: { id: string; nickname: string | null; profileImage: string | null };
   category: ShopCategory;
   title: string;
   titleEn: string | null;
@@ -536,6 +537,7 @@ export const userApi = {
     api.get<{ available: boolean }>(`/app/users/nickname/available${qs({ nickname })}`),
 
   updateNickname: (nickname: string) => api.patch('/app/users/me/nickname', { nickname }),
+  updateProfileImage: (profileImage: string) => api.patch('/app/users/me/profile-image', { profileImage }),
   updateLanguage: (language: string) => api.patch('/app/users/me/language', { language }),
   updateFcmToken: (fcmToken: string, platform: 'ios' | 'android') =>
     api.patch('/app/users/me/fcm-token', { fcmToken, platform }),

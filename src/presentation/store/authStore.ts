@@ -25,6 +25,8 @@ interface AuthStore {
   /** 갱신 실패 시 세션 폐기 */
   forceLogout: () => Promise<void>;
   logout: () => Promise<void>;
+  /** 사용자 프로필 필드를 로컬 세션에 반영 (프로필 이미지, 닉네임 등) */
+  patchUser: (fields: Partial<AuthSession['user']>) => Promise<void>;
 }
 
 const persist = async (session: AuthSession | null) => {
@@ -192,6 +194,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
     await persist(null);
     set({ session: null });
+  },
+
+  patchUser: async (fields) => {
+    const current = get().session;
+    if (!current) return;
+    const session: AuthSession = { ...current, user: { ...current.user, ...fields } };
+    await persist(session);
+    set({ session });
   },
 }));
 

@@ -2,9 +2,9 @@ export type ShopMatchingCategory = '부스 쉐어' | '타투 모델 구인 (비�
 
 export interface ShopHost {
   id: string;
-  nickname: string;
+  nickname: string | null;
   role: string;
-  profileImage: string;
+  profileImage: string | null;
   kakaoLink?: string;
   smsPhone?: string;
 }
@@ -13,6 +13,7 @@ export interface TattooShareShop {
   id: string;
   isNew: boolean;
   title: string;
+  titleEn: string | null;
   pricePerDay: number;
   address: string;
   district: string;
@@ -26,6 +27,7 @@ export interface TattooShareShop {
   requiredOccupancy: number;
   images: string[];
   description: string;
+  descriptionEn: string | null;
   rules: string[];
   host: ShopHost;
   likeCount: number;
@@ -207,18 +209,20 @@ export interface BeginnerModelRecruit {
   id: string;
   isNew: boolean;
   title: string;
+  titleEn: string | null;
   materialFee: number;
   location: string;
   workPeriod: string;
   tags: string[];
   images: string[];
   description: string;
+  descriptionEn: string | null;
   cautions: string[];
   artist: {
     id: string;
-    nickname: string;
+    nickname: string | null;
     experience: string;
-    profileImage: string;
+    profileImage: string | null;
     kakaoLink?: string;
     smsPhone?: string;
   };
@@ -294,17 +298,19 @@ export interface PortfolioItem {
 export interface MediaExpert {
   id: string;
   specialty: MediaSpecialty;
-  nickname: string;
+  nickname: string | null;
+  titleEn: string | null;
   isVerified: boolean;
   experience: string;
   experienceYears: number;
   location: string;
-  profileImage: string;
+  profileImage: string | null;
   tags: string[];
   priceMin: number;
   priceMax: number;
   priceItems: MediaExpertPrice[];
   description: string;
+  descriptionEn: string | null;
   descriptionBullets: string[];
   descriptionFooter?: string;
   portfolio: PortfolioItem[];

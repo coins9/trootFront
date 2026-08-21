@@ -1,7 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar, Linking,
+  Image, ActivityIndicator,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,7 +20,8 @@ import {
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
 import { useAuthStore } from '../../store/authStore';
-import { artistApi, type ArtistPage, publicSettingsApi, type SiteSettings } from '../../../data/api';
+import { artistApi, type ArtistPage, publicSettingsApi, type SiteSettings, userApi } from '../../../data/api';
+import { uploadImage } from '../../../data/api/upload';
 import { supplyVendorApi, type MyVendor } from '../../../data/api/vendor';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -47,12 +50,15 @@ const MyProfileScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const session = useAuthStore((s) => s.session);
+  const patchUser = useAuthStore((s) => s.patchUser);
   const insets = useSafeAreaInsets();
 
   const [mode, setMode] = useState<ProfileMode>('user');
   const [artistInfo, setArtistInfo] = useState<ArtistPage | null>(null);
   const [vendorInfo, setVendorInfo] = useState<MyVendor | null>(null);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(session?.user.profileImage ?? null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Restore persisted mode on mount
   useEffect(() => {
@@ -85,6 +91,25 @@ const MyProfileScreen = () => {
       (screen: keyof RootStackParamList) => () => navigation.navigate(screen as any),
       [navigation],
   );
+
+  const handlePickAvatar = useCallback(async () => {
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, selectionLimit: 1 });
+    if (result.didCancel || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    if (!asset.uri) return;
+    setAvatarUploading(true);
+    try {
+      const publicUrl = await uploadImage('profile', { uri: asset.uri, type: asset.type, fileSize: asset.fileSize });
+      await userApi.updateProfileImage(publicUrl);
+      await patchUser({ profileImage: publicUrl });
+      setAvatarUri(publicUrl);
+      toast(t('account.saved'), { variant: 'success' });
+    } catch {
+      toast(t('common.error'), { variant: 'error' });
+    } finally {
+      setAvatarUploading(false);
+    }
+  }, [patchUser, toast, t]);
 
   /* ── Mode switching with registration guards ── */
   const handleTabPress = useCallback((next: ProfileMode) => {
@@ -289,9 +314,23 @@ const MyProfileScreen = () => {
 
         {/* Profile card — outside ScrollView so tab bar stays sticky */}
         <View style={styles.profileBlock}>
-          <View style={styles.avatarCircle}>
-            <PersonSilhouette size={72} color="#3a3a3a" />
-          </View>
+          <TouchableOpacity
+            style={styles.avatarCircle}
+            onPress={handlePickAvatar}
+            activeOpacity={0.85}
+            disabled={avatarUploading}
+          >
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
+            ) : (
+              <PersonSilhouette size={72} color="#3a3a3a" />
+            )}
+            {avatarUploading && (
+              <View style={styles.avatarOverlay}>
+                <ActivityIndicator color={COLORS.gold} size="small" />
+              </View>
+            )}
+          </TouchableOpacity>
           <View style={styles.profileInfo}>
             <Text style={styles.nickname} numberOfLines={1}>{displayName}</Text>
             {mode === 'artist' && artistInfo ? (
@@ -413,6 +452,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: COLORS.border,
+  },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileInfo: {
     flex: 1,

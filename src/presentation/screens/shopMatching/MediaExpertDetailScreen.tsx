@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
+import { useTranslation } from '../../store/languageStore';
 import {
   BackArrowIcon, ShareIcon, BookmarkIcon, LocationPinIcon,
   ChevronDownIcon, ChevronUpIcon, TattooPlaceholderIcon, PersonSilhouette,
@@ -38,14 +39,16 @@ const MediaExpertDetailScreen = () => {
   const route = useRoute<DetailRoute>();
   const { expert } = route.params;
 
+  const { language } = useTranslation();
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(expert.isBookmarked);
   const [expandDesc, setExpandDesc] = useState(false);
   const [inquiryVisible, setInquiryVisible] = useState(false);
   const heroRef = useRef<ScrollView>(null);
 
+  const displayDesc = language === 'en' && expert.descriptionEn ? expert.descriptionEn : expert.description;
   const bulletCount = expert.descriptionBullets.length;
-  const descLineCount = expert.description.split('\n').length + bulletCount;
+  const descLineCount = displayDesc.split('\n').length + bulletCount;
   const shouldTruncate = descLineCount > 5;
 
   const handleHeroScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -230,7 +233,7 @@ const MediaExpertDetailScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionHead}>상세 소개 (Description)</Text>
           <View style={styles.descCard}>
-            <Text style={styles.description}>{expert.description}</Text>
+            <Text style={styles.description}>{displayDesc}</Text>
 
             <View style={styles.bulletList}>
               {expert.descriptionBullets

@@ -121,7 +121,9 @@ const TattooDetailScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 90 }]}
       >
-        <Text style={styles.title}>{tattoo.title}</Text>
+        <Text style={styles.title}>
+          {language === 'en' && tattoo.titleEn ? tattoo.titleEn : tattoo.title}
+        </Text>
 
         {tattoo.minPrice > 0 && (
           <View style={styles.priceRow}>
@@ -151,8 +153,10 @@ const TattooDetailScreen = () => {
           </View>
         )}
 
-        {!!tattoo.description && (
-          <Text style={styles.description}>{tattoo.description}</Text>
+        {!!(language === 'en' && tattoo.descriptionEn ? tattoo.descriptionEn : tattoo.description) && (
+          <Text style={styles.description}>
+            {language === 'en' && tattoo.descriptionEn ? tattoo.descriptionEn : tattoo.description}
+          </Text>
         )}
 
         <TouchableOpacity

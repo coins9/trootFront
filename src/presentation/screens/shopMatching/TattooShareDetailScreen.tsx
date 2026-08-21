@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
+import { useTranslation } from '../../store/languageStore';
 import {
   BackArrowIcon, ShareIcon, BookmarkIcon, LocationPinIcon,
   AreaIcon, BedIcon, LightIcon, DoorIcon, PeopleIcon,
@@ -26,14 +27,17 @@ const TattooShareDetailScreen = () => {
   const route = useRoute<DetailRoute>();
   const { shop } = route.params;
 
+  const { language } = useTranslation();
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(shop.isBookmarked);
   const [expandDescription, setExpandDescription] = useState(false);
 
-  const descLines = shop.description.split('\n');
+  const displayTitle = language === 'en' && shop.titleEn ? shop.titleEn : shop.title;
+  const displayDesc = language === 'en' && shop.descriptionEn ? shop.descriptionEn : shop.description;
+  const descLines = displayDesc.split('\n');
   const shouldTruncate = descLines.length > 5;
   const displayedDesc = expandDescription || !shouldTruncate
-    ? shop.description
+    ? displayDesc
     : descLines.slice(0, 5).join('\n');
 
   const specs: { Icon: React.ComponentType<any>; label: string; value: string }[] = [
@@ -122,7 +126,7 @@ const TattooShareDetailScreen = () => {
               <Text style={styles.newBadgeText}>신규</Text>
             </View>
           )}
-          <Text style={styles.title}>{shop.title}</Text>
+          <Text style={styles.title}>{displayTitle}</Text>
           <Text style={styles.price}>일 {shop.pricePerDay.toLocaleString()}원</Text>
           <View style={styles.addressRow}>
             <LocationPinIcon size={14} color={COLORS.gray} />

@@ -158,13 +158,12 @@ const FavoritePhotoShopsScreen = () => {
     }
   }, [toast, t]);
 
-  const handleInquiry = useCallback(async (shop: FavoritePhotoShop) => {
+  const handleInquiry = useCallback((shop: FavoritePhotoShop) => {
     if (shop.kakaoLink) {
-      const can = await Linking.canOpenURL(shop.kakaoLink);
-      if (can) {
-        Linking.openURL(shop.kakaoLink);
-        return;
-      }
+      Linking.openURL(shop.kakaoLink).catch(() => {
+        toast(t('favorites.inquiryChannelError').replace('{{name}}', shop.name), { variant: 'error' });
+      });
+      return;
     }
     toast(t('favorites.inquiryChannelError').replace('{{name}}', shop.name), { variant: 'error' });
   }, [toast, t]);

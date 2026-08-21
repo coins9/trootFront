@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  StatusBar, KeyboardAvoidingView, Platform, Keyboard, Image,
+  StatusBar, KeyboardAvoidingView, Platform, Keyboard, Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import {
@@ -17,6 +18,7 @@ import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModa
 import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from '../../store/languageStore';
 import { userApi } from '../../../data/api';
+import { uploadImage } from '../../../data/api/upload';
 import { PROVIDER_LABEL_KEY } from '../../../domain/entities/authTypes';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
@@ -73,9 +75,12 @@ const AccountInfoScreen = () => {
 
   const session = useAuthStore(s => s.session);
   const logout = useAuthStore(s => s.logout);
+  const patchUser = useAuthStore(s => s.patchUser);
   const user = session?.user;
 
   const [nickname, setNickname] = useState(user?.nickname ?? '');
+  const [avatarUri, setAvatarUri] = useState<string | null>(user?.profileImage ?? null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [nicknameFocused, setNicknameFocused] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
@@ -87,6 +92,25 @@ const AccountInfoScreen = () => {
   const nicknameBorderColor = nicknameValid || nicknameFocused ? COLORS.gold : COLORS.border;
 
   const providerLabel = user?.provider ? t(PROVIDER_LABEL_KEY[user.provider] as any) : '';
+
+  const handlePickAvatar = useCallback(async () => {
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.85, selectionLimit: 1 });
+    if (result.didCancel || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    if (!asset.uri) return;
+    setAvatarUploading(true);
+    try {
+      const publicUrl = await uploadImage('profile', { uri: asset.uri, type: asset.type, fileSize: asset.fileSize });
+      await userApi.updateProfileImage(publicUrl);
+      await patchUser({ profileImage: publicUrl });
+      setAvatarUri(publicUrl);
+      toast(t('account.saved'), { variant: 'success' });
+    } catch {
+      toast(t('common.error'), { variant: 'error' });
+    } finally {
+      setAvatarUploading(false);
+    }
+  }, [patchUser, toast, t]);
 
   const handleNicknameChange = useCallback((next: string) => {
     if (next.length <= NICKNAME_MAX) setNickname(next);
@@ -161,18 +185,28 @@ const AccountInfoScreen = () => {
         >
           {/* Avatar */}
           <View style={styles.avatarBlock}>
-            <View style={styles.avatarWrap}>
+            <TouchableOpacity
+              style={styles.avatarWrap}
+              onPress={handlePickAvatar}
+              activeOpacity={0.85}
+              disabled={avatarUploading}
+            >
               <View style={styles.avatarCircle}>
-                {user?.profileImage ? (
-                  <Image source={{ uri: user.profileImage }} style={styles.avatarImg} />
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
                 ) : (
                   <PersonSilhouette size={110} color="#3a3a3a" />
+                )}
+                {avatarUploading && (
+                  <View style={styles.avatarOverlay}>
+                    <ActivityIndicator color={COLORS.gold} />
+                  </View>
                 )}
               </View>
               <View style={styles.avatarBadge} pointerEvents="none">
                 <CameraSolidIcon size={18} color={COLORS.black} strokeWidth={1.9} />
               </View>
-            </View>
+            </TouchableOpacity>
             <Text style={styles.avatarHelper}>{t('account.profilePhotoHint')}</Text>
           </View>
 
@@ -318,6 +352,12 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   avatarImg: { width: '100%', height: '100%' },
+  avatarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   avatarBadge: {
     position: 'absolute',
     right: 4,
