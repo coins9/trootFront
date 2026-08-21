@@ -99,7 +99,9 @@ const toShareShop = (p: ShopPost): TattooShareShop => {
       nickname: '타투이스트',
       role: '호스트',
       profileImage: '',
-      kakaoLink: p.contact ?? undefined,
+      // 전화번호면 smsPhone, URL이면 kakaoLink로 분리
+      kakaoLink: p.contact?.startsWith('http') ? p.contact : undefined,
+      smsPhone: p.contact && !p.contact.startsWith('http') ? p.contact : undefined,
     },
     likeCount: p.likeCount,
     commentCount: p.applicationCount,
@@ -125,7 +127,8 @@ const toModelRecruit = (p: ShopPost): BeginnerModelRecruit => {
       nickname: '타투이스트',
       experience: '비기너',
       profileImage: '',
-      kakaoLink: p.contact ?? undefined,
+      kakaoLink: p.contact?.startsWith('http') ? p.contact : undefined,
+      smsPhone: p.contact && !p.contact.startsWith('http') ? p.contact : undefined,
     },
     likeCount: p.likeCount,
     commentCount: p.applicationCount,
@@ -159,7 +162,8 @@ const toMediaExpert = (p: ShopPost): MediaExpert => {
     totalWorks: 0,
     avgResponseTime: '-',
     primaryKind: '사진 촬영',
-    kakaoLink: p.contact ?? undefined,
+    kakaoLink: p.contact?.startsWith('http') ? p.contact : undefined,
+    smsPhone: p.contact && !p.contact.startsWith('http') ? p.contact : undefined,
     isBookmarked: false,
   };
 };

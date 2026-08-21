@@ -208,9 +208,13 @@ const TattooShareDetailScreen = () => {
         <TouchableOpacity
           onPress={() => {
             const kakao = shop.host.kakaoLink;
-            const sms = shop.host.smsPhone;
+            const phone = shop.host.smsPhone;
             if (kakao) { Linking.openURL(kakao).catch(() => {}); return; }
-            if (sms) { Linking.openURL(`sms:${sms}`).catch(() => {}); return; }
+            if (phone) {
+              const digits = phone.replace(/[^0-9+]/g, '');
+              Linking.openURL(`tel:${digits}`).catch(() => {});
+              return;
+            }
             Alert.alert('연락처 없음', '호스트가 등록한 연락망이 아직 없습니다.');
           }}
           style={styles.ctaBtn}
