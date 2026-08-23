@@ -113,6 +113,22 @@ const OVERSEAS_COUNTRY_KEY: Record<string, string> = {
   '기타': 'shop.opt.countryOther',
 };
 
+const WRITE_STYLE_KEY: Record<string, string> = {
+  '블랙워크': 'shop.opt.styleBlackwork',
+  '라인워크': 'shop.opt.styleLinework',
+  '올드스쿨': 'shop.opt.styleOldSchool',
+  '뉴스쿨': 'shop.opt.styleNewSchool',
+  '이레즈미': 'shop.opt.styleIrezumi',
+  '수채화': 'shop.opt.styleWatercolor',
+  '미니타투': 'shop.opt.styleMiniTattoo',
+  '커버업': 'shop.opt.styleCoverUp',
+};
+
+const SPECIALTY_KEY: Record<string, string> = {
+  '사진': 'shop.opt.specialtyPhoto',
+  '영상': 'shop.opt.specialtyVideo',
+};
+
 export function optLabel(t: TFunc, map: Record<string, string>, koValue: string): string {
   const key = map[koValue];
   return key ? t(key as any) : koValue;
@@ -130,6 +146,8 @@ export const expertCareerLabel = (t: TFunc, v: ExpertCareer) => optLabel(t, EXPE
 export const expertWorkKindLabel = (t: TFunc, v: ExpertWorkKind) => optLabel(t, EXPERT_WORK_KIND_KEY, v);
 export const expertSortLabel = (t: TFunc, v: ExpertSort) => optLabel(t, EXPERT_SORT_KEY, v);
 export const overseasCountryLabel = (t: TFunc, v: string) => optLabel(t, OVERSEAS_COUNTRY_KEY, v);
+export const writeStyleLabel = (t: TFunc, v: string) => optLabel(t, WRITE_STYLE_KEY, v);
+export const specialtyLabel = (t: TFunc, v: string) => optLabel(t, SPECIALTY_KEY, v);
 
 export function regionOptions(t: TFunc): string[] {
   return Object.keys(REGION_KEY).map(k => optLabel(t, REGION_KEY, k));
@@ -172,3 +190,4 @@ export { REGION_KEY, LIGHTING_KEY, BED_KEY, OCCUPANCY_KEY, SHARE_SORT_KEY };
 export { BEGINNER_STYLE_KEY, BEGINNER_PRICE_KEY, BEGINNER_SORT_KEY };
 export { EXPERT_CAREER_KEY, EXPERT_WORK_KIND_KEY, EXPERT_SORT_KEY };
 export { OVERSEAS_COUNTRY_KEY };
+export { WRITE_STYLE_KEY, SPECIALTY_KEY };

@@ -77,7 +77,7 @@ interface DepositCardProps {
 const DepositCard = React.memo(({
   item, status, onPrimary, onSecondary, onMore,
 }: DepositCardProps) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const isPending = status === 'pending';
 
   return (
@@ -140,10 +140,11 @@ const DepositCard = React.memo(({
         <View style={styles.amountBlock}>
           <Text style={styles.amountLabel}>{t('reservation.depositAmount')}</Text>
           <View style={styles.amountValueRow}>
+            {language === 'en' && <Text style={styles.amountUnit}>₩</Text>}
             <Text style={styles.amountValue}>
               {item.depositAmount.toLocaleString()}
             </Text>
-            <Text style={styles.amountUnit}>원</Text>
+            {language === 'ko' && <Text style={styles.amountUnit}>원</Text>}
           </View>
         </View>
       </View>
@@ -206,7 +207,7 @@ DepositCard.displayName = 'DepositCard';
    Screen
    ============================================================ */
 const DepositManagementScreen = () => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
@@ -425,15 +426,19 @@ const DepositManagementScreen = () => {
             {activeTab === 'pending' ? t('reservation.summaryPendingLabel') : t('reservation.summaryConfirmedLabel')}
           </Text>
           <Text style={styles.summaryAmount}>
-            {(activeTab === 'pending' ? pendingSum : confirmedSum).toLocaleString()}원
+            {language === 'ko'
+              ? `${(activeTab === 'pending' ? pendingSum : confirmedSum).toLocaleString()}원`
+              : `₩${(activeTab === 'pending' ? pendingSum : confirmedSum).toLocaleString()}`}
           </Text>
         </View>
         <View style={styles.summaryColRight}>
           <Text style={styles.summaryLabel}>{t('reservation.countLabel')}</Text>
           <Text style={styles.summaryAmount}>
-            {(activeTab === 'pending'
-              ? (summary?.pending.count ?? pending.length)
-              : (summary?.paid.count ?? confirmed.length))}건
+            {t('reservation.countSuffix').replace('{{count}}', String(
+              activeTab === 'pending'
+                ? (summary?.pending.count ?? pending.length)
+                : (summary?.paid.count ?? confirmed.length),
+            ))}
           </Text>
         </View>
         <ChevronRightIcon size={18} color={COLORS.gray} />

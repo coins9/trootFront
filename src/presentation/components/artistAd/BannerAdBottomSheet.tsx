@@ -34,7 +34,7 @@ const formatPrice = (v: number) => v.toLocaleString();
 
 const BannerAdBottomSheet = memo(({ visible, onClose, onPurchase }: Props) => {
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const translate = useRef(new Animated.Value(SH)).current;
   const defaultId = useMemo(() => PLANS.find((p) => p.isBest)?.id ?? PLANS[0].id, []);
   const [selectedId, setSelectedId] = useState<string>(defaultId);
@@ -124,7 +124,7 @@ const BannerAdBottomSheet = memo(({ visible, onClose, onPurchase }: Props) => {
                         )}
                       </View>
                     </View>
-                    <Text style={styles.optionPrice}>{formatPrice(plan.price)}원</Text>
+                    <Text style={styles.optionPrice}>{language === 'ko' ? `${formatPrice(plan.price)}원` : `₩${formatPrice(plan.price)}`}</Text>
                     {plan.isBest && (
                       <View style={styles.bestBadge}>
                         <Text style={styles.bestBadgeText}>PREMIUM</Text>

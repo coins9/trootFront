@@ -11,16 +11,9 @@ import {
 import { useToast } from '../common/Toast';
 import { studioApi, type StudioMember } from '../../../data/api';
 import { ApiError } from '../../../data/api/client';
+import { useTranslation } from '../../store/languageStore';
 
 const EXPIRY_DAYS = 7;
-
-const roleLabel = (role: StudioMember['role']) => {
-  switch (role) {
-    case 'owner':   return '오너';
-    case 'artist':  return '아티스트';
-    case 'pending': return '초대 대기';
-  }
-};
 
 interface Props {
   studioId: string;
@@ -34,7 +27,16 @@ const ShopInviteSection = memo(({
   studioId, shopName = '', inviteCode, inviteCodeExpiresAt, onCodeRefreshed,
 }: Props) => {
   const { toast } = useToast();
+  const { t, language } = useTranslation();
   const [members, setMembers] = useState<StudioMember[]>([]);
+
+  const roleLabel = (role: StudioMember['role']): string => {
+    switch (role) {
+      case 'owner':   return t('shopInvite.roleOwner');
+      case 'artist':  return t('shopInvite.roleArtist');
+      case 'pending': return t('shopInvite.rolePending');
+    }
+  };
   const [membersLoading, setMembersLoading] = useState(true);
   const [input, setInput] = useState('');
   const [joining, setJoining] = useState(false);
@@ -48,32 +50,33 @@ const ShopInviteSection = memo(({
   }, [studioId]);
 
   const expiryLabel = useMemo(() => {
+    const suffix = t('shopInvite.expirySuffix');
     if (inviteCodeExpiresAt) {
       const d = new Date(inviteCodeExpiresAt);
-      return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 만료`;
+      return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${suffix}`;
     }
     const d = new Date();
     d.setDate(d.getDate() + EXPIRY_DAYS);
-    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 만료`;
-  }, [inviteCodeExpiresAt]);
+    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${suffix}`;
+  }, [inviteCodeExpiresAt, t]);
 
   const regenerate = useCallback(() => {
     Alert.alert(
-      '초대코드 재발급',
-      '기존 코드는 즉시 무효화되며 새 코드가 발급됩니다. 진행하시겠습니까?',
+      t('shopInvite.regenAlertTitle'),
+      t('shopInvite.regenAlertMsg'),
       [
-        { text: '취소', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: '재발급',
+          text: t('shopInvite.regenAlertConfirm'),
           style: 'destructive',
           onPress: async () => {
             setRefreshing(true);
             try {
               const res = await studioApi.refreshCode(studioId);
               onCodeRefreshed(res.inviteCode, res.inviteCodeExpiresAt);
-              toast('새 초대코드가 발급되었습니다.', { variant: 'success' });
+              toast(t('shopInvite.toastRegenSuccess'), { variant: 'success' });
             } catch (e) {
-              toast(e instanceof ApiError ? e.userMessage : '재발급 중 오류가 발생했습니다.', { variant: 'error' });
+              toast(e instanceof ApiError ? e.userMessage : t('shopInvite.toastRegenError'), { variant: 'error' });
             } finally {
               setRefreshing(false);
             }
@@ -82,42 +85,45 @@ const ShopInviteSection = memo(({
       ],
       { cancelable: true },
     );
-  }, [studioId, onCodeRefreshed, toast]);
+  }, [studioId, onCodeRefreshed, toast, t]);
 
   const shareCode = useCallback(async () => {
     try {
       await Share.share({
-        message: `[${shopName}] 아티스트 초대\n초대코드: ${inviteCode}\n${EXPIRY_DAYS}일간 유효합니다.`,
+        message: t('shopInvite.shareMsg')
+          .replace('{{shopName}}', shopName)
+          .replace('{{code}}', inviteCode)
+          .replace('{{days}}', String(EXPIRY_DAYS)),
       });
     } catch {
-      toast('공유를 완료하지 못했습니다.', { variant: 'error' });
+      toast(t('shopInvite.toastShareFailed'), { variant: 'error' });
     }
-  }, [shopName, inviteCode, toast]);
+  }, [shopName, inviteCode, toast, t]);
 
   const copyCode = useCallback(() => {
-    toast(`코드 ${inviteCode} 를 클립보드에 복사했습니다.`, { variant: 'success' });
-  }, [inviteCode, toast]);
+    toast(t('shopInvite.toastCopied').replace('{{code}}', inviteCode), { variant: 'success' });
+  }, [inviteCode, toast, t]);
 
   const handleJoin = useCallback(async () => {
     const val = input.trim().toUpperCase();
     if (val.length !== 6) {
-      toast('초대코드는 6자리 대문자·숫자 조합입니다.', { variant: 'error' });
+      toast(t('shopInvite.toastInvalidCode'), { variant: 'error' });
       return;
     }
     setJoining(true);
     try {
       await studioApi.join(val);
-      toast(`${val} 코드로 샵 합류 요청이 전송되었습니다.`, { variant: 'success' });
+      toast(t('shopInvite.toastJoinSuccess').replace('{{code}}', val), { variant: 'success' });
       setInput('');
       // Refresh members
       const updated = await studioApi.members(studioId);
       setMembers(updated);
     } catch (e) {
-      toast(e instanceof ApiError ? e.userMessage : '합류 요청 중 오류가 발생했습니다.', { variant: 'error' });
+      toast(e instanceof ApiError ? e.userMessage : t('shopInvite.toastJoinError'), { variant: 'error' });
     } finally {
       setJoining(false);
     }
-  }, [input, studioId, toast]);
+  }, [input, studioId, toast, t]);
 
   return (
     <View style={{ gap: 16 }}>
@@ -128,10 +134,8 @@ const ShopInviteSection = memo(({
             <UserPlusIcon size={18} color={COLORS.gold} strokeWidth={1.8} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>초대코드 발송</Text>
-            <Text style={styles.cardDesc}>
-              샵에 합류시킬 아티스트에게 코드를 공유하세요.
-            </Text>
+            <Text style={styles.cardTitle}>{t('shopInvite.sendCodeTitle')}</Text>
+            <Text style={styles.cardDesc}>{t('shopInvite.sendCodeDesc')}</Text>
           </View>
         </View>
 
@@ -151,28 +155,28 @@ const ShopInviteSection = memo(({
               ? <ActivityIndicator size="small" color={COLORS.white} />
               : <RefreshIcon size={14} color={COLORS.white} strokeWidth={1.8} />
             }
-            <Text style={styles.actionGhostText}>재발급</Text>
+            <Text style={styles.actionGhostText}>{t('shopInvite.regenBtn')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={copyCode}
             activeOpacity={0.85}
             style={[styles.actionBtn, styles.actionGhost]}
           >
-            <Text style={styles.actionGhostText}>복사</Text>
+            <Text style={styles.actionGhostText}>{t('shopInvite.copyBtn')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={shareCode}
             activeOpacity={0.85}
             style={[styles.actionBtn, styles.actionPrimary]}
           >
-            <Text style={styles.actionPrimaryText}>공유하기</Text>
+            <Text style={styles.actionPrimaryText}>{t('shopInvite.shareBtn')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.hintRow}>
           <ShieldCheckIcon size={13} color={COLORS.gray} strokeWidth={1.7} />
           <Text style={styles.hintText}>
-            코드는 {EXPIRY_DAYS}일간 유효하며, 사용 시 1회 소진됩니다.
+            {t('shopInvite.codeHint').replace('{{days}}', String(EXPIRY_DAYS))}
           </Text>
         </View>
       </View>
@@ -184,10 +188,8 @@ const ShopInviteSection = memo(({
             <CheckCircleIcon size={18} color={COLORS.gold} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>초대코드 입력</Text>
-            <Text style={styles.cardDesc}>
-              전달받은 6자리 코드를 입력해 샵에 합류하세요.
-            </Text>
+            <Text style={styles.cardTitle}>{t('shopInvite.enterCodeTitle')}</Text>
+            <Text style={styles.cardDesc}>{t('shopInvite.enterCodeDesc')}</Text>
           </View>
         </View>
 
@@ -195,7 +197,7 @@ const ShopInviteSection = memo(({
           <TextInput
             value={input}
             onChangeText={(v) => setInput(v.toUpperCase().slice(0, 6))}
-            placeholder="예: ABC123"
+            placeholder={t('shopInvite.codePlaceholder')}
             placeholderTextColor={COLORS.gray2}
             autoCapitalize="characters"
             autoCorrect={false}
@@ -212,7 +214,7 @@ const ShopInviteSection = memo(({
             disabled={joining || input.trim().length !== 6}
           >
             <Text style={styles.joinBtnText}>
-              {joining ? '요청중…' : '합류'}
+              {joining ? t('shopInvite.joiningBtn') : t('shopInvite.joinBtn')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -223,7 +225,7 @@ const ShopInviteSection = memo(({
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>
-              샵 멤버 ({membersLoading ? '…' : members.length})
+              {t('shopInvite.membersTitle')} ({membersLoading ? '…' : members.length})
             </Text>
             <Text style={styles.cardDesc}>{shopName}</Text>
           </View>
@@ -232,7 +234,7 @@ const ShopInviteSection = memo(({
         {membersLoading ? (
           <ActivityIndicator size="small" color={COLORS.gold} style={{ paddingVertical: 20 }} />
         ) : members.length === 0 ? (
-          <Text style={styles.emptyText}>멤버가 없습니다.</Text>
+          <Text style={styles.emptyText}>{t('shopInvite.membersEmpty')}</Text>
         ) : (
           <View style={styles.memberList}>
             {members.map((m, i) => {
@@ -249,10 +251,10 @@ const ShopInviteSection = memo(({
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.memberName} numberOfLines={1}>
-                      {m.nickname || '(미등록)'}
+                      {m.nickname || t('shopInvite.memberNoNickname')}
                     </Text>
                     <Text style={styles.memberDate}>
-                      {new Date(m.joinedAt).toLocaleDateString('ko-KR')} 합류
+                      {new Date(m.joinedAt).toLocaleDateString(language === 'ko' ? 'ko-KR' : 'en-US')} {t('shopInvite.memberJoinedSuffix')}
                     </Text>
                   </View>
                   <View style={[

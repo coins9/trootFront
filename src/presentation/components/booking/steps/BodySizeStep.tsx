@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../../theme/colors';
 import { BodyPartIconSvg } from '../../icons';
 import { BOOKING_BODY_PARTS, SIZES } from '../../../../domain/entities/bookingTypes';
+import { useTranslation } from '../../../store/languageStore';
 
 interface BodySizeStepProps {
   bodyPart: string | null;
@@ -27,6 +28,7 @@ Chip.displayName = 'Chip';
 const BodySizeStep = memo(({
   bodyPart, size, onBodyPartChange, onSizeChange,
 }: BodySizeStepProps) => {
+  const { t } = useTranslation();
   const handleBodyPart = useCallback((part: string) => {
     onBodyPartChange(bodyPart === part ? '' : part);
   }, [bodyPart, onBodyPartChange]);
@@ -38,14 +40,13 @@ const BodySizeStep = memo(({
         <View style={styles.sectionLeft}>
           <Text style={styles.sectionNum}>02</Text>
           <BodyPartIconSvg size={16} color={COLORS.gold} />
-          <Text style={styles.sectionTitle}>부위 및 크기</Text>
+          <Text style={styles.sectionTitle}>{t('booking.steps.bodyTitle')}</Text>
         </View>
-        <Text style={styles.required}>필수</Text>
+        <Text style={styles.required}>{t('common.required')}</Text>
       </View>
-      <Text style={styles.sectionSub}>시술 받을 부위와 원하는 크기를 선택해 주세요</Text>
+      <Text style={styles.sectionSub}>{t('booking.steps.bodySub')}</Text>
 
-      {/* Body part chips */}
-      <Text style={styles.subLabel}>시술 부위</Text>
+      <Text style={styles.subLabel}>{t('booking.steps.bodyPartLabel')}</Text>
       <View style={styles.chipsGrid}>
         {BOOKING_BODY_PARTS.map((part) => (
           <Chip
@@ -58,7 +59,7 @@ const BodySizeStep = memo(({
       </View>
 
       {/* Size cards */}
-      <Text style={[styles.subLabel, { marginTop: 20 }]}>크기</Text>
+      <Text style={[styles.subLabel, { marginTop: 20 }]}>{t('booking.steps.bodySizeLabel')}</Text>
       <View style={styles.sizeGrid}>
         {SIZES.map((s) => (
           <TouchableOpacity

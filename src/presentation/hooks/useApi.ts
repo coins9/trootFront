@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../data/api/client';
+import { useTranslation } from '../store/languageStore';
 
 interface AsyncState<T> {
   data: T | null;
@@ -15,6 +16,7 @@ export function useApi<T>(
   loader: () => Promise<T>,
   deps: unknown[] = [],
 ): AsyncState<T> & { reload: () => void } {
+  const { t } = useTranslation();
   const [state, setState] = useState<AsyncState<T>>({
     data: null,
     loading: true,
@@ -35,7 +37,7 @@ export function useApi<T>(
       setState({
         data: null,
         loading: false,
-        error: e instanceof ApiError ? e.userMessage : '데이터를 불러오지 못했습니다.',
+        error: e instanceof ApiError ? e.userMessage : t('common.loadDataFailed'),
       });
     }
   }, []);
@@ -57,6 +59,7 @@ export function usePagedApi<T>(
   loader: (cursor?: string) => Promise<{ items: T[]; nextCursor: string | null; hasNext: boolean }>,
   deps: unknown[] = [],
 ) {
+  const { t } = useTranslation();
   const [items, setItems] = useState<T[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasNext, setHasNext] = useState(false);
@@ -82,7 +85,7 @@ export function usePagedApi<T>(
       setHasNext(page.hasNext);
     } catch (e) {
       if (!alive.current) return;
-      setError(e instanceof ApiError ? e.userMessage : '목록을 불러오지 못했습니다.');
+      setError(e instanceof ApiError ? e.userMessage : t('common.loadListFailed'));
       if (reset) setItems([]);
     } finally {
       if (alive.current) {

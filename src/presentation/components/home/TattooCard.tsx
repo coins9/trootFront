@@ -35,7 +35,7 @@ const formatPrice = (price: number, language: string) => {
 };
 
 const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooCardProps) => {
-  const { language } = useTranslation();
+  const { t, language } = useTranslation();
   const isMaster = !!tattoo.artist.isSelectedMaster;
 
   return (
@@ -58,7 +58,7 @@ const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooC
           </TouchableOpacity>
           {tattoo.isPromoted && (
             <View style={styles.adBadge}>
-              <Text style={styles.adText}>광고</Text>
+              <Text style={styles.adText}>{t('home.sponsored')}</Text>
             </View>
           )}
         </View>

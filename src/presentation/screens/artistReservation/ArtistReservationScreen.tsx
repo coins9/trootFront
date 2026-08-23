@@ -821,10 +821,10 @@ const ArtistReservationScreen = () => {
 
   const requestCancel = useCallback((id: string) => {
     setConfirm({
-      title: '예약 취소',
-      message: '이 예약을 취소하시겠습니까?\n앱 연동 예약인 경우 고객에게 알림이 전송됩니다.',
+      title: t('reservation.cancelBookingTitle'),
+      message: t('reservation.cancelBookingMsg'),
       cancelLabel: t('common.cancel'),
-      confirmLabel: '취소하기',
+      confirmLabel: t('reservation.cancelBookingConfirm'),
       variant: 'danger',
       onConfirm: async () => {
         const iso = toISODate(selectedDate);
@@ -846,9 +846,9 @@ const ArtistReservationScreen = () => {
             return next;
           });
           setDetail(null);
-          toast('예약이 취소되었습니다.', { variant: 'success' });
+          toast(t('reservation.toastCancelled'), { variant: 'success' });
         } catch {
-          toast('취소 처리 중 오류가 발생했습니다.', { variant: 'error' });
+          toast(t('reservation.toastCancelError'), { variant: 'error' });
         }
       },
     });
@@ -911,7 +911,7 @@ const ArtistReservationScreen = () => {
           setStudio(s);
           toast(t('reservation.toastShopRegistered').replace('{{name}}', name), { variant: 'success' });
         } catch {
-          toast('샵 등록 중 오류가 발생했습니다.', { variant: 'error' });
+          toast(t('reservation.toastShopRegisterError'), { variant: 'error' });
         }
       },
     });
@@ -924,7 +924,7 @@ const ArtistReservationScreen = () => {
       setStudio(res.studio);
       toast(t('reservation.toastShopJoined').replace('{{code}}', code), { variant: 'success' });
     } catch {
-      toast('초대코드가 올바르지 않거나 만료되었습니다.', { variant: 'error' });
+      toast(t('reservation.toastInviteCodeError'), { variant: 'error' });
     }
   }, [toast, t]);
 
@@ -1096,10 +1096,10 @@ const ArtistReservationScreen = () => {
                             </Text>
                             <View style={{ flex: 1 }}>
                               <Text style={styles.shopColCustomer} numberOfLines={1}>
-                                {r.customerName ?? '고객명 미등록'}
+                                {r.customerName ?? t('reservation.customerUnregistered')}
                               </Text>
                               <Text style={styles.shopColKind} numberOfLines={1}>
-                                {r.bodyPart ?? '시술'}
+                                {r.bodyPart ?? t('reservation.defaultBodyPart')}
                               </Text>
                             </View>
                             <View style={[
@@ -1236,7 +1236,7 @@ const ArtistReservationScreen = () => {
                 </TouchableOpacity>
               </View>
               {dayPopupItems.length === 0 ? (
-                <Text style={styles.popupEmpty}>이날 예약이 없습니다.</Text>
+                <Text style={styles.popupEmpty}>{t('reservation.evEmpty')}</Text>
               ) : (
                 dayPopupItems.map((it) => {
                   const currentStatus = statusOverride[it.id] ?? it.status;
@@ -1272,7 +1272,11 @@ const ArtistReservationScreen = () => {
                           currentStatus === '노쇼' && styles.evChipTextDanger,
                           currentStatus === '완료' && styles.evChipTextDone,
                         ]}>
-                          {currentStatus}
+                          {currentStatus === '대기' ? t('reservation.bookingStatus.waiting')
+                            : currentStatus === '확정' ? t('reservation.bookingStatus.confirmed')
+                            : currentStatus === '완료' ? t('reservation.bookingStatus.completed')
+                            : currentStatus === '노쇼' ? t('reservation.bookingStatus.noShow')
+                            : t('reservation.bookingStatus.cancelled')}
                         </Text>
                       </View>
                     </TouchableOpacity>

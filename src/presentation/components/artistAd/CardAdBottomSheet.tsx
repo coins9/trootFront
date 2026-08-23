@@ -34,7 +34,7 @@ const formatPrice = (v: number) => v.toLocaleString();
 
 const CardAdBottomSheet = memo(({ visible, onClose, onPurchase }: Props) => {
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const translate = useRef(new Animated.Value(SH)).current;
   const defaultId = useMemo(() => PLANS.find((p) => p.isBest)?.id ?? PLANS[0].id, []);
   const [selectedId, setSelectedId] = useState<string>(defaultId);
@@ -129,7 +129,7 @@ const CardAdBottomSheet = memo(({ visible, onClose, onPurchase }: Props) => {
                     </View>
                     <View style={styles.optionRight}>
                       <Text style={styles.optionPrice}>
-                        {formatPrice(plan.price)}원
+                        {language === 'ko' ? `${formatPrice(plan.price)}원` : `₩${formatPrice(plan.price)}`}
                       </Text>
                     </View>
                     {plan.isBest && (

@@ -188,7 +188,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                   <TextInput
                     value={nickname}
                     onChangeText={setNickname}
-                    placeholder="아티스트명"
+                    placeholder={t('artistMyPage.editNicknamePlaceholder')}
                     placeholderTextColor={COLORS.gray2}
                     style={styles.input}
                     maxLength={20}
@@ -247,7 +247,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                   <TextInput
                     value={detailAddress}
                     onChangeText={setDetailAddress}
-                    placeholder="건물명, 층수, 상세 위치 (예: B1F 스튜디오 루츠)"
+                    placeholder={t('artistMyPage.editAddressPlaceholder')}
                     placeholderTextColor={COLORS.gray2}
                     style={[styles.input, { marginLeft: 8 }]}
                     maxLength={200}
@@ -262,7 +262,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                   <TextInput
                     value={intro}
                     onChangeText={(v) => v.length <= INTRO_MAX && setIntro(v)}
-                    placeholder="예: 블랙워크 · 라인워크 전문. 감성 디테일에 집중합니다."
+                    placeholder={t('artistMyPage.editBioPlaceholder')}
                     placeholderTextColor={COLORS.gray2}
                     multiline
                     maxLength={INTRO_MAX}
@@ -281,7 +281,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                   <TextInput
                     value={availableHours}
                     onChangeText={setAvailableHours}
-                    placeholder="예: 10:00~22:00"
+                    placeholder={t('artistMyPage.editConsultTimePlaceholder')}
                     placeholderTextColor={COLORS.gray2}
                     style={[styles.input, { marginLeft: 8 }]}
                     maxLength={30}
@@ -297,7 +297,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                   <TextInput
                     value={closedDay}
                     onChangeText={setClosedDay}
-                    placeholder="예: 매주 월요일"
+                    placeholder={t('artistMyPage.editDayOffPlaceholder')}
                     placeholderTextColor={COLORS.gray2}
                     style={[styles.input, { marginLeft: 8 }]}
                     maxLength={30}

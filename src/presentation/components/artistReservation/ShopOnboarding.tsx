@@ -13,6 +13,7 @@ import {
   StoreIcon, CheckCircleIcon, UserPlusIcon,
 } from '../icons';
 import { useToast } from '../common/Toast';
+import { useTranslation } from '../../store/languageStore';
 
 interface LocationMeta {
   address: string;
@@ -27,6 +28,7 @@ interface Props {
 
 const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
   const [shopName, setShopName] = useState('');
   const [locationMeta, setLocationMeta] = useState<LocationMeta | null>(null);
@@ -38,7 +40,7 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
 
   const handleRegister = useCallback(() => {
     if (!canRegister || !locationMeta) {
-      toast('샵 이름과 위치를 모두 입력해주세요.', { variant: 'error' });
+      toast(t('shopOnboarding.toastFillRequired'), { variant: 'error' });
       return;
     }
     setLoading('register');
@@ -46,11 +48,11 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
       setLoading(null);
       onRegister(shopName.trim(), locationMeta.address, locationMeta.lat, locationMeta.lng);
     }, 300);
-  }, [canRegister, shopName, locationMeta, onRegister, toast]);
+  }, [canRegister, shopName, locationMeta, onRegister, toast, t]);
 
   const handleJoin = useCallback(() => {
     if (!canJoin) {
-      toast('초대코드는 6자리 대문자·숫자 조합입니다.', { variant: 'error' });
+      toast(t('shopOnboarding.toastInvalidCode'), { variant: 'error' });
       return;
     }
     setLoading('join');
@@ -58,7 +60,7 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
       setLoading(null);
       onJoinCode(code.trim().toUpperCase());
     }, 300);
-  }, [canJoin, code, onJoinCode, toast]);
+  }, [canJoin, code, onJoinCode, toast, t]);
 
   return (
     <KeyboardAvoidingView
@@ -70,11 +72,8 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
         <View style={styles.heroIconWrap}>
           <StoreIcon size={30} color={COLORS.gold} strokeWidth={1.6} />
         </View>
-        <Text style={styles.heroTitle}>샵을 등록하고{'\n'}팀 일정을 함께 관리하세요</Text>
-        <Text style={styles.heroDesc}>
-          오너로 샵을 새로 등록하거나,{'\n'}
-          이미 등록된 샵의 초대코드로 합류할 수 있습니다.
-        </Text>
+        <Text style={styles.heroTitle}>{t('shopOnboarding.heroTitle')}</Text>
+        <Text style={styles.heroDesc}>{t('shopOnboarding.heroDesc')}</Text>
       </View>
 
       {/* 신규 등록 */}
@@ -84,19 +83,19 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
             <StoreIcon size={18} color={COLORS.gold} strokeWidth={1.7} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>샵 등록하기</Text>
-            <Text style={styles.cardDesc}>오너로 새로운 샵을 개설합니다.</Text>
+            <Text style={styles.cardTitle}>{t('shopOnboarding.registerTitle')}</Text>
+            <Text style={styles.cardDesc}>{t('shopOnboarding.registerDesc')}</Text>
           </View>
         </View>
 
         <View style={styles.fieldWrap}>
-          <Text style={styles.fieldLabel}>샵 이름</Text>
+          <Text style={styles.fieldLabel}>{t('shopOnboarding.fieldShopName')}</Text>
           <View style={styles.inputRow}>
             <StoreIcon size={16} color={COLORS.gray} strokeWidth={1.7} />
             <TextInput
               value={shopName}
               onChangeText={setShopName}
-              placeholder="예: T:ROOT Studio"
+              placeholder={t('shopOnboarding.fieldShopNamePlaceholder')}
               placeholderTextColor={COLORS.gray2}
               style={styles.textInput}
               maxLength={30}
@@ -105,11 +104,11 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
         </View>
 
         <View style={styles.fieldWrap}>
-          <Text style={styles.fieldLabel}>위치</Text>
+          <Text style={styles.fieldLabel}>{t('shopOnboarding.fieldLocation')}</Text>
           <View style={styles.placesWrap}>
             <GooglePlacesAutocomplete
               ref={placesRef}
-              placeholder="도시·주소 검색 (예: 서울 성수동, Tokyo...)"
+              placeholder={t('shopOnboarding.locationPlaceholder')}
               query={{
                 key: Config.GOOGLE_PLACES_API_KEY ?? '',
                 language: 'ko',
@@ -185,7 +184,7 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
         >
           <CheckCircleIcon size={16} color={COLORS.black} />
           <Text style={styles.primaryBtnText}>
-            {loading === 'register' ? '등록 중…' : '샵 등록 완료'}
+            {loading === 'register' ? t('shopOnboarding.registerLoading') : t('shopOnboarding.registerComplete')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -197,10 +196,8 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
             <UserPlusIcon size={18} color={COLORS.gold} strokeWidth={1.7} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>초대코드로 합류</Text>
-            <Text style={styles.cardDesc}>
-              오너에게 전달받은 6자리 코드를 입력하세요.
-            </Text>
+            <Text style={styles.cardTitle}>{t('shopOnboarding.joinTitle')}</Text>
+            <Text style={styles.cardDesc}>{t('shopOnboarding.joinDesc')}</Text>
           </View>
         </View>
 
@@ -208,7 +205,7 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
           <TextInput
             value={code}
             onChangeText={(v) => setCode(v.toUpperCase().slice(0, 6))}
-            placeholder="예: ABC123"
+            placeholder={t('shopOnboarding.joinCodePlaceholder')}
             placeholderTextColor={COLORS.gray2}
             autoCapitalize="characters"
             autoCorrect={false}
@@ -222,7 +219,7 @@ const ShopOnboarding = memo(({ onRegister, onJoinCode }: Props) => {
             style={[styles.joinBtn, !canJoin && styles.joinBtnDisabled]}
           >
             <Text style={styles.joinBtnText}>
-              {loading === 'join' ? '요청중…' : '합류하기'}
+              {loading === 'join' ? t('shopOnboarding.joinLoading') : t('shopOnboarding.joinBtn')}
             </Text>
           </TouchableOpacity>
         </View>

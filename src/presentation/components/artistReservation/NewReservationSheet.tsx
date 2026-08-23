@@ -201,7 +201,7 @@ const NewReservationSheet = memo(({
                   <TextInput
                     value={form.title}
                     onChangeText={(v) => setField('title', v)}
-                    placeholder="예: 팔 라인워크 시술"
+                    placeholder={t('reservation.placeholderTitle')}
                     placeholderTextColor={COLORS.gray2}
                     style={styles.input}
                     maxLength={40}
@@ -214,7 +214,7 @@ const NewReservationSheet = memo(({
                   <TextInput
                     value={form.customerName}
                     onChangeText={(v) => setField('customerName', v)}
-                    placeholder="예: 박지은"
+                    placeholder={t('reservation.placeholderCustomer')}
                     placeholderTextColor={COLORS.gray2}
                     style={styles.input}
                     maxLength={20}
@@ -271,7 +271,7 @@ const NewReservationSheet = memo(({
                   <TextInput
                     value={form.bodyPart}
                     onChangeText={(v) => setField('bodyPart', v)}
-                    placeholder="예: 팔 (상완 내측)"
+                    placeholder={t('reservation.placeholderBodyPart')}
                     placeholderTextColor={COLORS.gray2}
                     style={styles.input}
                     maxLength={30}
@@ -306,12 +306,12 @@ const NewReservationSheet = memo(({
                       onChangeText={(v) =>
                         setField('depositAmount', Number(v.replace(/\D/g, '') || 0))
                       }
-                      placeholder="예약금 금액"
+                      placeholder={t('reservation.placeholderDepositAmount')}
                       placeholderTextColor={COLORS.gray2}
                       keyboardType="number-pad"
                       style={styles.input}
                     />
-                    <Text style={styles.suffix}>원</Text>
+                    <Text style={styles.suffix}>{t('common.won')}</Text>
                   </View>
                 )}
 
@@ -321,7 +321,7 @@ const NewReservationSheet = memo(({
                   <TextInput
                     value={form.memo}
                     onChangeText={(v) => setField('memo', v)}
-                    placeholder="도안 사이즈, 참고 자료, 결제 안내 등"
+                    placeholder={t('reservation.placeholderNote')}
                     placeholderTextColor={COLORS.gray2}
                     multiline
                     maxLength={200}

@@ -124,6 +124,12 @@ class NotificationService {
     });
   }
 
+  /** 로그인 후 FCM 토큰을 백엔드에 재등록할 때 호출 */
+  async syncToken(): Promise<void> {
+    if (!this.initialized) return;
+    await this.registerToken();
+  }
+
   private async registerToken(): Promise<void> {
     const messaging = await this.getMessaging();
     if (!messaging) return;

@@ -16,26 +16,15 @@ import { usePublicSettings } from '../../hooks/usePublicSettings';
 import { ApiError } from '../../../data/api/client';
 import { supplyVendorApi, type MyProduct, type MyVendor } from '../../../data/api/vendor';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const STATUS_META: Record<MyVendor['status'], { label: string; color: string; desc: string }> = {
-  pending: {
-    label: '심사 대기',
-    color: COLORS.gold,
-    desc: '입점 심사가 진행 중입니다. 승인 후 상품을 등록할 수 있어요.',
-  },
-  approved: { label: '승인 완료', color: '#45C173', desc: '' },
-  rejected: {
-    label: '반려',
-    color: COLORS.danger,
-    desc: '입점이 반려되었습니다. 고객센터로 문의해주세요.',
-  },
-  suspended: {
-    label: '정지',
-    color: COLORS.danger,
-    desc: '판매가 정지된 상태입니다. 등록 상품이 노출되지 않습니다.',
-  },
+const STATUS_COLOR: Record<MyVendor['status'], string> = {
+  pending: COLORS.gold,
+  approved: '#45C173',
+  rejected: COLORS.danger,
+  suspended: COLORS.danger,
 };
 
 const MyProductsScreen = () => {
@@ -43,6 +32,7 @@ const MyProductsScreen = () => {
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
   const settings = usePublicSettings();
+  const { t, language } = useTranslation();
 
   const [vendor, setVendor] = useState<MyVendor | null>(null);
   const [products, setProducts] = useState<MyProduct[]>([]);
@@ -51,6 +41,26 @@ const MyProductsScreen = () => {
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
   const [chatModalVisible, setChatModalVisible] = useState(false);
   const [chatUrlInput, setChatUrlInput] = useState('');
+
+  const getStatusLabel = (status: MyVendor['status']): string => {
+    const map: Record<MyVendor['status'], string> = {
+      pending: t('vendor.statusPending'),
+      approved: t('vendor.statusApprovedLabel'),
+      rejected: t('vendor.statusRejected'),
+      suspended: t('vendor.statusSuspendedLabel'),
+    };
+    return map[status];
+  };
+
+  const getStatusDesc = (status: MyVendor['status']): string => {
+    const map: Record<MyVendor['status'], string> = {
+      pending: t('vendor.statusPendingDesc'),
+      approved: '',
+      rejected: t('vendor.statusRejectedDesc'),
+      suspended: t('vendor.statusSuspendedDesc'),
+    };
+    return map[status];
+  };
 
   const openChatModal = () => {
     setChatUrlInput(vendor?.openChatUrl ?? '');
@@ -63,9 +73,9 @@ const MyProductsScreen = () => {
     try {
       const updated = await supplyVendorApi.updateVendor({ openChatUrl: url });
       setVendor(updated);
-      toast('오픈채팅 URL이 저장되었습니다', { variant: 'success' });
+      toast(t('vendor.chatUrlSaved'), { variant: 'success' });
     } catch {
-      toast('저장에 실패했습니다', { variant: 'error' });
+      toast(t('vendor.saveFailed'), { variant: 'error' });
     }
   };
 
@@ -81,35 +91,41 @@ const MyProductsScreen = () => {
       if (e instanceof ApiError && e.status === 404) {
         setVendor(null); // 아직 입점 신청 전
       } else {
-        setError(e instanceof ApiError ? e.userMessage : '정보를 불러오지 못했습니다.');
+        setError(e instanceof ApiError ? e.userMessage : t('vendor.loadInfoFailed'));
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // 등록/수정 화면에서 돌아왔을 때 목록을 갱신한다
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   const handleDelete = useCallback((product: MyProduct) => {
     setConfirm({
-      title: '상품 삭제',
-      message: `'${product.name}'을(를) 삭제하시겠습니까?\n삭제한 상품은 복구할 수 없습니다.`,
-      cancelLabel: '취소',
-      confirmLabel: '삭제',
+      title: t('vendor.deleteProductTitle'),
+      message: t('vendor.deleteProductMsg', { name: product.name }),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('common.delete'),
       variant: 'danger',
       onConfirm: async () => {
         setConfirm(null);
         try {
           await supplyVendorApi.deleteProduct(product.id);
           setProducts((prev) => prev.filter((p) => p.id !== product.id));
-          toast('상품이 삭제되었습니다', { variant: 'success' });
+          toast(t('vendor.productDeleted'), { variant: 'success' });
         } catch (e) {
-          toast(e instanceof ApiError ? e.userMessage : '삭제에 실패했습니다', { variant: 'error' });
+          toast(e instanceof ApiError ? e.userMessage : t('vendor.deleteFailed'), { variant: 'error' });
         }
       },
     });
-  }, [toast]);
+  }, [toast, t]);
+
+  const formatPrice = useCallback((priceKrw: number): string =>
+    language === 'ko'
+      ? `${priceKrw.toLocaleString()}원`
+      : `₩${priceKrw.toLocaleString()}`,
+  [language]);
 
   const renderItem = useCallback(({ item }: { item: MyProduct }) => (
     <View style={s.card}>
@@ -123,12 +139,12 @@ const MyProductsScreen = () => {
 
       <View style={s.cardBody}>
         <Text style={s.cardName} numberOfLines={1}>{item.name}</Text>
-        <Text style={s.cardPrice}>{item.priceKrw.toLocaleString()}원</Text>
+        <Text style={s.cardPrice}>{formatPrice(item.priceKrw)}</Text>
         <View style={s.cardMetaRow}>
-          <Text style={s.cardMeta}>재고 {item.stock}</Text>
+          <Text style={s.cardMeta}>{t('vendor.stockFmt', { count: item.stock })}</Text>
           <Text style={s.cardDot}>·</Text>
           <Text style={[s.cardMeta, !item.isActive && s.inactive]}>
-            {item.isActive ? '판매중' : '판매중지'}
+            {item.isActive ? t('vendor.onSale') : t('vendor.offSale')}
           </Text>
         </View>
       </View>
@@ -144,11 +160,11 @@ const MyProductsScreen = () => {
           onPress={() => handleDelete(item)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={s.deleteText}>삭제</Text>
+          <Text style={s.deleteText}>{t('common.delete')}</Text>
         </TouchableOpacity>
       </View>
     </View>
-  ), [navigation, handleDelete]);
+  ), [navigation, handleDelete, formatPrice, t]);
 
   const canRegister = vendor?.status === 'approved';
 
@@ -163,7 +179,7 @@ const MyProductsScreen = () => {
         >
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>타투용품 판매 관리</Text>
+        <Text style={s.headerTitle}>{t('vendor.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -173,16 +189,14 @@ const MyProductsScreen = () => {
         <View style={s.state}>
           <Text style={s.stateText}>{error}</Text>
           <TouchableOpacity onPress={load} style={s.retry}>
-            <Text style={s.retryText}>다시 시도</Text>
+            <Text style={s.retryText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : !vendor ? (
         /* 입점 신청 전 */
         <View style={s.state}>
-          <Text style={s.emptyTitle}>판매자 입점 신청이 필요합니다</Text>
-          <Text style={s.stateText}>
-            사업자 정보를 등록하고 심사를 받으면{'\n'}타투용품을 판매할 수 있습니다.
-          </Text>
+          <Text style={s.emptyTitle}>{t('vendor.applyRequired')}</Text>
+          <Text style={s.stateText}>{t('vendor.applyRequiredDesc')}</Text>
           <TouchableOpacity
             style={s.primaryBtn}
             activeOpacity={0.85}
@@ -195,7 +209,7 @@ const MyProductsScreen = () => {
               }
             }}
           >
-            <Text style={s.primaryBtnText}>입점 신청하기</Text>
+            <Text style={s.primaryBtnText}>{t('vendor.submitBtn')}</Text>
             <ChevronRightIcon size={16} color={COLORS.black} />
           </TouchableOpacity>
         </View>
@@ -204,18 +218,21 @@ const MyProductsScreen = () => {
           <View style={s.statusBox}>
             <View style={s.statusRow}>
               <Text style={s.vendorName}>{vendor.name}</Text>
-              <View style={[s.statusBadge, { borderColor: STATUS_META[vendor.status].color }]}>
-                <Text style={[s.statusText, { color: STATUS_META[vendor.status].color }]}>
-                  {STATUS_META[vendor.status].label}
+              <View style={[s.statusBadge, { borderColor: STATUS_COLOR[vendor.status] }]}>
+                <Text style={[s.statusText, { color: STATUS_COLOR[vendor.status] }]}>
+                  {getStatusLabel(vendor.status)}
                 </Text>
               </View>
             </View>
-            {!!STATUS_META[vendor.status].desc && (
-              <Text style={s.statusDesc}>{STATUS_META[vendor.status].desc}</Text>
+            {!!getStatusDesc(vendor.status) && (
+              <Text style={s.statusDesc}>{getStatusDesc(vendor.status)}</Text>
             )}
             {vendor.status === 'approved' && (
               <Text style={s.statusDesc}>
-                등록 상품 {products.length}개 · 수수료 {Number(vendor.commissionRate).toFixed(0)}%
+                {t('vendor.approvedSummary', {
+                  count: products.length,
+                  rate: Number(vendor.commissionRate).toFixed(0),
+                })}
               </Text>
             )}
             {vendor.status === 'approved' && (
@@ -232,7 +249,7 @@ const MyProductsScreen = () => {
                   }}
                 >
                   <Text style={s.chatBtnText}>
-                    {vendor.openChatUrl ? '💬 오픈채팅 바로가기' : '💬 오픈채팅 URL 등록'}
+                    {vendor.openChatUrl ? t('vendor.chatLinkGoto') : t('vendor.chatLinkRegister')}
                   </Text>
                 </TouchableOpacity>
                 {vendor.openChatUrl && (
@@ -244,7 +261,9 @@ const MyProductsScreen = () => {
                   </TouchableOpacity>
                 )}
                 {vendor.inquiryCount > 0 && (
-                  <Text style={s.inquiryCount}>문의 {vendor.inquiryCount}회</Text>
+                  <Text style={s.inquiryCount}>
+                    {t('vendor.inquiryCountFmt', { count: vendor.inquiryCount })}
+                  </Text>
                 )}
               </View>
             )}
@@ -263,9 +282,7 @@ const MyProductsScreen = () => {
             ListEmptyComponent={
               canRegister ? (
                 <View style={s.state}>
-                  <Text style={s.stateText}>
-                    아직 등록한 상품이 없습니다.{'\n'}오른쪽 아래 + 버튼으로 등록해보세요.
-                  </Text>
+                  <Text style={s.stateText}>{t('vendor.productEmptyHint')}</Text>
                 </View>
               ) : null
             }
@@ -287,7 +304,7 @@ const MyProductsScreen = () => {
       <Modal visible={chatModalVisible} transparent animationType="fade" onRequestClose={() => setChatModalVisible(false)}>
         <View style={s.modalBackdrop}>
           <View style={s.modalCard}>
-            <Text style={s.modalTitle}>카카오 오픈채팅 URL</Text>
+            <Text style={s.modalTitle}>{t('vendor.chatUrlModalTitle')}</Text>
             <TextInput
               style={s.modalInput}
               value={chatUrlInput}
@@ -301,10 +318,10 @@ const MyProductsScreen = () => {
             />
             <View style={s.modalActions}>
               <TouchableOpacity style={s.modalCancelBtn} onPress={() => setChatModalVisible(false)}>
-                <Text style={s.modalCancelText}>취소</Text>
+                <Text style={s.modalCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.modalSaveBtn} onPress={saveChatUrl}>
-                <Text style={s.modalSaveText}>저장</Text>
+                <Text style={s.modalSaveText}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>

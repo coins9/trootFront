@@ -13,6 +13,7 @@ import {
 import {
   ArtistReviewItem, ArtistReviewReply,
 } from '../../../domain/entities/artistMyPageTypes';
+import { useTranslation } from '../../store/languageStore';
 
 interface Props {
   review: ArtistReviewItem | null;
@@ -30,6 +31,7 @@ const ReviewManageModal = memo(({
   const visible = review !== null;
   const translate = useRef(new Animated.Value(SH)).current;
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [reply, setReply] = useState('');
 
   useEffect(() => {
@@ -80,7 +82,7 @@ const ReviewManageModal = memo(({
             <Pressable onPress={() => {}}>
               <View style={styles.handle} />
               <View style={styles.headerRow}>
-                <Text style={styles.title}>리뷰 상세 · 답글 관리</Text>
+                <Text style={styles.title}>{t('artistMyPage.reviewDetailTitle')}</Text>
                 <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <XIcon size={20} color={COLORS.gray} />
                 </TouchableOpacity>
@@ -116,12 +118,12 @@ const ReviewManageModal = memo(({
               </View>
 
               {/* Reply input */}
-              <Text style={styles.sectionLabel}>답글</Text>
+              <Text style={styles.sectionLabel}>{t('artistMyPage.replySection')}</Text>
               <View style={styles.replyWrap}>
                 <TextInput
                   value={reply}
                   onChangeText={(v) => v.length <= REPLY_MAX && setReply(v)}
-                  placeholder="고객에게 진심을 담아 답글을 작성해주세요."
+                  placeholder={t('artistMyPage.replyPlaceholder')}
                   placeholderTextColor={COLORS.gray2}
                   multiline
                   maxLength={REPLY_MAX}
@@ -135,7 +137,7 @@ const ReviewManageModal = memo(({
               <View style={styles.noticeBox}>
                 <AlertInfoIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
                 <Text style={styles.noticeText}>
-                  타투이스트는 리뷰를 임의로 삭제/숨길 수 없습니다. 정책 위반이 의심되는 경우 아래 문의를 이용해주세요.
+                  {t('artistMyPage.reviewPolicyNotice')}
                 </Text>
               </View>
 
@@ -148,7 +150,7 @@ const ReviewManageModal = memo(({
                 >
                   <ShieldCheckIcon size={14} color={COLORS.danger} strokeWidth={1.7} />
                   <Text style={styles.actionSupportText}>
-                    고객센터 삭제 문의
+                    {t('artistMyPage.supportDeleteInquiry')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -161,7 +163,7 @@ const ReviewManageModal = memo(({
                   ]}
                 >
                   <Text style={styles.actionPrimaryText}>
-                    {review.reply ? '답글 수정' : '답글 등록'}
+                    {review.reply ? t('artistMyPage.replyEdit') : t('artistMyPage.replyRegister')}
                   </Text>
                 </TouchableOpacity>
               </View>

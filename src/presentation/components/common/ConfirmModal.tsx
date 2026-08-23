@@ -6,6 +6,7 @@ import { COLORS } from '../../theme/colors';
 import {
   AlertInfoIcon, ShieldCheckIcon, CheckCircleIcon,
 } from '../icons';
+import { useTranslation } from '../../store/languageStore';
 
 export type ConfirmVariant = 'default' | 'danger' | 'info';
 
@@ -40,6 +41,7 @@ const colorFor = (v: ConfirmVariant) => {
 };
 
 const ConfirmModal = memo(({ config, onDismiss }: Props) => {
+  const { t } = useTranslation();
   const visible = config !== null;
   const scale = useRef(new Animated.Value(0.92)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -101,7 +103,7 @@ const ConfirmModal = memo(({ config, onDismiss }: Props) => {
                   style={[styles.btn, styles.btnCancel]}
                 >
                   <Text style={styles.btnCancelText}>
-                    {config.cancelLabel ?? '취소'}
+                    {config.cancelLabel ?? t('common.cancel')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -113,7 +115,7 @@ const ConfirmModal = memo(({ config, onDismiss }: Props) => {
                   ]}
                 >
                   <Text style={isDanger ? styles.btnDangerText : styles.btnPrimaryText}>
-                    {config.confirmLabel ?? '확인'}
+                    {config.confirmLabel ?? t('common.confirm')}
                   </Text>
                 </TouchableOpacity>
               </View>

@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import { SearchIcon, XIcon } from '../icons';
+import { useTranslation } from '../../store/languageStore';
 
 interface SearchBarProps {
   value: string;
@@ -17,9 +18,10 @@ const SearchBar = memo(({
   value,
   onChangeText,
   onCancel,
-  placeholder = '검색',
+  placeholder,
   autoFocus = true,
 }: SearchBarProps) => {
+  const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(-8)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -52,7 +54,7 @@ const SearchBar = memo(({
           style={styles.input}
           value={value}
           onChangeText={onChangeText}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t('common.search')}
           placeholderTextColor={COLORS.gray2}
           autoFocus={autoFocus}
           returnKeyType="search"
@@ -72,7 +74,7 @@ const SearchBar = memo(({
         )}
       </View>
       <TouchableOpacity onPress={onCancel} activeOpacity={0.75} style={styles.cancelBtn}>
-        <Text style={styles.cancelText}>취소</Text>
+        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
       </TouchableOpacity>
     </Animated.View>
   );

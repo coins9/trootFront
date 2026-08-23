@@ -4,6 +4,7 @@ import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { COLORS } from '../../../theme/colors';
 import { CalendarIcon, ClockIcon } from '../../icons';
 import { TIME_SLOTS } from '../../../../domain/entities/bookingTypes';
+import { useTranslation } from '../../../store/languageStore';
 
 LocaleConfig.locales['ko'] = {
   monthNames: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
@@ -11,6 +12,14 @@ LocaleConfig.locales['ko'] = {
   dayNames: ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'],
   dayNamesShort: ['일','월','화','수','목','금','토'],
   today: '오늘',
+};
+
+LocaleConfig.locales['en'] = {
+  monthNames: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+  monthNamesShort: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  dayNames: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+  dayNamesShort: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+  today: 'Today',
 };
 LocaleConfig.defaultLocale = 'ko';
 
@@ -74,6 +83,8 @@ TimeChip.displayName = 'TimeChip';
 const DatePickerStep = memo(({
   selectedDate, selectedTime, onDateChange, onTimeChange,
 }: DatePickerStepProps) => {
+  const { t, language } = useTranslation();
+  LocaleConfig.defaultLocale = language;
   const markedDates = selectedDate
     ? { [selectedDate]: { selected: true, selectedColor: COLORS.gold, selectedTextColor: COLORS.black } }
     : {};
@@ -90,11 +101,11 @@ const DatePickerStep = memo(({
         <View style={styles.sectionLeft}>
           <Text style={styles.sectionNum}>01</Text>
           <CalendarIcon size={16} color={COLORS.gold} />
-          <Text style={styles.sectionTitle}>일정 선택</Text>
+          <Text style={styles.sectionTitle}>{t('booking.steps.dateTitle')}</Text>
         </View>
-        <Text style={styles.required}>필수</Text>
+        <Text style={styles.required}>{t('common.required')}</Text>
       </View>
-      <Text style={styles.sectionSub}>희망 날짜와 시간을 선택해 주세요</Text>
+      <Text style={styles.sectionSub}>{t('booking.steps.dateSub')}</Text>
 
       {/* Calendar */}
       <View style={styles.calendarWrapper}>
@@ -113,7 +124,7 @@ const DatePickerStep = memo(({
         <View style={styles.timeSection}>
           <View style={styles.timeLabelRow}>
             <ClockIcon size={15} color={COLORS.gray} />
-            <Text style={styles.timeLabel}>희망 시간</Text>
+            <Text style={styles.timeLabel}>{t('booking.steps.dateTimeLabel')}</Text>
           </View>
           <ScrollView
             horizontal

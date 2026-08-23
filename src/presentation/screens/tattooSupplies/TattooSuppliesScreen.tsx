@@ -63,7 +63,7 @@ const SORT_BY_LABEL: Record<SupplySort, 'popular' | 'price_asc' | 'recent'> = {
   '카테고리': 'recent',
 };
 
-const toSupply = (p: SupplyProduct): TattooSupply => ({
+const toSupply = (p: SupplyProduct, sellerFallback: string): TattooSupply => ({
   id: p.id,
   category: CATEGORY_BY_CODE[p.category] ?? '위생·소모품',
   name: p.name,
@@ -72,7 +72,7 @@ const toSupply = (p: SupplyProduct): TattooSupply => ({
   imageUri: p.thumbnail ?? p.images[0] ?? '',
   images: p.images,
   price: p.priceKrw,
-  seller: { id: p.vendorId, nickname: '판매자' },
+  seller: { id: p.vendorId, nickname: sellerFallback },
   isBookmarked: false,
   popularityScore: 0,
 });
@@ -236,10 +236,10 @@ const TattooSuppliesScreen = () => {
             <View style={styles.emptyState}><ActivityIndicator color={COLORS.gold} /></View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>{error ?? '등록된 상품이 없습니다.'}</Text>
+              <Text style={styles.emptyText}>{error ?? t('supplies.emptyProducts')}</Text>
               {error && (
                 <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
-                  <Text style={styles.retryBtnText}>다시 시도</Text>
+                  <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
                 </TouchableOpacity>
               )}
             </View>

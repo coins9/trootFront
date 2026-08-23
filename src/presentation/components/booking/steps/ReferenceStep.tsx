@@ -6,6 +6,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { COLORS } from '../../../theme/colors';
 import { CameraAddIcon, XIcon } from '../../icons';
 import { BookingReferenceImage } from '../../../../domain/entities/bookingTypes';
+import { useTranslation } from '../../../store/languageStore';
 
 interface ReferenceStepProps {
   images: BookingReferenceImage[];
@@ -18,13 +19,14 @@ const MAX_IMAGES = 5;
 const MAX_TEXT = 500;
 
 const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: ReferenceStepProps) => {
+  const { t } = useTranslation();
   const hasAny = images.length > 0 || text.trim().length > 0;
 
   // Android content:// URI 는 확장자가 없어 fetch().blob() 전 MIME 추론이 실패하기 쉬우므로
   // 피커가 제공하는 type/fileSize 를 그대로 보존해 업로드 단계로 넘긴다.
   const handleAdd = useCallback(async () => {
     if (images.length >= MAX_IMAGES) {
-      Alert.alert('최대 5장까지 첨부 가능합니다.');
+      Alert.alert(t('booking.steps.refPhotoMax', { max: MAX_IMAGES }));
       return;
     }
     try {
@@ -40,7 +42,7 @@ const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: Refe
       if (!picked.length) return;
       onImagesChange([...images, ...picked].slice(0, MAX_IMAGES));
     } catch {
-      Alert.alert('이미지를 불러오지 못했습니다. 다시 시도해 주세요.');
+      Alert.alert(t('booking.steps.refPhotoError'));
     }
   }, [images, onImagesChange]);
 
@@ -55,17 +57,13 @@ const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: Refe
         <View style={styles.sectionLeft}>
           <Text style={styles.sectionNum}>03</Text>
           <CameraAddIcon size={16} color={COLORS.gold} />
-          <Text style={styles.sectionTitle}>레퍼런스</Text>
+          <Text style={styles.sectionTitle}>{t('booking.steps.refTitle')}</Text>
         </View>
-        <Text style={styles.required}>필수</Text>
+        <Text style={styles.required}>{t('common.required')}</Text>
       </View>
-      <Text style={styles.sectionSub}>
-        원하는 타투 스타일의 <Text style={styles.highlight}>사진 또는 설명 텍스트</Text> 중{'\n'}
-        최소 하나는 반드시 입력해 주세요.
-      </Text>
+      <Text style={styles.sectionSub}>{t('booking.steps.refSub')}</Text>
 
-      {/* 사진 첨부 */}
-      <Text style={styles.subLabel}>사진 첨부 (최대 {MAX_IMAGES}장)</Text>
+      <Text style={styles.subLabel}>{t('booking.steps.refPhotoAttach', { max: MAX_IMAGES })}</Text>
       <View style={styles.imageRow}>
         {images.map((img, idx) => (
           <View key={`${img.uri}-${idx}`} style={styles.thumbWrapper}>
@@ -91,7 +89,7 @@ const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: Refe
             style={styles.addBox}
           >
             <CameraAddIcon size={28} color={COLORS.gray2} />
-            <Text style={styles.addText}>사진 추가</Text>
+            <Text style={styles.addText}>{t('booking.steps.refPhotoAdd')}</Text>
             <Text style={styles.addCount}>
               {images.length} / {MAX_IMAGES}
             </Text>
@@ -102,20 +100,18 @@ const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: Refe
       {/* OR divider */}
       <View style={styles.orRow}>
         <View style={styles.orLine} />
-        <Text style={styles.orText}>또는</Text>
+        <Text style={styles.orText}>{t('booking.steps.refOr')}</Text>
         <View style={styles.orLine} />
       </View>
 
       {/* 텍스트 입력 */}
-      <Text style={styles.subLabel}>글로 설명하기</Text>
+      <Text style={styles.subLabel}>{t('booking.steps.refTextLabel')}</Text>
       <View style={styles.textAreaWrap}>
         <TextInput
           style={styles.textArea}
           value={text}
-          onChangeText={(t) => onTextChange(t.slice(0, MAX_TEXT))}
-          placeholder={
-            '예) 검정 잉크로 미니멀한 라인, 손목 안쪽 3cm 정도, 참고할 만한 인스타 링크 등 자유롭게 적어주세요.'
-          }
+          onChangeText={(v) => onTextChange(v.slice(0, MAX_TEXT))}
+          placeholder={t('booking.steps.refTextPlaceholder')}
           placeholderTextColor={COLORS.gray2}
           multiline
           textAlignVertical="top"
@@ -128,7 +124,7 @@ const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: Refe
 
       {!hasAny && (
         <Text style={styles.hint}>
-          사진 또는 설명 텍스트 중 하나는 반드시 입력해야 합니다.
+          {t('booking.steps.refRequired')}
         </Text>
       )}
     </View>

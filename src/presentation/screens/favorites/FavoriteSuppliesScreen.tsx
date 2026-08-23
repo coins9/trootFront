@@ -22,11 +22,23 @@ import {
   favoriteApi, type FavoriteItem, type SupplyProduct, type ProductCategory,
 } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import type { TranslationKey } from '../../../infrastructure/i18n';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type CategoryFilter = '전체' | SupplyCategory;
 
 const CATEGORY_FILTERS: CategoryFilter[] = ['전체', ...SUPPLY_CATEGORIES];
+
+const CATEGORY_LABEL_KEY: Record<CategoryFilter, TranslationKey> = {
+  '전체': 'common.all',
+  '머신 & 장비': 'supplies.category.machine',
+  '니들 (바늘)': 'supplies.category.needle',
+  '잉크': 'supplies.category.ink',
+  '위생·소모품': 'supplies.category.hygiene',
+  '스탠실 용품': 'supplies.category.stencil',
+  '애프터케어': 'supplies.category.aftercare',
+  '가구·인테리어': 'supplies.category.furniture',
+};
 
 // 백엔드 카테고리 코드 → 화면 카테고리 라벨 (필터 유지)
 const CATEGORY_MAP: Record<ProductCategory, SupplyCategory> = {
@@ -41,7 +53,7 @@ const CATEGORY_MAP: Record<ProductCategory, SupplyCategory> = {
 };
 
 // 찜한 용품(API) → 기존 카드 모델. 판매자 연락처는 아직 백엔드 미제공 → 비움(문의 시 안내).
-const toSupply = (f: FavoriteItem<SupplyProduct>): TattooSupply | null => (
+const toSupply = (f: FavoriteItem<SupplyProduct>, sellerFallback: string): TattooSupply | null => (
   f.target
     ? {
         id: f.target.id,
@@ -52,7 +64,7 @@ const toSupply = (f: FavoriteItem<SupplyProduct>): TattooSupply | null => (
         imageUri: f.target.thumbnail ?? f.target.images[0] ?? '',
         images: f.target.images,
         price: f.target.priceKrw,
-        seller: { id: f.target.vendorId, nickname: '판매자' },
+        seller: { id: f.target.vendorId, nickname: sellerFallback },
         isBookmarked: true,
         popularityScore: 0,
       }
@@ -132,9 +144,10 @@ const FavoriteSuppliesScreen = () => {
     [],
   );
 
+  const sellerFallback = t('supplies.seller');
   const supplies = useMemo(
-    () => (items.map(toSupply).filter(Boolean) as TattooSupply[]).filter((s) => !removed.has(s.id)),
-    [items, removed],
+    () => (items.map((f) => toSupply(f, sellerFallback)).filter(Boolean) as TattooSupply[]).filter((s) => !removed.has(s.id)),
+    [items, removed, sellerFallback],
   );
 
   const filtered = useMemo(() => (
@@ -214,7 +227,7 @@ const FavoriteSuppliesScreen = () => {
                 style={[styles.categoryChip, active && styles.categoryChipActive]}
               >
                 <Text style={[styles.categoryText, active && styles.categoryTextActive]}>
-                  {c}
+                  {t(CATEGORY_LABEL_KEY[c])}
                 </Text>
               </TouchableOpacity>
             );

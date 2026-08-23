@@ -202,7 +202,7 @@ const TattooShareDetailScreen = () => {
           <View style={styles.hostInfo}>
             <Text style={styles.hostLabel}>{t('shop.hostLabel')}</Text>
             <Text style={styles.hostName}>{shop.host.nickname}</Text>
-            <Text style={styles.hostRole}>{shop.host.role}</Text>
+            <Text style={styles.hostRole}>{t('shop.hostLabel')}</Text>
           </View>
         </View>
       </ScrollView>

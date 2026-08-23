@@ -64,7 +64,7 @@ const LoginScreen = () => {
         // TODO: 디버그 확인 후 아래 줄로 원복
         // toast(t('auth.loginFailed'), { variant: 'error' });
         const errMsg = e instanceof Error ? `${e.message} [code:${(e as { code?: unknown }).code ?? '-'}]` : String(e);
-        toast(`로그인 오류: ${errMsg}`, { variant: 'error' });
+        toast(`${t('auth.loginErrorPrefix')} ${errMsg}`, { variant: 'error' });
       }
     },
     [loginWith, navigation, toast, t],

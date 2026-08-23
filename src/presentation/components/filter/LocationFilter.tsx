@@ -6,6 +6,7 @@ import { COLORS } from '../../theme/colors';
 import { CheckCircleIcon } from '../icons';
 import { CITIES, DISTRICTS } from '../../../data/mock/mockData';
 import { OVERSEAS_COUNTRY_GROUPS } from '../../../domain/entities/overseasCountries';
+import { useTranslation } from '../../store/languageStore';
 
 interface LocationFilterProps {
   regionMode: 'domestic' | 'overseas';
@@ -26,6 +27,7 @@ const LocationFilter = memo(({
   onSelect,
   onSelectOverseas,
 }: LocationFilterProps) => {
+  const { t } = useTranslation();
   const districts = selectedCity ? (DISTRICTS[selectedCity] ?? []) : [];
 
   const handleCityPress = useCallback((city: string) => {
@@ -62,7 +64,7 @@ const LocationFilter = memo(({
           activeOpacity={0.75}
         >
           <Text style={[styles.modeBtnText, regionMode === 'domestic' && styles.modeBtnTextActive]}>
-            국내
+            {t('filter.domestic')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -71,7 +73,7 @@ const LocationFilter = memo(({
           activeOpacity={0.75}
         >
           <Text style={[styles.modeBtnText, regionMode === 'overseas' && styles.modeBtnTextActive]}>
-            해외
+            {t('filter.overseas')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -81,11 +83,11 @@ const LocationFilter = memo(({
           {/* Column headers */}
           <View style={styles.colHeaders}>
             <View style={[styles.colHeader, styles.colHeaderActive]}>
-              <Text style={styles.colHeaderTextActive}>시 / 도</Text>
+              <Text style={styles.colHeaderTextActive}>{t('filter.regionSido')}</Text>
             </View>
             <View style={styles.colHeaderGap} />
             <View style={styles.colHeader}>
-              <Text style={styles.colHeaderText}>구 / 군</Text>
+              <Text style={styles.colHeaderText}>{t('filter.regionSigungu')}</Text>
             </View>
           </View>
 
@@ -138,7 +140,7 @@ const LocationFilter = memo(({
                 })
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyText}>{'시/도를 먼저\n선택하세요'}</Text>
+                  <Text style={styles.emptyText}>{t('filter.regionSelectFirst')}</Text>
                 </View>
               )}
             </ScrollView>

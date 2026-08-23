@@ -11,6 +11,7 @@ import {
   WarningTriangleIcon, InfoIcon,
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Severity = 'report' | 'instant';
@@ -23,59 +24,18 @@ interface Policy {
   points: string[];
 }
 
-const POLICIES: Policy[] = [
-  {
-    Icon: WonIcon,
-    severity: 'report',
-    title: '투명한 가격 정책',
-    body:
-      '몸무게 · 흉터 유무 등 시술 조건에 따라 가격이 일정 부분 변동될 수 있습니다. ' +
-      '다만 앱에 표기된 가격과 현장 가격이 상당 부분 다른 기망 행위가 확인되면 신고할 수 있습니다.',
-    points: [
-      '조건에 따른 합리적 가격 변동은 정상적인 안내입니다.',
-      '표기가와 현장가가 크게 다른 경우 신고하기 버튼으로 접수하세요.',
-      '누적 3회 이상 신고 시 해당 계정은 제재됩니다.',
-    ],
-  },
-  {
-    Icon: PaletteIcon,
-    severity: 'instant',
-    title: '창작물 저작권 보호',
-    body:
-      '타투 도안과 포트폴리오는 창작자의 자산입니다. 타인의 도안 · 포트폴리오를 도용하는 경우 즉각 제재됩니다.',
-    points: [
-      '타인의 도안을 무단 복제 · 게시할 수 없습니다.',
-      '타인의 작업물을 본인 포트폴리오로 도용할 수 없습니다.',
-      '적발 시 경고 없이 즉시 제재됩니다.',
-    ],
-  },
-  {
-    Icon: ShieldCheckIcon,
-    severity: 'instant',
-    title: '시술자 본인 확인',
-    body:
-      '예약한 고객은 앱에 등록된 타투이스트 본인에게 시술받을 권리가 있습니다. ' +
-      '등록 정보와 다른 사람(예: 수강생)이 대신 작업하는 경우 즉각 제재됩니다.',
-    points: [
-      '앱에 등록된 타투이스트 본인이 시술해야 합니다.',
-      '수강생 · 대리 시술 등 명의와 다른 작업은 금지됩니다.',
-      '적발 시 경고 없이 즉시 제재됩니다.',
-    ],
-  },
-];
-
-const SeverityBadge = ({ severity }: { severity: Severity }) => {
+const SeverityBadge = ({ severity, label }: { severity: Severity; label: string }) => {
   const isInstant = severity === 'instant';
   return (
     <View style={[s.badge, isInstant ? s.badgeInstant : s.badgeReport]}>
       <Text style={[s.badgeText, isInstant ? s.badgeTextInstant : s.badgeTextReport]}>
-        {isInstant ? '즉시 제재' : '신고 · 누적 제재'}
+        {label}
       </Text>
     </View>
   );
 };
 
-const PolicyCard = ({ policy, index }: { policy: Policy; index: number }) => (
+const PolicyCard = ({ policy, index, badgeLabel }: { policy: Policy; index: number; badgeLabel: string }) => (
   <View style={s.card}>
     <View style={s.cardHead}>
       <View style={s.iconWrap}>
@@ -86,7 +46,7 @@ const PolicyCard = ({ policy, index }: { policy: Policy; index: number }) => (
           <Text style={s.cardIndex}>{String(index + 1).padStart(2, '0')}</Text>
           <Text style={s.cardTitle}>{policy.title}</Text>
         </View>
-        <SeverityBadge severity={policy.severity} />
+        <SeverityBadge severity={policy.severity} label={badgeLabel} />
       </View>
     </View>
 
@@ -106,6 +66,43 @@ const PolicyCard = ({ policy, index }: { policy: Policy; index: number }) => (
 const SafetyPolicyScreen = () => {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+
+  const policies: Policy[] = [
+    {
+      Icon: WonIcon,
+      severity: 'report',
+      title: t('safetyPolicy.pricePolicyTitle'),
+      body: t('safetyPolicy.pricePolicyBody'),
+      points: [
+        t('safetyPolicy.pricePolicyPoint1'),
+        t('safetyPolicy.pricePolicyPoint2'),
+        t('safetyPolicy.pricePolicyPoint3'),
+      ],
+    },
+    {
+      Icon: PaletteIcon,
+      severity: 'instant',
+      title: t('safetyPolicy.copyrightTitle'),
+      body: t('safetyPolicy.copyrightBody'),
+      points: [
+        t('safetyPolicy.copyrightPoint1'),
+        t('safetyPolicy.copyrightPoint2'),
+        t('safetyPolicy.copyrightPoint3'),
+      ],
+    },
+    {
+      Icon: ShieldCheckIcon,
+      severity: 'instant',
+      title: t('safetyPolicy.identityTitle'),
+      body: t('safetyPolicy.identityBody'),
+      points: [
+        t('safetyPolicy.identityPoint1'),
+        t('safetyPolicy.identityPoint2'),
+        t('safetyPolicy.identityPoint3'),
+      ],
+    },
+  ];
 
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
@@ -118,7 +115,7 @@ const SafetyPolicyScreen = () => {
         >
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>이용 안전 정책</Text>
+        <Text style={s.headerTitle}>{t('safetyPolicy.headerTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -131,26 +128,25 @@ const SafetyPolicyScreen = () => {
           <View style={s.introIconWrap}>
             <WarningTriangleIcon size={22} color={COLORS.gold} strokeWidth={1.8} />
           </View>
-          <Text style={s.introTitle}>안전하고 공정한 거래를 위한 약속</Text>
-          <Text style={s.introDesc}>
-            T:ROOT는 고객과 타투이스트 모두가 신뢰할 수 있는 환경을 위해{'\n'}
-            아래 정책을 운영합니다. 위반 시 계정이 제재될 수 있습니다.
-          </Text>
+          <Text style={s.introTitle}>{t('safetyPolicy.introTitle')}</Text>
+          <Text style={s.introDesc}>{t('safetyPolicy.introDesc')}</Text>
         </View>
 
-        {POLICIES.map((p, i) => (
-          <PolicyCard key={p.title} policy={p} index={i} />
+        {policies.map((p, i) => (
+          <PolicyCard
+            key={i}
+            policy={p}
+            index={i}
+            badgeLabel={p.severity === 'instant' ? t('safetyPolicy.badgeInstant') : t('safetyPolicy.badgeReport')}
+          />
         ))}
 
         <View style={s.reportGuide}>
           <View style={s.reportGuideHead}>
             <InfoIcon size={15} color={COLORS.gold} />
-            <Text style={s.reportGuideTitle}>신고는 어디서 하나요?</Text>
+            <Text style={s.reportGuideTitle}>{t('safetyPolicy.reportGuideTitle')}</Text>
           </View>
-          <Text style={s.reportGuideText}>
-            타투이스트 프로필 우측 상단의 더보기(⋯) 버튼에서 신고하기를 선택할 수 있습니다.
-            접수된 신고는 운영팀이 검토 후 조치하며, 허위 신고는 신고자도 제재 대상이 됩니다.
-          </Text>
+          <Text style={s.reportGuideText}>{t('safetyPolicy.reportGuideText')}</Text>
         </View>
 
         <View style={{ height: 32 }} />

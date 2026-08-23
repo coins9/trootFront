@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import DualRangeSlider from './DualRangeSlider';
+import { useTranslation } from '../../store/languageStore';
 
 // 최대 1천만원, 최상단은 '무제한(그 이상)' 의미
 const MAX_PRICE = 10000000;
@@ -16,13 +17,18 @@ interface BudgetFilterProps {
   onChangeBudget: (min: number, max: number) => void;
 }
 
-// 최대치(1천만)는 상한이 아니라 '그 이상' 이므로 무제한으로 표기
-const formatWon = (value: number) =>
-  value >= MAX_PRICE ? '무제한' : `${value.toLocaleString()}원`;
-
 const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilterProps) => {
+  const { t, language } = useTranslation();
   const [localMin, setLocalMin] = useState(budgetMin);
   const [localMax, setLocalMax] = useState(budgetMax);
+
+  const formatWon = useCallback((value: number) =>
+    value >= MAX_PRICE
+      ? t('filter.budgetUnlimited')
+      : language === 'ko'
+        ? `${value.toLocaleString()}원`
+        : `₩${value.toLocaleString()}`,
+  [t, language]);
 
   useEffect(() => {
     setLocalMin(budgetMin);
@@ -62,13 +68,13 @@ const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilte
       />
 
       <View style={styles.rangeLabels}>
-        <Text style={styles.rangeLabel}>0원</Text>
-        <Text style={styles.rangeLabel}>1,000만원+ (무제한)</Text>
+        <Text style={styles.rangeLabel}>{language === 'ko' ? '0원' : '₩0'}</Text>
+        <Text style={styles.rangeLabel}>{t('filter.budgetRangeMax')}</Text>
       </View>
 
       <View style={styles.inputRow}>
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>최소 금액</Text>
+          <Text style={styles.inputLabel}>{t('filter.budgetMinLabel')}</Text>
           <View style={styles.inputBox}>
             <TextInput
               style={styles.input}
@@ -78,22 +84,22 @@ const BudgetFilter = memo(({ budgetMin, budgetMax, onChangeBudget }: BudgetFilte
               selectTextOnFocus
               placeholderTextColor={COLORS.gray2}
             />
-            <Text style={styles.inputSuffix}>원</Text>
+            <Text style={styles.inputSuffix}>{language === 'ko' ? '원' : '₩'}</Text>
           </View>
         </View>
         <Text style={styles.separator}>~</Text>
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>최대 금액</Text>
+          <Text style={styles.inputLabel}>{t('filter.budgetMaxLabel')}</Text>
           <View style={styles.inputBox}>
             <TextInput
               style={styles.input}
-              value={localMax >= MAX_PRICE ? '무제한' : localMax.toLocaleString()}
+              value={localMax >= MAX_PRICE ? t('filter.budgetUnlimited') : localMax.toLocaleString()}
               onChangeText={handleMaxInput}
               keyboardType="numeric"
               selectTextOnFocus
               placeholderTextColor={COLORS.gray2}
             />
-            <Text style={styles.inputSuffix}>원</Text>
+            <Text style={styles.inputSuffix}>{language === 'ko' ? '원' : '₩'}</Text>
           </View>
         </View>
       </View>

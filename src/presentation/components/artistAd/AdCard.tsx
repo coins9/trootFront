@@ -8,6 +8,7 @@ import { TattooPlaceholderIcon, ChevronRightIcon } from '../icons';
 import { ArtistAdItem } from '../../../domain/entities/artistAdTypes';
 import StatBar from './StatBar';
 import MiniLineChart from './MiniLineChart';
+import { useTranslation } from '../../store/languageStore';
 
 interface Props {
   ad: ArtistAdItem;
@@ -20,7 +21,9 @@ interface Props {
 
 const AdCard = memo(({
   ad, onOpenDetail, onUp, onSuperUp, onCardAd, onBannerAd,
-}: Props) => (
+}: Props) => {
+  const { t } = useTranslation();
+  return (
   <View style={styles.card}>
     {/* Top row */}
     <View style={styles.topRow}>
@@ -37,7 +40,7 @@ const AdCard = memo(({
         <Text style={styles.statusLabel} numberOfLines={1}>{ad.statusLabel}</Text>
         <Text style={styles.title} numberOfLines={1}>{ad.title}</Text>
         <Text style={styles.period} numberOfLines={1}>
-          광고 기간  {ad.periodStart} ~ {ad.periodEnd}
+          {t('ad.adPeriod')}  {ad.periodStart} ~ {ad.periodEnd}
         </Text>
       </View>
       <TouchableOpacity
@@ -45,7 +48,7 @@ const AdCard = memo(({
         activeOpacity={0.75}
         style={styles.detailBtn}
       >
-        <Text style={styles.detailText}>상세 보기</Text>
+        <Text style={styles.detailText}>{t('ad.viewDetail')}</Text>
         <ChevronRightIcon size={14} color={COLORS.white} />
       </TouchableOpacity>
     </View>
@@ -54,11 +57,11 @@ const AdCard = memo(({
     {ad.status !== 'idle' && (
       <>
         <View style={styles.statsRow}>
-          <StatBar label="노출수" metric={ad.impressions} />
+          <StatBar label={t('ad.impressionStat')} metric={ad.impressions} />
           <View style={styles.statDivider} />
-          <StatBar label="클릭수" metric={ad.clicks} />
+          <StatBar label={t('ad.clickStat')} metric={ad.clicks} />
           <View style={styles.statDivider} />
-          <StatBar label="문의 건수" metric={ad.inquiries} />
+          <StatBar label={t('ad.inquiryStat')} metric={ad.inquiries} />
         </View>
         <View style={styles.chartWrap}>
           <MiniLineChart data={ad.trend} height={92} />
@@ -80,25 +83,26 @@ const AdCard = memo(({
         activeOpacity={0.85}
         style={[styles.actionBtn, styles.actionSuperUp]}
       >
-        <Text style={styles.actionSuperUpText}>슈퍼UP</Text>
+        <Text style={styles.actionSuperUpText}>{t('ad.superUpBtn')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         onPress={onCardAd}
         activeOpacity={0.85}
         style={[styles.actionBtn, styles.actionCard]}
       >
-        <Text style={styles.actionCardText}>카드광고</Text>
+        <Text style={styles.actionCardText}>{t('ad.cardAdBtn')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         onPress={onBannerAd}
         activeOpacity={0.85}
         style={[styles.actionBtn, styles.actionBanner]}
       >
-        <Text style={styles.actionBannerText}>배너광고</Text>
+        <Text style={styles.actionBannerText}>{t('ad.bannerAdBtn')}</Text>
       </TouchableOpacity>
     </View>
   </View>
-));
+  );
+});
 AdCard.displayName = 'AdCard';
 export default AdCard;
 

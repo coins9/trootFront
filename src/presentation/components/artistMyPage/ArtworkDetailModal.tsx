@@ -10,6 +10,7 @@ import {
   StarIcon,
 } from '../icons';
 import { ArtistArtwork } from '../../../domain/entities/artistMyPageTypes';
+import { useTranslation } from '../../store/languageStore';
 
 interface Props {
   artwork: ArtistArtwork | null;
@@ -24,6 +25,7 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
   const visible = artwork !== null;
   const translate = useRef(new Animated.Value(SH)).current;
   const insets = useSafeAreaInsets();
+  const { t, language } = useTranslation();
 
   useEffect(() => {
     Animated.timing(translate, {
@@ -36,12 +38,12 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
   const handleDelete = useCallback(() => {
     if (!artwork) return;
     Alert.alert(
-      '작품 삭제',
-      `'${artwork.title}' 을(를) 삭제하시겠습니까?\n삭제 시 홈 노출과 예약 매칭에서 즉시 제외됩니다.`,
+      t('artistMyPage.deleteArtworkTitle'),
+      `'${artwork.title}' ${t('artistMyPage.deleteArtworkMsg')}`,
       [
-        { text: '취소', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: '삭제',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => onDelete(artwork.id),
         },
@@ -70,7 +72,7 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
             <View style={styles.headerRow}>
               {artwork.isPromoted && (
                 <View style={styles.adBadge}>
-                  <Text style={styles.adBadgeText}>광고 노출중</Text>
+                  <Text style={styles.adBadgeText}>{t('artistMyPage.adRunning')}</Text>
                 </View>
               )}
               <TouchableOpacity
@@ -97,7 +99,7 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
                 <Text style={styles.metaChipText}>{artwork.bodyPart}</Text>
               </View>
               <Text style={styles.priceText}>
-                {artwork.priceFrom.toLocaleString()}원~
+                {language === 'ko' ? `${artwork.priceFrom.toLocaleString()}원~` : `₩${artwork.priceFrom.toLocaleString()}+`}
               </Text>
             </View>
 
@@ -138,7 +140,7 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
                 activeOpacity={0.85}
                 style={[styles.actionBtn, styles.actionDanger]}
               >
-                <Text style={styles.actionDangerText}>삭제</Text>
+                <Text style={styles.actionDangerText}>{t('common.delete')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => onEdit(artwork)}
@@ -146,7 +148,7 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
                 style={[styles.actionBtn, styles.actionPrimary]}
               >
                 <EditPenIcon size={14} color={COLORS.black} strokeWidth={1.8} />
-                <Text style={styles.actionPrimaryText}>수정하기</Text>
+                <Text style={styles.actionPrimaryText}>{t('common.edit')}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>

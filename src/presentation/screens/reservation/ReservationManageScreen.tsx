@@ -208,7 +208,15 @@ const ReservationManageScreen = () => {
           </TouchableOpacity>
         ) : (
           <View style={[styles.ctaOutline, { opacity: 0.5 }]}>
-            <Text style={styles.ctaOutlineText}>{item.status}</Text>
+            <Text style={styles.ctaOutlineText}>
+              {item.status === '예약 대기중'
+                ? t('reservation.status.requested')
+                : item.status === '확정'
+                  ? t('reservation.status.confirmed')
+                  : item.status === '완료'
+                    ? t('reservation.status.completed')
+                    : t('reservation.status.cancelled')}
+            </Text>
           </View>
         )
       )}

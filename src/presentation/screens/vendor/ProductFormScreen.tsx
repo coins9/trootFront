@@ -17,6 +17,7 @@ import type { ProductCategory } from '../../../data/api';
 import { useImageUpload } from '../../hooks/useImageUpload';
 import { deleteUpload } from '../../../data/api/upload';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteP = RouteProp<RootStackParamList, 'ProductForm'>;
@@ -26,6 +27,7 @@ const ProductFormScreen = () => {
   const route = useRoute<RouteP>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const productId = route.params?.productId;
   const isEdit = !!productId;
@@ -54,7 +56,7 @@ const ProductFormScreen = () => {
         if (!alive) return;
 
         if (!found) {
-          toast('상품을 찾을 수 없습니다.', { variant: 'error' });
+          toast(t('vendor.productNotFound'), { variant: 'error' });
           navigation.goBack();
           return;
         }
@@ -68,7 +70,7 @@ const ProductFormScreen = () => {
         setImages(found.images ?? []);
       } catch (e) {
         if (alive) {
-          toast(e instanceof ApiError ? e.userMessage : '불러오지 못했습니다.', { variant: 'error' });
+          toast(e instanceof ApiError ? e.userMessage : t('vendor.productLoadFailed'), { variant: 'error' });
         }
       } finally {
         if (alive) setLoading(false);
@@ -76,7 +78,7 @@ const ProductFormScreen = () => {
     })();
 
     return () => { alive = false; };
-  }, [productId, navigation, toast]);
+  }, [productId, navigation, toast, t]);
 
   const priceNum = Number(price);
   const canSubmit =
@@ -115,16 +117,16 @@ const ProductFormScreen = () => {
       if (isEdit) await supplyVendorApi.updateProduct(productId!, payload);
       else await supplyVendorApi.createProduct(payload);
 
-      toast(isEdit ? '상품이 수정되었습니다' : '상품이 등록되었습니다', { variant: 'success' });
+      toast(isEdit ? t('vendor.productUpdated') : t('vendor.productCreated'), { variant: 'success' });
       setTimeout(() => navigation.goBack(), 150);
     } catch (e) {
-      toast(e instanceof ApiError ? e.userMessage : '저장에 실패했습니다.', { variant: 'error' });
+      toast(e instanceof ApiError ? e.userMessage : t('vendor.saveFailed'), { variant: 'error' });
     } finally {
       setSubmitting(false);
     }
   }, [
     canSubmit, submitting, name, category, priceNum, stock, brand,
-    description, externalUrl, images, isEdit, productId, toast, navigation,
+    description, externalUrl, images, isEdit, productId, toast, navigation, t,
   ]);
 
   return (
@@ -138,7 +140,7 @@ const ProductFormScreen = () => {
         >
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>{isEdit ? '상품 수정' : '타투용품 등록'}</Text>
+        <Text style={s.headerTitle}>{isEdit ? t('vendor.productEdit') : t('vendor.productAdd')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -154,8 +156,8 @@ const ProductFormScreen = () => {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <Text style={s.label}>상품 사진</Text>
-            <Text style={s.sub}>최대 10장 · 첫 번째 사진이 대표 이미지로 사용됩니다</Text>
+            <Text style={s.label}>{t('vendor.fieldPhoto')}</Text>
+            <Text style={s.sub}>{t('vendor.photoHint')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.imageRow}>
               <TouchableOpacity
                 style={s.imageAdd}
@@ -183,23 +185,25 @@ const ProductFormScreen = () => {
                     <XIcon size={10} color={COLORS.white} strokeWidth={2.5} />
                   </TouchableOpacity>
                   {i === 0 && (
-                    <View style={s.mainBadge}><Text style={s.mainBadgeText}>대표</Text></View>
+                    <View style={s.mainBadge}>
+                      <Text style={s.mainBadgeText}>{t('vendor.photoPrimaryBadge')}</Text>
+                    </View>
                   )}
                 </View>
               ))}
             </ScrollView>
 
-            <Text style={s.label}>상품명 <Text style={s.req}>*</Text></Text>
+            <Text style={s.label}>{t('vendor.fieldName')} <Text style={s.req}>*</Text></Text>
             <TextInput
               style={s.input}
-              placeholder="예: 카트리지 바늘 1207RL (20개입)"
+              placeholder={t('vendor.fieldNamePlaceholder')}
               placeholderTextColor={COLORS.gray2}
               value={name}
               onChangeText={setName}
               maxLength={200}
             />
 
-            <Text style={s.label}>카테고리 <Text style={s.req}>*</Text></Text>
+            <Text style={s.label}>{t('vendor.fieldCategory')} <Text style={s.req}>*</Text></Text>
             <View style={s.chipRow}>
               {PRODUCT_CATEGORIES.map((c) => {
                 const active = category === c.value;
@@ -216,10 +220,10 @@ const ProductFormScreen = () => {
               })}
             </View>
 
-            <Text style={s.label}>브랜드</Text>
+            <Text style={s.label}>{t('vendor.fieldBrand')}</Text>
             <TextInput
               style={s.input}
-              placeholder="예: Eternal, Intenze"
+              placeholder={t('vendor.fieldBrandPlaceholder')}
               placeholderTextColor={COLORS.gray2}
               value={brand}
               onChangeText={setBrand}
@@ -228,7 +232,7 @@ const ProductFormScreen = () => {
 
             <View style={s.row}>
               <View style={s.rowItem}>
-                <Text style={s.label}>가격 (원) <Text style={s.req}>*</Text></Text>
+                <Text style={s.label}>{t('vendor.fieldPrice')} <Text style={s.req}>*</Text></Text>
                 <TextInput
                   style={s.input}
                   placeholder="15000"
@@ -239,7 +243,7 @@ const ProductFormScreen = () => {
                 />
               </View>
               <View style={s.rowItem}>
-                <Text style={s.label}>재고</Text>
+                <Text style={s.label}>{t('vendor.fieldStock')}</Text>
                 <TextInput
                   style={s.input}
                   placeholder="100"
@@ -251,10 +255,10 @@ const ProductFormScreen = () => {
               </View>
             </View>
 
-            <Text style={s.label}>상품 설명</Text>
+            <Text style={s.label}>{t('vendor.fieldDescription')}</Text>
             <TextInput
               style={[s.input, s.textarea]}
-              placeholder="규격, 재질, 사용법 등을 자세히 적어주세요"
+              placeholder={t('vendor.descPlaceholder')}
               placeholderTextColor={COLORS.gray2}
               value={description}
               onChangeText={setDescription}
@@ -263,17 +267,17 @@ const ProductFormScreen = () => {
               maxLength={2000}
             />
 
-            <Text style={s.label}>외부 구매 링크</Text>
+            <Text style={s.label}>{t('vendor.fieldExternalUrl')}</Text>
             <TextInput
               style={s.input}
-              placeholder="스마트스토어 등 (선택)"
+              placeholder={t('vendor.fieldExternalUrlPlaceholder')}
               placeholderTextColor={COLORS.gray2}
               value={externalUrl}
               onChangeText={setExternalUrl}
               autoCapitalize="none"
               maxLength={500}
             />
-            <Text style={s.sub}>링크를 넣으면 구매 버튼이 해당 페이지로 연결됩니다.</Text>
+            <Text style={s.sub}>{t('vendor.externalUrlHint')}</Text>
 
             <View style={{ height: 24 }} />
           </ScrollView>
@@ -286,7 +290,11 @@ const ProductFormScreen = () => {
               style={[s.submitBtn, (!canSubmit || submitting) && s.submitBtnDisabled]}
             >
               <Text style={[s.submitText, (!canSubmit || submitting) && s.submitTextDisabled]}>
-                {submitting ? '저장 중...' : isEdit ? '수정 완료' : '상품 등록'}
+                {submitting
+                  ? t('vendor.saving')
+                  : isEdit
+                  ? t('vendor.submitEdit')
+                  : t('vendor.submitNew')}
               </Text>
             </TouchableOpacity>
           </View>

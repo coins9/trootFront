@@ -20,15 +20,17 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const formatSchedule = (iso: string, language: string) => {
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+const formatSchedule = (iso: string, language: string, t: (key: string) => string) => {
   const d = new Date(iso);
   if (language === 'ko') {
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
-    const dow = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+    const dow = WEEKDAY_KO[d.getDay()];
     const hh = d.getHours();
     const min = String(d.getMinutes()).padStart(2, '0');
-    const ampm = hh < 12 ? '오전' : '오후';
+    const ampm = hh < 12 ? t('reservation.am') : t('reservation.pm');
     const h12 = hh % 12 === 0 ? 12 : hh % 12;
     return `${d.getFullYear()}.${mm}.${dd} (${dow}) ${ampm} ${h12}:${min}`;
   }
@@ -120,7 +122,7 @@ const ArtistReservationRequestsScreen = () => {
           <Text style={s.pendingText}>{t('reservationRequests.requestBadge')}</Text>
         </View>
       </View>
-      <Text style={s.schedule}>{formatSchedule(item.scheduledAt, language)}</Text>
+      <Text style={s.schedule}>{formatSchedule(item.scheduledAt, language, t)}</Text>
       {!!item.artworkTitle && (
         <Text style={s.artworkTitle} numberOfLines={1}>🖼 {item.artworkTitle}</Text>
       )}

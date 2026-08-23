@@ -183,31 +183,6 @@ const CATEGORIES: ShopMatchingCategory[] = [
   '부스 쉐어', '타투 모델 구인 (비기너)', '사진/영상 편집자',
 ];
 
-const SHARE_FILTERS: { label: string; Icon: React.ComponentType<any> }[] = [
-  { label: '지역', Icon: RegionIcon },
-  { label: '조명', Icon: LightIcon },
-  { label: '베드 수', Icon: BedIcon },
-  { label: '인원', Icon: PeopleIcon },
-];
-
-const PHOTO_FILTERS: { label: string; Icon: React.ComponentType<any> }[] = [
-  { label: '지역', Icon: RegionIcon },
-  { label: '경력', Icon: StarIcon },
-  { label: '촬영 스타일', Icon: CalendarIcon },
-];
-
-const VIDEO_FILTERS: { label: string; Icon: React.ComponentType<any> }[] = [
-  { label: '지역', Icon: RegionIcon },
-  { label: '경력', Icon: StarIcon },
-  { label: '작업 유형', Icon: FilterSlidersIcon },
-];
-
-const BEGINNER_FILTERS: { label: string; Icon: React.ComponentType<any> }[] = [
-  { label: '지역', Icon: RegionIcon },
-  { label: '스타일', Icon: FilterSlidersIcon },
-  { label: '가격', Icon: StarIcon },
-  { label: '날짜', Icon: CalendarIcon },
-];
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 

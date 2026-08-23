@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import { ChevronDownIcon, ChevronUpIcon } from '../icons';
+import { useTranslation } from '../../store/languageStore';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -32,6 +33,7 @@ const BilingualSection = ({
   descPlaceholder = 'Enter description in English',
   descMaxLength = 500,
 }: BilingualSectionProps) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const toggle = useCallback(() => {
@@ -51,7 +53,7 @@ const BilingualSection = ({
     <View style={s.wrap}>
       <TouchableOpacity onPress={toggle} style={s.toggleBtn} activeOpacity={0.75}>
         <Text style={s.toggleLabel}>
-          {open ? 'English — 접기' : '영어 추가하기  Add English'}
+          {open ? t('common.bilingualCollapse') : t('common.bilingualExpand')}
         </Text>
         {open
           ? <ChevronUpIcon size={14} color={COLORS.gold} strokeWidth={2.5} />

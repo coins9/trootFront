@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../theme/colors';
+import { useTranslation } from '../../store/languageStore';
 
 interface BookingFooterProps {
   isValid: boolean;
@@ -8,22 +9,25 @@ interface BookingFooterProps {
   bottomInset: number;
 }
 
-const BookingFooter = memo(({ isValid, onSubmit, bottomInset }: BookingFooterProps) => (
-  <View style={[styles.footer, { paddingBottom: bottomInset + 12 }]}>
-    {!isValid && (
-      <Text style={styles.hint}>필수 항목을 모두 확인해 주세요</Text>
-    )}
-    <TouchableOpacity
-      onPress={isValid ? onSubmit : undefined}
-      activeOpacity={isValid ? 0.85 : 1}
-      style={[styles.btn, !isValid && styles.btnDisabled]}
-    >
-      <Text style={[styles.btnText, !isValid && styles.btnTextDisabled]}>
-        {isValid ? '예약하기' : '필수 항목을 확인해 주세요'}
-      </Text>
-    </TouchableOpacity>
-  </View>
-));
+const BookingFooter = memo(({ isValid, onSubmit, bottomInset }: BookingFooterProps) => {
+  const { t } = useTranslation();
+  return (
+    <View style={[styles.footer, { paddingBottom: bottomInset + 12 }]}>
+      {!isValid && (
+        <Text style={styles.hint}>{t('booking.steps.footerHint')}</Text>
+      )}
+      <TouchableOpacity
+        onPress={isValid ? onSubmit : undefined}
+        activeOpacity={isValid ? 0.85 : 1}
+        style={[styles.btn, !isValid && styles.btnDisabled]}
+      >
+        <Text style={[styles.btnText, !isValid && styles.btnTextDisabled]}>
+          {isValid ? t('booking.steps.footerSubmit') : t('booking.steps.footerSubmitDisabled')}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 BookingFooter.displayName = 'BookingFooter';
 export default BookingFooter;

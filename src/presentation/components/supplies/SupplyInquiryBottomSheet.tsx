@@ -66,20 +66,20 @@ const SupplyInquiryBottomSheet = memo(({
   const buildMessage = useCallback(() => {
     if (!supply) return '';
     const lines = [
-      '[T:ROOT 1:1 구매 문의]',
-      `상품: ${supply.name}`,
-      ...(supply.subtitle ? [`설명: ${supply.subtitle}`] : []),
-      ...(supply.brand ? [`브랜드: ${supply.brand}`] : []),
-      ...(supply.price ? [`표시가: ${supply.price.toLocaleString()}원`] : []),
-      `수량: ${qtyNum}개`,
+      t('supplies.inquiryMsgHeader'),
+      `${t('supplies.inquiryMsgProduct')}: ${supply.name}`,
+      ...(supply.subtitle ? [`${t('supplies.inquiryMsgDesc')}: ${supply.subtitle}`] : []),
+      ...(supply.brand ? [`${t('supplies.inquiryMsgBrand')}: ${supply.brand}`] : []),
+      ...(supply.price ? [`${t('supplies.inquiryMsgListPrice')}: ₩${supply.price.toLocaleString()}`] : []),
+      `${t('supplies.inquiryMsgQty')}: ${qtyNum}${t('supplies.inquiryMsgQtyUnit')}`,
     ];
     Object.entries(selectedOptions).forEach(([k, v]) => {
       if (v) lines.push(`${k}: ${v}`);
     });
-    if (phone.trim()) lines.push(`연락처: ${phone.trim()}`);
+    if (phone.trim()) lines.push(`${t('supplies.inquiryMsgContact')}: ${phone.trim()}`);
     if (message.trim()) {
       lines.push('');
-      lines.push('문의 내용:');
+      lines.push(`${t('supplies.inquiryMsgContent')}:`);
       lines.push(message.trim());
     }
     return lines.join('\n');
@@ -222,7 +222,7 @@ const SupplyInquiryBottomSheet = memo(({
                 style={styles.textArea}
                 value={message}
                 onChangeText={(t) => setMessage(t.slice(0, 500))}
-                placeholder={'배송, 대량 구매 할인, 재고 등\n궁금한 내용을 남겨주세요.'}
+                placeholder={t('supplies.inquiryMsgPlaceholder')}
                 placeholderTextColor={COLORS.gray2}
                 multiline
                 textAlignVertical="top"

@@ -258,8 +258,8 @@ const MyProfileScreen = () => {
     },
     {
       Icon: BarChartIcon,
-      label: '용품샵 광고 문의하기',
-      description: '왈라폼을 통해 광고를 문의하세요',
+      label: t('profile.vendorAdInquiry'),
+      description: t('profile.vendorAdInquiryDesc'),
       onPress: () => openLink(siteSettings.adInquiryUrl),
     },
   ];
@@ -403,9 +403,9 @@ const MyProfileScreen = () => {
 
           {mode === 'shopMatching' && (
               <>
-                {renderCompactSection('부스 쉐어', shopBoothItems)}
-                {renderCompactSection('타투 모델 구인 (비기너)', shopModelItems)}
-                {renderCompactSection('사진/영상 편집자', shopMediaItems)}
+                {renderCompactSection(t('profile.sectionBoothShare'), shopBoothItems)}
+                {renderCompactSection(t('profile.sectionTattooModel'), shopModelItems)}
+                {renderCompactSection(t('profile.sectionMediaExpert'), shopMediaItems)}
                 {renderCompactSection(t('profile.adSection'), shopAdItems)}
               </>
           )}

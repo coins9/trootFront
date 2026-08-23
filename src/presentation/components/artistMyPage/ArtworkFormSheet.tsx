@@ -79,7 +79,7 @@ const emptyForm = (): ArtistArtwork => ({
 });
 
 const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const translate = useRef(new Animated.Value(SH)).current;
   const insets = useSafeAreaInsets();
   const [form, setForm] = useState<ArtistArtwork>(emptyForm());
@@ -222,7 +222,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                         ) : (
                           <>
                             <PlusIcon size={22} color={COLORS.gold} />
-                            <Text style={styles.imgAddText}>사진 추가</Text>
+                            <Text style={styles.imgAddText}>{t('artistMyPage.addPhoto')}</Text>
                             <Text style={styles.imgAddSub}>
                               {(form.imageUris?.length ?? 0)}/{MAX_IMAGES}
                             </Text>
@@ -235,7 +235,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                         <Image source={{ uri }} style={styles.imgThumb} resizeMode="cover" />
                         {idx === 0 && (
                           <View style={styles.imgMainBadge}>
-                            <Text style={styles.imgMainBadgeText}>대표</Text>
+                            <Text style={styles.imgMainBadgeText}>{t('artistMyPage.primaryBadge')}</Text>
                           </View>
                         )}
                         <TouchableOpacity
@@ -253,7 +253,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                 {lang === 'ko' ? (
                   <>
                     {/* Title (Korean) */}
-                    <FieldLabel>작품명</FieldLabel>
+                    <FieldLabel>{t('artistMyPage.fieldArtworkName')}</FieldLabel>
                     <View style={styles.inputRow}>
                       <TextInput
                         value={form.title}
@@ -266,7 +266,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                     </View>
 
                     {/* Genre */}
-                    <FieldLabel>장르 (필수)</FieldLabel>
+                    <FieldLabel>{t('artistMyPage.fieldGenre')}</FieldLabel>
                     <View style={styles.chipGrid}>
                       {GENRES.map((g) => {
                         const active = form.genre === g;
@@ -279,7 +279,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                     </View>
 
                     {/* Body part (grouped) */}
-                    <FieldLabel>시술 부위 (필수)</FieldLabel>
+                    <FieldLabel>{t('artistMyPage.fieldBodyPart')}</FieldLabel>
                     {BODY_PARTS.map((cat) => (
                       <View key={cat.category} style={styles.bodyCatWrap}>
                         <Text style={styles.bodyCatLabel}>{cat.category}</Text>
@@ -297,7 +297,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                     ))}
 
                     {/* Subject */}
-                    <FieldLabel>주제 (복수 선택)</FieldLabel>
+                    <FieldLabel>{t('artistMyPage.fieldSubject')}</FieldLabel>
                     <View style={styles.chipGrid}>
                       {SUBJECTS.map((s) => {
                         const active = form.subjects.includes(s);
@@ -310,7 +310,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                     </View>
 
                     {/* Moods */}
-                    <FieldLabel>감성 (복수 선택)</FieldLabel>
+                    <FieldLabel>{t('artistMyPage.fieldMood')}</FieldLabel>
                     <View style={styles.chipGrid}>
                       {MOODS.map((m) => {
                         const active = form.moods.includes(m);
@@ -325,7 +325,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                     {/* Price + duration */}
                     <View style={styles.rowFields}>
                       <View style={{ flex: 1 }}>
-                        <FieldLabel>시작 가격</FieldLabel>
+                        <FieldLabel>{t('artistMyPage.fieldStartingPrice')}</FieldLabel>
                         <View style={styles.inputRow}>
                           <TextInput
                             value={String(form.priceFrom)}
@@ -335,13 +335,13 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                             keyboardType="number-pad"
                             style={styles.input}
                           />
-                          <Text style={styles.suffix}>원~</Text>
+                          <Text style={styles.suffix}>{language === 'ko' ? '원~' : 'KRW~'}</Text>
                         </View>
                       </View>
                     </View>
 
                     {/* Size */}
-                    <FieldLabel>사이즈</FieldLabel>
+                    <FieldLabel>{t('artistMyPage.fieldSize')}</FieldLabel>
                     <View style={styles.chipGrid}>
                       {SIZES.map((sz) => {
                         const active = form.sizePreset === sz.label;
@@ -359,7 +359,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                     </View>
 
                     {/* Description (Korean) */}
-                    <FieldLabel>설명</FieldLabel>
+                    <FieldLabel>{t('artistMyPage.fieldDescription')}</FieldLabel>
                     <View style={styles.descWrap}>
                       <TextInput
                         value={form.description}

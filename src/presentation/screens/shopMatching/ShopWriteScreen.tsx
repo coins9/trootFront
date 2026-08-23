@@ -23,6 +23,11 @@ import {
 } from '../../../domain/entities/shopTypes';
 import { shopApi, ShopCategory } from '../../../data/api';
 import { useTranslation } from '../../store/languageStore';
+import {
+  regionLabel, lightingLabel, bedLabel, expertCareerLabel,
+  expertWorkKindLabel, writeStyleLabel, specialtyLabel,
+  overseasCountryLabel,
+} from '../../utils/shopDisplayMap';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteP = RouteProp<RootStackParamList, 'ShopWrite'>;
@@ -46,12 +51,13 @@ const DOMESTIC_REGION_OPTS = SHARE_REGION_OPTIONS.filter((r) => r !== '전체');
 
 /* ── 칩 선택 컴포넌트 ── */
 const ChipSelect = React.memo(({
-  options, selected, onToggle, multi = false,
+  options, selected, onToggle, multi = false, renderLabel,
 }: {
   options: string[];
   selected: string[];
   onToggle: (v: string) => void;
   multi?: boolean;
+  renderLabel?: (v: string) => string;
 }) => (
   <View style={s.chipRow}>
     {options.map(opt => {
@@ -63,7 +69,7 @@ const ChipSelect = React.memo(({
           activeOpacity={0.75}
           style={[s.chip, active && s.chipActive]}
         >
-          <Text style={[s.chipText, active && s.chipTextActive]}>{opt}</Text>
+          <Text style={[s.chipText, active && s.chipTextActive]}>{renderLabel ? renderLabel(opt) : opt}</Text>
         </TouchableOpacity>
       );
     })}
@@ -104,6 +110,7 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
   setForm: React.Dispatch<React.SetStateAction<BoothForm>>;
   writeLang: 'ko' | 'en';
 }) => {
+  const { t } = useTranslation();
   const toggle = useCallback((field: keyof BoothForm) => (v: string) => {
     setForm(p => ({ ...p, [field]: p[field] === v ? '' : v }));
   }, [setForm]);
@@ -112,10 +119,10 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
     <>
       {writeLang === 'ko' ? (
         <>
-          <SectionLabel label="제목" required />
+          <SectionLabel label={t('shop.writeForm.titleLabel')} required />
           <TextInput
             style={s.input}
-            placeholder="공간 이름 또는 제목을 입력해주세요"
+            placeholder={t('shop.writeForm.titlePlaceholder')}
             placeholderTextColor={COLORS.gray2}
             value={form.title}
             onChangeText={v => setForm(p => ({ ...p, title: v }))}
@@ -137,41 +144,44 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
         </>
       )}
 
-      <SectionLabel label="지역" required />
+      <SectionLabel label={t('shop.writeForm.regionLabel')} required />
       <ChipSelect
         options={DOMESTIC_REGION_OPTS}
         selected={form.region ? [form.region] : []}
         onToggle={toggle('region')}
+        renderLabel={v => regionLabel(t, v as any)}
       />
 
-      <SectionLabel label="1일 가격 (원)" required />
+      <SectionLabel label={t('shop.writeForm.pricePerDayLabel')} required />
       <TextInput
         style={s.input}
-        placeholder="예: 80000"
+        placeholder={t('shop.writeForm.pricePlaceholder')}
         placeholderTextColor={COLORS.gray2}
         value={form.pricePerDay}
         onChangeText={v => setForm(p => ({ ...p, pricePerDay: v.replace(/[^0-9]/g, '') }))}
         keyboardType="numeric"
       />
 
-      <SectionLabel label="베드 수" required />
+      <SectionLabel label={t('shop.writeForm.bedCountLabel')} required />
       <ChipSelect
         options={['1대', '2대', '3대', '4대 이상']}
         selected={form.bedCount ? [form.bedCount] : []}
         onToggle={toggle('bedCount')}
+        renderLabel={v => bedLabel(t, v as any)}
       />
 
-      <SectionLabel label="조명 환경" />
+      <SectionLabel label={t('shop.writeForm.lightingLabel')} />
       <ChipSelect
         options={['LED (백색광)', '자연광', '조도 조절 (디밍)', '촬영용 조명 구비']}
         selected={form.lighting ? [form.lighting] : []}
         onToggle={toggle('lighting')}
+        renderLabel={v => lightingLabel(t, v as any)}
       />
 
-      <SectionLabel label="최대 인원" />
+      <SectionLabel label={t('shop.writeForm.maxOccupancyLabel')} />
       <TextInput
         style={s.input}
-        placeholder="예: 3"
+        placeholder={t('shop.writeForm.maxOccupancyPlaceholder')}
         placeholderTextColor={COLORS.gray2}
         value={form.maxOccupancy}
         onChangeText={v => setForm(p => ({ ...p, maxOccupancy: v.replace(/[^0-9]/g, '') }))}
@@ -180,10 +190,10 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
 
       {writeLang === 'ko' ? (
         <>
-          <SectionLabel label="공간 소개" required />
+          <SectionLabel label={t('shop.writeForm.spaceIntroLabel')} required />
           <TextInput
             style={[s.input, s.textarea]}
-            placeholder="공간 특징, 편의시설, 규칙 등을 자세히 적어주세요"
+            placeholder={t('shop.writeForm.spaceIntroPlaceholder')}
             placeholderTextColor={COLORS.gray2}
             value={form.description}
             onChangeText={v => setForm(p => ({ ...p, description: v }))}
@@ -207,10 +217,10 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
         </>
       )}
 
-      <SectionLabel label="연락처 (카카오 오픈채팅 또는 전화)" required />
+      <SectionLabel label={t('shop.writeForm.contactLabel')} required />
       <TextInput
         style={s.input}
-        placeholder="예: open.kakao.com/... 또는 010-XXXX-XXXX"
+        placeholder={t('shop.writeForm.contactPlaceholder')}
         placeholderTextColor={COLORS.gray2}
         value={form.contact}
         onChangeText={v => setForm(p => ({ ...p, contact: v }))}
@@ -246,6 +256,7 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
   setForm: React.Dispatch<React.SetStateAction<OverseasBoothForm>>;
   writeLang: 'ko' | 'en';
 }) => {
+  const { t } = useTranslation();
   const cityRef = useRef<GooglePlacesAutocompleteRef>(null);
   const toggle = useCallback((field: keyof OverseasBoothForm) => (v: string) => {
     setForm(p => ({ ...p, [field]: p[field] === v ? '' : v }));
@@ -255,10 +266,10 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
     <>
       {writeLang === 'ko' ? (
         <>
-          <SectionLabel label="제목 (한국어)" required />
+          <SectionLabel label={t('shop.writeForm.titleKoLabel')} required />
           <TextInput
             style={s.input}
-            placeholder="예: 도쿄 신주쿠 부스쉐어 1베드"
+            placeholder={t('shop.writeForm.titleKoPlaceholder')}
             placeholderTextColor={COLORS.gray2}
             value={form.title}
             onChangeText={v => setForm(p => ({ ...p, title: v }))}
@@ -280,18 +291,19 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
         </>
       )}
 
-      <SectionLabel label="국가 (Country)" required />
+      <SectionLabel label={t('shop.writeForm.countryLabel')} required />
       <ChipSelect
         options={OVERSEAS_COUNTRY_OPTS}
         selected={form.country ? [form.country] : []}
         onToggle={toggle('country')}
+        renderLabel={v => overseasCountryLabel(t, v)}
       />
 
-      <SectionLabel label="도시 / 위치 (City)" required />
+      <SectionLabel label={t('shop.writeForm.cityLabel')} required />
       <View style={s.placesWrap}>
         <GooglePlacesAutocomplete
           ref={cityRef}
-          placeholder="도시 검색 (예: Tokyo, Paris, New York)"
+          placeholder={t('shop.writeForm.cityPlaceholder')}
           query={{
             key: Config.GOOGLE_PLACES_API_KEY ?? '',
             language: 'en',
@@ -318,11 +330,11 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
         />
       </View>
 
-      <SectionLabel label="1일 가격" required />
+      <SectionLabel label={t('shop.writeForm.overseasPriceLabel')} required />
       <View style={s.row}>
         <TextInput
           style={[s.input, s.flex1]}
-          placeholder="예: 80"
+          placeholder={t('shop.writeForm.overseasPricePlaceholder')}
           placeholderTextColor={COLORS.gray2}
           value={form.pricePerDay}
           onChangeText={v => setForm(p => ({ ...p, pricePerDay: v.replace(/[^0-9]/g, '') }))}
@@ -339,26 +351,28 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
         </View>
       </View>
 
-      <SectionLabel label="베드 수" required />
+      <SectionLabel label={t('shop.writeForm.bedCountLabel')} required />
       <ChipSelect
         options={['1대', '2대', '3대', '4대 이상']}
         selected={form.bedCount ? [form.bedCount] : []}
         onToggle={toggle('bedCount')}
+        renderLabel={v => bedLabel(t, v as any)}
       />
 
-      <SectionLabel label="조명 환경" />
+      <SectionLabel label={t('shop.writeForm.lightingLabel')} />
       <ChipSelect
         options={['LED (백색광)', '자연광', '조도 조절 (디밍)', '촬영용 조명 구비']}
         selected={form.lighting ? [form.lighting] : []}
         onToggle={toggle('lighting')}
+        renderLabel={v => lightingLabel(t, v as any)}
       />
 
       {writeLang === 'ko' ? (
         <>
-          <SectionLabel label="공간 소개 (한국어)" required />
+          <SectionLabel label={t('shop.writeForm.introKoLabel')} required />
           <TextInput
             style={[s.input, s.textarea]}
-            placeholder="공간 특징, 편의시설, 규칙 등을 적어주세요"
+            placeholder={t('shop.writeForm.introKoPlaceholder')}
             placeholderTextColor={COLORS.gray2}
             value={form.description}
             onChangeText={v => setForm(p => ({ ...p, description: v }))}
@@ -382,7 +396,7 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
         </>
       )}
 
-      <SectionLabel label="연락처 (Contact)" required />
+      <SectionLabel label={t('shop.writeForm.overseasContactLabel')} required />
       <TextInput
         style={s.input}
         placeholder="Instagram @username / Email / WhatsApp"
@@ -420,6 +434,7 @@ const ModelRecruitForm = ({ form, setForm, writeLang }: {
   setForm: React.Dispatch<React.SetStateAction<ModelForm>>;
   writeLang: 'ko' | 'en';
 }) => {
+  const { t } = useTranslation();
   const toggleRegion = useCallback((v: string) => {
     setForm(p => ({ ...p, region: p.region === v ? '' : v }));
   }, [setForm]);
@@ -435,10 +450,10 @@ const ModelRecruitForm = ({ form, setForm, writeLang }: {
     <>
       {writeLang === 'ko' ? (
         <>
-          <SectionLabel label="공고 제목" required />
+          <SectionLabel label={t('shop.writeForm.postTitleLabel')} required />
           <TextInput
             style={s.input}
-            placeholder="예: 미니타투 무료 모델 구합니다"
+            placeholder={t('shop.writeForm.postTitlePlaceholder')}
             placeholderTextColor={COLORS.gray2}
             value={form.title}
             onChangeText={v => setForm(p => ({ ...p, title: v }))}
@@ -460,35 +475,37 @@ const ModelRecruitForm = ({ form, setForm, writeLang }: {
         </>
       )}
 
-      <SectionLabel label="지역" required />
+      <SectionLabel label={t('shop.writeForm.regionLabel')} required />
       <ChipSelect
         options={DOMESTIC_REGION_OPTS}
         selected={form.region ? [form.region] : []}
         onToggle={toggleRegion}
+        renderLabel={v => regionLabel(t, v as any)}
       />
 
-      <SectionLabel label="작업 스타일" required />
+      <SectionLabel label={t('shop.writeForm.workStyleLabel')} required />
       <ChipSelect
         options={STYLE_OPTS}
         selected={form.styles}
         onToggle={toggleStyle}
         multi
+        renderLabel={v => writeStyleLabel(t, v)}
       />
 
-      <SectionLabel label="재료비 (원)" />
+      <SectionLabel label={t('shop.writeForm.materialFeeLabel')} />
       <TextInput
         style={s.input}
-        placeholder="무료면 0 입력"
+        placeholder={t('shop.writeForm.materialFeePlaceholder')}
         placeholderTextColor={COLORS.gray2}
         value={form.materialFee}
         onChangeText={v => setForm(p => ({ ...p, materialFee: v.replace(/[^0-9]/g, '') }))}
         keyboardType="numeric"
       />
 
-      <SectionLabel label="작업 가능 기간" required />
+      <SectionLabel label={t('shop.writeForm.workPeriodLabel')} required />
       <TextInput
         style={s.input}
-        placeholder="예: 2026년 8월 중, 주말 가능"
+        placeholder={t('shop.writeForm.workPeriodPlaceholder')}
         placeholderTextColor={COLORS.gray2}
         value={form.workPeriod}
         onChangeText={v => setForm(p => ({ ...p, workPeriod: v }))}
@@ -497,10 +514,10 @@ const ModelRecruitForm = ({ form, setForm, writeLang }: {
 
       {writeLang === 'ko' ? (
         <>
-          <SectionLabel label="상세 내용" required />
+          <SectionLabel label={t('shop.writeForm.detailsLabel')} required />
           <TextInput
             style={[s.input, s.textarea]}
-            placeholder="작업 부위, 크기, 주의사항 등을 상세히 적어주세요"
+            placeholder={t('shop.writeForm.detailsPlaceholder')}
             placeholderTextColor={COLORS.gray2}
             value={form.description}
             onChangeText={v => setForm(p => ({ ...p, description: v }))}
@@ -524,10 +541,10 @@ const ModelRecruitForm = ({ form, setForm, writeLang }: {
         </>
       )}
 
-      <SectionLabel label="연락처" required />
+      <SectionLabel label={t('shop.writeForm.contactFieldLabel')} required />
       <TextInput
         style={s.input}
-        placeholder="카카오 오픈채팅 또는 전화번호"
+        placeholder={t('shop.writeForm.contactFieldPlaceholder')}
         placeholderTextColor={COLORS.gray2}
         value={form.contact}
         onChangeText={v => setForm(p => ({ ...p, contact: v }))}
@@ -566,6 +583,7 @@ const MediaExpertForm = ({ form, setForm, writeLang }: {
   setForm: React.Dispatch<React.SetStateAction<MediaForm>>;
   writeLang: 'ko' | 'en';
 }) => {
+  const { t } = useTranslation();
   const toggleRegion = useCallback((v: string) => {
     setForm(p => ({ ...p, region: p.region === v ? '' : v }));
   }, [setForm]);
@@ -583,50 +601,54 @@ const MediaExpertForm = ({ form, setForm, writeLang }: {
 
   return (
     <>
-      <SectionLabel label="전문 분야" required />
+      <SectionLabel label={t('shop.writeForm.specialtyLabel')} required />
       <ChipSelect
         options={['사진', '영상']}
         selected={form.specialty ? [form.specialty] : []}
         onToggle={v => setForm(p => ({ ...p, specialty: p.specialty === v ? '' : v as any }))}
+        renderLabel={v => specialtyLabel(t, v)}
       />
 
-      <SectionLabel label="닉네임 / 활동명" required />
+      <SectionLabel label={t('shop.writeForm.nicknameLabel')} required />
       <TextInput
         style={s.input}
-        placeholder="예: 사진작가 김민준"
+        placeholder={t('shop.writeForm.nicknamePlaceholder')}
         placeholderTextColor={COLORS.gray2}
         value={form.nickname}
         onChangeText={v => setForm(p => ({ ...p, nickname: v }))}
         maxLength={30}
       />
 
-      <SectionLabel label="활동 지역" required />
+      <SectionLabel label={t('shop.writeForm.activeRegionLabel')} required />
       <ChipSelect
         options={DOMESTIC_REGION_OPTS}
         selected={form.region ? [form.region] : []}
         onToggle={toggleRegion}
+        renderLabel={v => regionLabel(t, v as any)}
       />
 
-      <SectionLabel label="경력" required />
+      <SectionLabel label={t('shop.writeForm.careerLabel')} required />
       <ChipSelect
         options={EXPERIENCE_OPTS}
         selected={form.experience ? [form.experience] : []}
         onToggle={toggleExp}
+        renderLabel={v => expertCareerLabel(t, v as any)}
       />
 
-      <SectionLabel label="작업 종류 (복수 선택)" required />
+      <SectionLabel label={t('shop.writeForm.workKindsLabel')} required />
       <ChipSelect
         options={['사진 촬영', '사진 보정', '영상 촬영', '영상 편집']}
         selected={form.workKinds}
         onToggle={toggleWork}
         multi
+        renderLabel={v => expertWorkKindLabel(t, v as any)}
       />
 
-      <SectionLabel label="견적 범위 (원)" />
+      <SectionLabel label={t('shop.writeForm.priceRangeLabel')} />
       <View style={s.row}>
         <TextInput
           style={[s.input, s.flex1]}
-          placeholder="최소"
+          placeholder={t('shop.writeForm.priceMinPlaceholder')}
           placeholderTextColor={COLORS.gray2}
           value={form.priceMin}
           onChangeText={v => setForm(p => ({ ...p, priceMin: v.replace(/[^0-9]/g, '') }))}
@@ -635,7 +657,7 @@ const MediaExpertForm = ({ form, setForm, writeLang }: {
         <Text style={s.rangeSep}>~</Text>
         <TextInput
           style={[s.input, s.flex1]}
-          placeholder="최대"
+          placeholder={t('shop.writeForm.priceMaxPlaceholder')}
           placeholderTextColor={COLORS.gray2}
           value={form.priceMax}
           onChangeText={v => setForm(p => ({ ...p, priceMax: v.replace(/[^0-9]/g, '') }))}
@@ -645,10 +667,10 @@ const MediaExpertForm = ({ form, setForm, writeLang }: {
 
       {writeLang === 'ko' ? (
         <>
-          <SectionLabel label="소개 및 작업 스타일" required />
+          <SectionLabel label={t('shop.writeForm.introStyleLabel')} required />
           <TextInput
             style={[s.input, s.textarea]}
-            placeholder="작업 방식, 장비, 포트폴리오 링크 등을 자유롭게 적어주세요"
+            placeholder={t('shop.writeForm.introStylePlaceholder')}
             placeholderTextColor={COLORS.gray2}
             value={form.description}
             onChangeText={v => setForm(p => ({ ...p, description: v }))}
@@ -672,7 +694,7 @@ const MediaExpertForm = ({ form, setForm, writeLang }: {
         </>
       )}
 
-      <SectionLabel label="인스타그램" />
+      <SectionLabel label={t('shop.writeForm.instagramLabel')} />
       <TextInput
         style={s.input}
         placeholder="@username"
@@ -682,10 +704,10 @@ const MediaExpertForm = ({ form, setForm, writeLang }: {
         autoCapitalize="none"
       />
 
-      <SectionLabel label="연락처" required />
+      <SectionLabel label={t('shop.writeForm.contactFieldLabel')} required />
       <TextInput
         style={s.input}
-        placeholder="카카오 오픈채팅 또는 전화번호"
+        placeholder={t('shop.writeForm.contactFieldPlaceholder')}
         placeholderTextColor={COLORS.gray2}
         value={form.contact}
         onChangeText={v => setForm(p => ({ ...p, contact: v }))}
@@ -702,10 +724,12 @@ const ImageSection = ({ images, onAdd, onRemove, uploading }: {
   onAdd: () => void;
   onRemove: (i: number) => void;
   uploading: boolean;
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <View>
-    <SectionLabel label="사진 첨부" />
-    <Text style={s.imageHint}>최대 10장 · 첫 번째 사진이 대표 이미지로 사용됩니다</Text>
+    <SectionLabel label={t('shop.writeForm.imageAttach')} />
+    <Text style={s.imageHint}>{t('shop.writeForm.imageHint')}</Text>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.imageScroll}>
       <TouchableOpacity style={s.imageAdd} onPress={onAdd} activeOpacity={0.75} disabled={uploading}>
         {uploading ? (
@@ -729,14 +753,15 @@ const ImageSection = ({ images, onAdd, onRemove, uploading }: {
           </TouchableOpacity>
           {i === 0 && (
             <View style={s.imageBadge}>
-              <Text style={s.imageBadgeText}>대표</Text>
+              <Text style={s.imageBadgeText}>{t('shop.writeForm.imageFeatured')}</Text>
             </View>
           )}
         </View>
       ))}
     </ScrollView>
   </View>
-);
+  );
+};
 
 /* ─────────────────────────────────────────────────────
  * 메인 화면
@@ -833,7 +858,7 @@ const ShopWriteScreen = () => {
         });
       }
     }).catch(() => {
-      toast('게시물 정보를 불러오지 못했습니다.', { variant: 'error' });
+      toast(t('shop.writeForm.loadFailed'), { variant: 'error' });
     }).finally(() => setDetailLoading(false));
   }, [postId, toast]);
 
@@ -1035,7 +1060,7 @@ const ShopWriteScreen = () => {
               style={s.boothToggleSegment}
             >
               <Text style={[s.boothToggleText, boothKind === 'domestic' && s.boothToggleTextActive]}>
-                국내 부스쉐어
+                {t('shop.writeForm.domesticBooth')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1044,7 +1069,7 @@ const ShopWriteScreen = () => {
               style={s.boothToggleSegment}
             >
               <Text style={[s.boothToggleText, boothKind === 'overseas' && s.boothToggleTextActive]}>
-                해외 부스쉐어
+                {t('shop.writeForm.overseasBooth')}
               </Text>
             </TouchableOpacity>
           </View>

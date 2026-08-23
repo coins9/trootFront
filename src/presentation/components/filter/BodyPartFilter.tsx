@@ -8,6 +8,7 @@ import {
   HeadNeckIcon, ArmFlexIcon, TorsoIcon, BackIcon, LegFootIcon, SpecialIcon,
 } from '../icons';
 import { BODY_PARTS } from '../../../data/mock/mockData';
+import { useTranslation } from '../../store/languageStore';
 
 interface BodyPartFilterProps {
   selected: string[];
@@ -24,7 +25,17 @@ const CATEGORY_ICONS: Record<string, React.FC<{ size?: number; color?: string }>
 };
 
 const BodyPartFilter = memo(({ selected, onToggle }: BodyPartFilterProps) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState<string[]>(['머리·목', '팔·손', '하체·발']);
+
+  const categoryLabel: Record<string, string> = {
+    '머리·목': t('filter.bodyPartGroupHeadNeck'),
+    '팔·손': t('filter.bodyPartGroupArmHand'),
+    '상체': t('filter.bodyPartGroupTorso'),
+    '등': t('filter.bodyPartGroupBack'),
+    '하체·발': t('filter.bodyPartGroupLegFoot'),
+    '특수/연장': t('filter.bodyPartGroupSpecial'),
+  };
 
   const toggleExpand = useCallback((category: string) => {
     setExpanded((prev) =>
@@ -51,7 +62,7 @@ const BodyPartFilter = memo(({ selected, onToggle }: BodyPartFilterProps) => {
               <View style={styles.headerLeft}>
                 <Icon size={20} color={COLORS.gold} />
                 <Text style={styles.headerNum}>{idx + 1}.</Text>
-                <Text style={styles.headerTitle}>{section.category}</Text>
+                <Text style={styles.headerTitle}>{categoryLabel[section.category] ?? section.category}</Text>
                 {selectedCount > 0 && <View style={styles.dot} />}
               </View>
               {isExpanded

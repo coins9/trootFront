@@ -8,6 +8,7 @@ import {
 import ImageResizer from 'react-native-image-resizer';
 import { uploadImages, type LocalImage, type UploadScope } from '../../data/api/upload';
 import { ApiError } from '../../data/api/client';
+import { useTranslation } from '../store/languageStore';
 
 interface Options {
   scope: UploadScope;
@@ -17,7 +18,14 @@ interface Options {
   onError?: (message: string) => void;
 }
 
-const requestAndroidGalleryPermission = async (): Promise<boolean> => {
+interface PermissionStrings {
+  title: string;
+  message: string;
+  allow: string;
+  deny: string;
+}
+
+const requestAndroidGalleryPermission = async (strings: PermissionStrings): Promise<boolean> => {
   if (Platform.OS !== 'android') return true;
   try {
     // Android 13+(API 33+)는 READ_MEDIA_IMAGES, 그 미만은 READ_EXTERNAL_STORAGE
@@ -26,10 +34,10 @@ const requestAndroidGalleryPermission = async (): Promise<boolean> => {
       ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
       : PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
     const result = await PermissionsAndroid.request(permission, {
-      title: '사진 접근 권한',
-      message: 'T:ROOT가 갤러리에서 사진을 선택하려면 접근 권한이 필요합니다.',
-      buttonPositive: '허용',
-      buttonNegative: '거부',
+      title: strings.title,
+      message: strings.message,
+      buttonPositive: strings.allow,
+      buttonNegative: strings.deny,
     });
     return result === PermissionsAndroid.RESULTS.GRANTED;
   } catch {
@@ -37,16 +45,16 @@ const requestAndroidGalleryPermission = async (): Promise<boolean> => {
   }
 };
 
-const requestAndroidCameraPermission = async (): Promise<boolean> => {
+const requestAndroidCameraPermission = async (strings: PermissionStrings): Promise<boolean> => {
   if (Platform.OS !== 'android') return true;
   try {
     const result = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.CAMERA,
       {
-        title: '카메라 권한',
-        message: 'T:ROOT가 사진을 찍으려면 카메라 권한이 필요합니다.',
-        buttonPositive: '허용',
-        buttonNegative: '거부',
+        title: strings.title,
+        message: strings.message,
+        buttonPositive: strings.allow,
+        buttonNegative: strings.deny,
       },
     );
     return result === PermissionsAndroid.RESULTS.GRANTED;
@@ -132,6 +140,7 @@ const processAssets = async (assets: Asset[]): Promise<LocalImage[]> => {
  * RAW 파일은 자동으로 JPEG으로 변환된 후 업로드됩니다.
  */
 export function useImageUpload({ scope, max, current, onError }: Options) {
+  const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
 
   const upload = useCallback(async (images: LocalImage[]): Promise<string[]> => {
@@ -140,24 +149,29 @@ export function useImageUpload({ scope, max, current, onError }: Options) {
       return await uploadImages(scope, images);
     } catch (e) {
       onError?.(
-        e instanceof ApiError ? e.userMessage : '사진 업로드에 실패했습니다. 다시 시도해주세요.',
+        e instanceof ApiError ? e.userMessage : t('imageUpload.uploadError'),
       );
       return [];
     } finally {
       setUploading(false);
     }
-  }, [scope, onError]);
+  }, [scope, onError, t]);
 
   const pickAndUpload = useCallback(async (): Promise<string[]> => {
     const remaining = max - current;
     if (remaining <= 0) {
-      onError?.(`사진은 최대 ${max}장까지 첨부할 수 있어요`);
+      onError?.(t('imageUpload.maxPhotosError').replace('{{max}}', String(max)));
       return [];
     }
 
-    const granted = await requestAndroidGalleryPermission();
+    const granted = await requestAndroidGalleryPermission({
+      title: t('imageUpload.galleryPermissionTitle'),
+      message: t('imageUpload.galleryPermissionMsg'),
+      allow: t('imageUpload.allow'),
+      deny: t('imageUpload.deny'),
+    });
     if (!granted) {
-      onError?.('갤러리 접근 권한이 필요합니다. 설정에서 권한을 허용해주세요.');
+      onError?.(t('imageUpload.galleryPermissionError'));
       return [];
     }
 
@@ -171,18 +185,23 @@ export function useImageUpload({ scope, max, current, onError }: Options) {
     const images = await processAssets(picked.assets);
     if (!images.length) return [];
     return upload(images);
-  }, [max, current, onError, upload]);
+  }, [max, current, onError, upload, t]);
 
   const pickFromCamera = useCallback(async (): Promise<string[]> => {
     const remaining = max - current;
     if (remaining <= 0) {
-      onError?.(`사진은 최대 ${max}장까지 첨부할 수 있어요`);
+      onError?.(t('imageUpload.maxPhotosError').replace('{{max}}', String(max)));
       return [];
     }
 
-    const granted = await requestAndroidCameraPermission();
+    const granted = await requestAndroidCameraPermission({
+      title: t('imageUpload.cameraPermissionTitle'),
+      message: t('imageUpload.cameraPermissionMsg'),
+      allow: t('imageUpload.allow'),
+      deny: t('imageUpload.deny'),
+    });
     if (!granted) {
-      onError?.('카메라 권한이 필요합니다. 설정에서 권한을 허용해주세요.');
+      onError?.(t('imageUpload.cameraPermissionError'));
       return [];
     }
 
@@ -196,25 +215,25 @@ export function useImageUpload({ scope, max, current, onError }: Options) {
     const images = await processAssets(picked.assets);
     if (!images.length) return [];
     return upload(images);
-  }, [max, current, onError, upload]);
+  }, [max, current, onError, upload, t]);
 
   /** Shows an action sheet to choose gallery or camera, then uploads. */
   const pickWithChoice = useCallback((): Promise<string[]> => {
     return new Promise((resolve) => {
       Alert.alert(
-        '사진 추가',
-        '사진을 가져올 방법을 선택해주세요',
+        t('imageUpload.actionTitle'),
+        t('imageUpload.actionMsg'),
         [
           {
-            text: '카메라 촬영',
+            text: t('imageUpload.actionCamera'),
             onPress: () => pickFromCamera().then(resolve),
           },
           {
-            text: '갤러리에서 선택',
+            text: t('imageUpload.actionGallery'),
             onPress: () => pickAndUpload().then(resolve),
           },
           {
-            text: '취소',
+            text: t('imageUpload.actionCancel'),
             style: 'cancel',
             onPress: () => resolve([]),
           },
@@ -222,7 +241,7 @@ export function useImageUpload({ scope, max, current, onError }: Options) {
         { cancelable: true, onDismiss: () => resolve([]) },
       );
     });
-  }, [pickFromCamera, pickAndUpload]);
+  }, [pickFromCamera, pickAndUpload, t]);
 
   return { pickAndUpload, pickFromCamera, pickWithChoice, uploading };
 }

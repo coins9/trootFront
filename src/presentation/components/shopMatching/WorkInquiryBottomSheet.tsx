@@ -229,7 +229,7 @@ const WorkInquiryBottomSheet = memo(({
                 style={styles.textInput}
                 value={form.referenceUrl}
                 onChangeText={(t) => update('referenceUrl', t)}
-                placeholder="https:// (링크를 입력해주세요)"
+                placeholder={t('shop.bs.refUrlPlaceholder')}
                 placeholderTextColor={COLORS.gray2}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -249,7 +249,7 @@ const WorkInquiryBottomSheet = memo(({
                   style={styles.textArea}
                   value={form.extraRequest}
                   onChangeText={(t) => update('extraRequest', t.slice(0, 500))}
-                  placeholder={'추가로 요청하실 사항이 있다면\n자유롭게 작성해주세요.'}
+                  placeholder={t('shop.bs.extraRequestPlaceholder')}
                   placeholderTextColor={COLORS.gray2}
                   multiline
                   textAlignVertical="top"

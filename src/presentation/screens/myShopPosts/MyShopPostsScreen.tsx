@@ -35,10 +35,13 @@ interface MyShopPost {
   viewCount: number;
 }
 
-const CATEGORY_LABEL: Record<ShopMatchingCategory, string> = {
-  '부스 쉐어': '부스 쉐어',
-  '타투 모델 구인 (비기너)': '타투 모델',
-  '사진/영상 편집자': '사진/영상',
+const getCategoryLabel = (category: ShopMatchingCategory, t: ReturnType<typeof useTranslation>['t']): string => {
+  const map: Record<ShopMatchingCategory, string> = {
+    '부스 쉐어': t('myShopPosts.categoryBoothShare'),
+    '타투 모델 구인 (비기너)': t('myShopPosts.categoryTattooModel'),
+    '사진/영상 편집자': t('myShopPosts.categoryMediaExpert'),
+  };
+  return map[category] ?? category;
 };
 
 const API_TO_CATEGORY: Record<ShopCategory, ShopMatchingCategory> = {
@@ -82,7 +85,7 @@ const PostCard = React.memo(({ post, onEdit, onToggleStatus, onDelete }: {
   <View style={s.card}>
     <View style={s.cardTop}>
       <View style={s.categoryTag}>
-        <Text style={s.categoryTagText}>{CATEGORY_LABEL[post.category]}</Text>
+        <Text style={s.categoryTagText}>{getCategoryLabel(post.category, t)}</Text>
       </View>
       <StatusBadge status={post.status} />
     </View>

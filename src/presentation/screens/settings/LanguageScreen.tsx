@@ -9,15 +9,15 @@ import { COLORS } from '../../theme/colors';
 import { BackArrowIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useLanguageStore, type LanguagePreference } from '../../store/languageStore';
-import { getDeviceLanguage } from '../../../infrastructure/i18n';
+import { getDeviceLanguage, type TranslationKey } from '../../../infrastructure/i18n';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const OPTIONS: { key: LanguagePreference; label: string }[] = [
-  { key: 'system', label: '자동' },
-  { key: 'ko',     label: '한국어' },
-  { key: 'en',     label: 'English' },
+const OPTIONS: { key: LanguagePreference; labelKey: TranslationKey }[] = [
+  { key: 'system', labelKey: 'settings.auto' },
+  { key: 'ko',     labelKey: 'settings.languageKo' },
+  { key: 'en',     labelKey: 'settings.languageEn' },
 ];
 
 const LanguageScreen = () => {
@@ -48,8 +48,10 @@ const LanguageScreen = () => {
     [preference, setPreference, slideAnim, toast],
   );
 
-  const systemDesc =
-    deviceLang === 'ko' ? '현재 기기: 한국어' : 'Current device: English';
+  const systemDesc = t('settings.deviceHint').replace(
+    '{{lang}}',
+    deviceLang === 'ko' ? t('settings.languageKo') : t('settings.languageEn'),
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -93,7 +95,7 @@ const LanguageScreen = () => {
                 style={styles.toggleSegment}
               >
                 <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </Text>
               </TouchableOpacity>
             );

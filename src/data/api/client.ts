@@ -1,4 +1,5 @@
 import { useAuthStore } from '../../presentation/store/authStore';
+import { useLanguageStore } from '../../presentation/store/languageStore';
 import { logNet } from '../../infrastructure/debug/netLog';
 
 const API_BASE = 'https://api.tattooroot.com/api/v1';
@@ -31,21 +32,22 @@ export class ApiError extends Error {
   }
 
   get userMessage(): string {
+    const t = useLanguageStore.getState().t;
     switch (this.code) {
       case 'AUTH_TOKEN_EXPIRED':
-      case 'AUTH_UNAUTHORIZED': return '다시 로그인해주세요.';
-      case 'USER_SUSPENDED': return '이용이 정지된 계정입니다.';
-      case 'USER_BANNED': return '영구 정지된 계정입니다.';
-      case 'USER_NICKNAME_TAKEN': return '이미 사용 중인 닉네임입니다.';
-      case 'USER_ONBOARDING_REQUIRED': return '먼저 프로필 설정을 완료해주세요.';
-      case 'ARTIST_SELECTED_MASTER_LIMIT_EXCEEDED': return 'Selected Master 정원이 가득 찼습니다.';
-      case 'REPORT_DUPLICATED': return '이미 신고한 대상입니다.';
-      case 'REPORT_SELF_NOT_ALLOWED': return '본인은 신고할 수 없습니다.';
-      case 'AD_SLOT_SOLD_OUT': return '광고 슬롯이 모두 판매되었습니다.';
-      case 'AD_FREE_UP_COOLDOWN': return '무료 UP은 24시간마다 사용할 수 있습니다.';
-      case 'COMMON_RATE_LIMITED': return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
-      case 'NETWORK_ERROR': return '네트워크 연결을 확인해주세요.';
-      default: return '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      case 'AUTH_UNAUTHORIZED': return t('auth.reloginRequired');
+      case 'USER_SUSPENDED': return t('auth.accountSuspended');
+      case 'USER_BANNED': return t('auth.accountBanned');
+      case 'USER_NICKNAME_TAKEN': return t('auth.nicknameTaken');
+      case 'USER_ONBOARDING_REQUIRED': return t('auth.onboardingRequired');
+      case 'ARTIST_SELECTED_MASTER_LIMIT_EXCEEDED': return t('auth.selectedMasterFull');
+      case 'REPORT_DUPLICATED': return t('auth.reportDuplicated');
+      case 'REPORT_SELF_NOT_ALLOWED': return t('auth.reportSelfNotAllowed');
+      case 'AD_SLOT_SOLD_OUT': return t('auth.adSlotSoldOut');
+      case 'AD_FREE_UP_COOLDOWN': return t('auth.adFreeUpCooldown');
+      case 'COMMON_RATE_LIMITED': return t('auth.rateLimited');
+      case 'NETWORK_ERROR': return t('auth.networkError');
+      default: return t('auth.genericError');
     }
   }
 }

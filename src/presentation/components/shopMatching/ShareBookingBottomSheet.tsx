@@ -97,7 +97,7 @@ const ShareBookingBottomSheet = memo(({
     } else {
       Alert.alert(
         t('common.noContactTitle'),
-        '호스트가 등록한 연락망이 아직 없습니다.\n문의 내용은 클립보드에 복사되었습니다.',
+        `${t('shop.noContactMsg')}\n${t('common.copiedToChat')}`,
       );
     }
 

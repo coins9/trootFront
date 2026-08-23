@@ -10,6 +10,7 @@ import { BackArrowIcon, CommentIcon } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { shopApi, ShopPost, ShopCategory } from '../../../data/api';
 import { ShopMatchingCategory } from '../../../domain/entities/shopTypes';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ShopApplications'>;
@@ -20,10 +21,10 @@ const CATEGORY_TO_API: Record<ShopMatchingCategory, ShopCategory[]> = {
   '사진/영상 편집자': ['media_expert'],
 };
 
-const CATEGORY_LABEL: Record<ShopMatchingCategory, string> = {
-  '부스 쉐어': '부스 쉐어',
-  '타투 모델 구인 (비기너)': '타투 모델',
-  '사진/영상 편집자': '사진/영상',
+const CATEGORY_LABEL_KEY: Record<ShopMatchingCategory, string> = {
+  '부스 쉐어': 'shop.appStatus.boothShare',
+  '타투 모델 구인 (비기너)': 'shop.appStatus.tattooModel',
+  '사진/영상 편집자': 'shop.appStatus.photoVideo',
 };
 
 interface Applicant {
@@ -37,6 +38,7 @@ interface Applicant {
 const ShopApplicationsScreen = () => {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const { t } = useTranslation();
   const { category } = route.params;
 
   const [posts, setPosts] = useState<ShopPost[]>([]);
@@ -110,7 +112,7 @@ const ShopApplicationsScreen = () => {
             {isLoading ? (
               <ActivityIndicator size="small" color={COLORS.gold} style={{ padding: 16 }} />
             ) : list.length === 0 ? (
-              <Text style={s.emptyText}>지원자가 없습니다.</Text>
+              <Text style={s.emptyText}>{t('shop.appStatus.noApplicants')}</Text>
             ) : (
               <FlatList
                 data={list}
@@ -136,7 +138,7 @@ const ShopApplicationsScreen = () => {
         >
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>{CATEGORY_LABEL[category]} 지원 현황</Text>
+        <Text style={s.headerTitle}>{t('shop.appStatus.statusTitle', { label: t(CATEGORY_LABEL_KEY[category] as any) })}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -144,7 +146,7 @@ const ShopApplicationsScreen = () => {
         <ActivityIndicator size="large" color={COLORS.gold} style={{ flex: 1 }} />
       ) : posts.length === 0 ? (
         <View style={s.emptyWrap}>
-          <Text style={s.emptyText}>등록한 게시물이 없습니다.</Text>
+          <Text style={s.emptyText}>{t('shop.appStatus.emptyPosts')}</Text>
         </View>
       ) : (
         <FlatList

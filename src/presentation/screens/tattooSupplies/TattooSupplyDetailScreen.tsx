@@ -14,6 +14,7 @@ import { useToast } from '../../components/common/Toast';
 import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
 import SupplyInquiryBottomSheet from '../../components/supplies/SupplyInquiryBottomSheet';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 const { width: W, height: H } = Dimensions.get('window');
 const CAROUSEL_H = H * 0.4;
@@ -27,6 +28,7 @@ const TattooSupplyDetailScreen = () => {
   const route = useRoute<DetailRoute>();
   const { supply } = route.params;
   const { toast } = useToast();
+  const { t, language } = useTranslation();
 
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(supply.isBookmarked);
@@ -63,7 +65,7 @@ const TattooSupplyDetailScreen = () => {
   const toggleBookmark = useCallback(() => {
     setBookmarked((prev) => {
       const next = !prev;
-      toast(next ? '찜 목록에 추가되었습니다.' : '찜을 해제했습니다.', {
+      toast(next ? t('common.bookmarked') : t('common.unbookmarked'), {
         variant: next ? 'success' : 'default',
       });
       return next;
@@ -71,7 +73,7 @@ const TattooSupplyDetailScreen = () => {
   }, [toast]);
 
   const handleShare = useCallback(() => {
-    toast('공유 링크가 복사되었습니다.', { variant: 'success' });
+    toast(t('supplies.detail.linkCopied'), { variant: 'success' });
   }, [toast]);
 
   const handleOptionSelect = useCallback((groupLabel: string, value: string) => {
@@ -150,17 +152,18 @@ const TattooSupplyDetailScreen = () => {
 
           {supply.price ? (
             <Text style={styles.price}>
-              {supply.price.toLocaleString()}<Text style={styles.priceUnit}> 원 <Text style={styles.priceNote}>(표시가)</Text></Text>
+              {language === 'ko' ? `${supply.price.toLocaleString()}` : `₩${supply.price.toLocaleString()}`}
+              <Text style={styles.priceUnit}> {language === 'ko' ? '원' : ''} <Text style={styles.priceNote}>{t('supplies.detail.listPrice')}</Text></Text>
             </Text>
           ) : (
-            <Text style={styles.priceHidden}>가격 문의</Text>
+            <Text style={styles.priceHidden}>{t('supplies.detail.priceInquiry')}</Text>
           )}
         </View>
 
         {/* ── Description ── */}
         {supply.description && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>상품 소개</Text>
+            <Text style={styles.sectionTitle}>{t('supplies.detail.intro')}</Text>
             <Text style={styles.description}>{supply.description}</Text>
           </View>
         )}
@@ -191,7 +194,7 @@ const TattooSupplyDetailScreen = () => {
 
         {/* ── Seller ── */}
         <View style={styles.sellerRow}>
-          <Text style={styles.sellerLabel}>판매자</Text>
+          <Text style={styles.sellerLabel}>{t('supplies.seller')}</Text>
           <Text style={styles.sellerName}>{supply.seller.nickname}</Text>
         </View>
       </ScrollView>
@@ -203,7 +206,7 @@ const TattooSupplyDetailScreen = () => {
           style={styles.ctaBtn}
           activeOpacity={0.85}
         >
-          <Text style={styles.ctaText}>1:1 구매 문의하기</Text>
+          <Text style={styles.ctaText}>{t('supplies.detail.contact')}</Text>
         </TouchableOpacity>
       </View>
 

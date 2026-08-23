@@ -15,12 +15,17 @@ import {
 } from '../../../data/api';
 import { REGIONS } from '../../../domain/entities/regions';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { useTranslation } from '../../store/languageStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteP = RouteProp<RootStackParamList, 'AdManage'>;
 
-const PLACEMENT_LABEL: Record<AdPlacement, string> = {
-  artwork: '작품', product: '용품샵', booth: '부스 쉐어', media: '사진/영상', model: '타투 모델',
+const PLACEMENT_T_KEY: Record<AdPlacement, string> = {
+  artwork: 'ad.placementArtwork',
+  product: 'ad.placementProduct',
+  booth: 'ad.placementBooth',
+  media: 'ad.placementMedia',
+  model: 'ad.placementModel',
 };
 
 const AdManageScreen = () => {
@@ -28,6 +33,7 @@ const AdManageScreen = () => {
   const route = useRoute<RouteP>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const placement = route.params.placement;
   const targetId = route.params.targetId;
@@ -50,7 +56,7 @@ const AdManageScreen = () => {
       setStats(st);
       setProducts(prods);
     } catch (e) {
-      toast(e instanceof ApiError ? e.userMessage : '광고 정보를 불러오지 못했습니다.', { variant: 'error' });
+      toast(e instanceof ApiError ? e.userMessage : t('ad.loadFailed'), { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -63,10 +69,10 @@ const AdManageScreen = () => {
       try {
         await adApi.purchase({ placement, type, productCode, targetId, regionKey });
         setBuyOpen(false);
-        toast('광고가 등록되었습니다', { variant: 'success' });
+        toast(t('ad.registered'), { variant: 'success' });
         void load();
       } catch (e) {
-        toast(e instanceof ApiError ? e.userMessage : '광고 등록에 실패했습니다.', { variant: 'error' });
+        toast(e instanceof ApiError ? e.userMessage : t('ad.registerFailed'), { variant: 'error' });
       }
     },
     [placement, targetId, toast, load],
@@ -80,7 +86,7 @@ const AdManageScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>{PLACEMENT_LABEL[placement]} 광고 관리</Text>
+        <Text style={s.headerTitle}>{t(PLACEMENT_T_KEY[placement] as any)} {t('ad.manage')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -90,31 +96,31 @@ const AdManageScreen = () => {
         <ScrollView contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 90 }]} showsVerticalScrollIndicator={false}>
           {stats && (
             <View style={s.statsCard}>
-              <View style={s.statItem}><Text style={s.statValue}>{stats.impressions.toLocaleString()}</Text><Text style={s.statLabel}>노출</Text></View>
+              <View style={s.statItem}><Text style={s.statValue}>{stats.impressions.toLocaleString()}</Text><Text style={s.statLabel}>{t('ad.impressions')}</Text></View>
               <View style={s.statDivider} />
-              <View style={s.statItem}><Text style={s.statValue}>{stats.clicks.toLocaleString()}</Text><Text style={s.statLabel}>클릭</Text></View>
+              <View style={s.statItem}><Text style={s.statValue}>{stats.clicks.toLocaleString()}</Text><Text style={s.statLabel}>{t('ad.clicks')}</Text></View>
               <View style={s.statDivider} />
               <View style={s.statItem}><Text style={s.statValue}>{stats.ctr}%</Text><Text style={s.statLabel}>CTR</Text></View>
               <View style={s.statDivider} />
-              <View style={s.statItem}><Text style={s.statValue}>{stats.spend.toLocaleString()}</Text><Text style={s.statLabel}>집행액</Text></View>
+              <View style={s.statItem}><Text style={s.statValue}>{stats.spend.toLocaleString()}</Text><Text style={s.statLabel}>{t('ad.spend')}</Text></View>
             </View>
           )}
 
-          <Text style={s.sectionTitle}>진행 중 · 지난 광고</Text>
+          <Text style={s.sectionTitle}>{t('ad.sectionHistory')}</Text>
           {campaigns.length === 0 ? (
-            <View style={s.empty}><Text style={s.emptyText}>아직 등록한 광고가 없습니다.</Text></View>
+            <View style={s.empty}><Text style={s.emptyText}>{t('ad.emptyAds')}</Text></View>
           ) : (
             campaigns.map((c) => (
               <View key={c.id} style={s.campCard}>
                 <View style={s.campLeft}>
                   <Text style={s.campPlan}>{c.planLabel}</Text>
                   <Text style={s.campSeg}>
-                    {[c.regionKey, c.genreKey].filter(Boolean).join(' · ') || '전국'} · 노출 {c.impressions.toLocaleString()}
+                    {[c.regionKey, c.genreKey].filter(Boolean).join(' · ') || t('ad.nationwide')} · {t('ad.impressionCount')} {c.impressions.toLocaleString()}
                   </Text>
                 </View>
                 <View style={[s.campBadge, c.status === 'active' && s.campBadgeActive]}>
                   <Text style={[s.campBadgeText, c.status === 'active' && s.campBadgeTextActive]}>
-                    {c.status === 'active' ? '진행중' : c.status === 'completed' ? '종료' : c.status === 'refunded' ? '환불' : '대기'}
+                    {c.status === 'active' ? t('ad.statusActive') : c.status === 'completed' ? t('ad.statusCompleted') : c.status === 'refunded' ? t('ad.statusRefunded') : t('ad.statusPending')}
                   </Text>
                 </View>
               </View>
@@ -127,7 +133,7 @@ const AdManageScreen = () => {
         <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
           <TouchableOpacity style={s.buyBtn} activeOpacity={0.85} onPress={() => setBuyOpen(true)}>
             <BarChartIcon size={18} color={COLORS.black} strokeWidth={1.8} />
-            <Text style={s.buyText}>광고 구매하기</Text>
+            <Text style={s.buyText}>{t('ad.buyBtn')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -150,6 +156,7 @@ const PurchaseSheet = ({ visible, products, onClose, onPurchase }: {
   onPurchase: (type: AdType, productCode: string, regionKey: string) => void;
 }) => {
   const insets = useSafeAreaInsets();
+  const { t, language } = useTranslation();
   const [type, setType] = useState<AdType>('cardad');
   const [productCode, setProductCode] = useState<string>('');
   const [regionKey, setRegionKey] = useState<string>('');
@@ -162,31 +169,31 @@ const PurchaseSheet = ({ visible, products, onClose, onPurchase }: {
       <Pressable style={s.backdrop} onPress={onClose}>
         <Pressable style={[s.sheet, { paddingBottom: insets.bottom + 16 }]} onPress={() => {}}>
           <View style={s.sheetHandle} />
-          <Text style={s.sheetTitle}>광고 구매</Text>
+          <Text style={s.sheetTitle}>{t('ad.purchaseTitle')}</Text>
 
-          <Text style={s.sheetLabel}>광고 유형</Text>
+          <Text style={s.sheetLabel}>{t('ad.adType')}</Text>
           <View style={s.chipRow}>
-            {(['cardad', 'superup'] as AdType[]).map((t) => (
-              <TouchableOpacity key={t} onPress={() => { setType(t); setProductCode(''); }}
-                style={[s.chip, type === t && s.chipActive]} activeOpacity={0.75}>
-                <Text style={[s.chipText, type === t && s.chipTextActive]}>{t === 'cardad' ? '카드광고(고정노출)' : '슈퍼UP(횟수권)'}</Text>
+            {(['cardad', 'superup'] as AdType[]).map((adType) => (
+              <TouchableOpacity key={adType} onPress={() => { setType(adType); setProductCode(''); }}
+                style={[s.chip, type === adType && s.chipActive]} activeOpacity={0.75}>
+                <Text style={[s.chipText, type === adType && s.chipTextActive]}>{adType === 'cardad' ? t('ad.typeCardAd') : t('ad.typeSuperUp')}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={s.sheetLabel}>상품</Text>
+          <Text style={s.sheetLabel}>{t('ad.product')}</Text>
           <View style={s.chipRow}>
             {list.map((p) => (
               <TouchableOpacity key={p.code} onPress={() => setProductCode(p.code)}
                 style={[s.chip, productCode === p.code && s.chipActive]} activeOpacity={0.75}>
                 <Text style={[s.chipText, productCode === p.code && s.chipTextActive]}>
-                  {p.label} · {p.price.toLocaleString()}원
+                  {p.label} · {language === 'ko' ? `${p.price.toLocaleString()}원` : `₩${p.price.toLocaleString()}`}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={s.sheetLabel}>노출 지역 {type === 'cardad' && <Text style={s.req}>*</Text>}</Text>
+          <Text style={s.sheetLabel}>{t('ad.region')} {type === 'cardad' && <Text style={s.req}>*</Text>}</Text>
           <ScrollView style={s.regionScroll} showsVerticalScrollIndicator={false}>
             <View style={s.chipRow}>
               {REGIONS.map((r) => (
@@ -204,7 +211,7 @@ const PurchaseSheet = ({ visible, products, onClose, onPurchase }: {
             activeOpacity={0.85}
             onPress={() => onPurchase(type, productCode, regionKey)}
           >
-            <Text style={[s.confirmText, !canBuy && s.confirmTextDisabled]}>결제하고 광고 시작</Text>
+            <Text style={[s.confirmText, !canBuy && s.confirmTextDisabled]}>{t('ad.confirmBuy')}</Text>
             <ChevronRightIcon size={16} color={canBuy ? COLORS.black : COLORS.gray2} />
           </TouchableOpacity>
         </Pressable>

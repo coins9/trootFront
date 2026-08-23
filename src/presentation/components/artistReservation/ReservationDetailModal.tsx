@@ -10,6 +10,7 @@ import {
   RefreshIcon, EditPenIcon, PersonSilhouette, CheckCircleIcon,
 } from '../icons';
 import { BookingStatus } from '../../../domain/entities/artistScheduleTypes';
+import { useTranslation } from '../../store/languageStore';
 
 export interface ReservationDetail {
   id: string;
@@ -53,6 +54,28 @@ const ReservationDetailModal = memo(({
   const visible = detail !== null;
   const translate = useRef(new Animated.Value(SH)).current;
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+
+  const kindLabel = (kind: ReservationDetail['kind']): string => {
+    switch (kind) {
+      case 'consulting': return t('reservation.kindConsult');
+      case 'procedure':  return t('reservation.kindSession');
+      case 'retouch':    return t('reservation.kindRetouch');
+      case 'meeting':    return t('reservation.kindMeeting');
+      default:           return t('reservation.kindBreak');
+    }
+  };
+
+  const statusDisplayLabel = (status: BookingStatus): string => {
+    switch (status) {
+      case '대기': return t('reservation.bookingStatus.waiting');
+      case '확정': return t('reservation.bookingStatus.confirmed');
+      case '완료': return t('reservation.bookingStatus.completed');
+      case '노쇼': return t('reservation.bookingStatus.noShow');
+      case '취소': return t('reservation.bookingStatus.cancelled');
+      default:     return status;
+    }
+  };
 
   useEffect(() => {
     Animated.timing(translate, {
@@ -112,11 +135,7 @@ const ReservationDetailModal = memo(({
               <View style={styles.kindPill}>
                 <KindIcon size={14} color={COLORS.gold} strokeWidth={1.7} />
                 <Text style={styles.kindPillText}>
-                  {detail.kind === 'consulting' ? '상담'
-                    : detail.kind === 'procedure' ? '시술'
-                    : detail.kind === 'retouch'   ? '리터치'
-                    : detail.kind === 'meeting'   ? '미팅'
-                    : '휴식'}
+                  {kindLabel(detail.kind)}
                 </Text>
               </View>
               <View style={[
@@ -129,7 +148,7 @@ const ReservationDetailModal = memo(({
                   isNoShow && styles.statusChipTextDanger,
                   isDone && styles.statusChipTextDone,
                 ]}>
-                  {detail.status}
+                  {statusDisplayLabel(detail.status)}
                 </Text>
               </View>
               <TouchableOpacity
@@ -150,7 +169,7 @@ const ReservationDetailModal = memo(({
               </View>
               <View style={{ flex: 1, gap: 3 }}>
                 <Text style={styles.customerName}>
-                  {detail.customerName ?? '고객명 미등록'}
+                  {detail.customerName ?? t('reservation.customerUnregistered')}
                 </Text>
                 <View style={styles.appLinkRow}>
                   <View style={[
@@ -159,8 +178,8 @@ const ReservationDetailModal = memo(({
                   ]} />
                   <Text style={styles.appLinkText}>
                     {detail.isAppLinked
-                      ? 'T:ROOT 앱 연동 예약'
-                      : '외부 유입 (오픈톡·수기)'}
+                      ? t('reservation.appLinked')
+                      : t('reservation.appExternal')}
                   </Text>
                 </View>
               </View>
@@ -172,25 +191,25 @@ const ReservationDetailModal = memo(({
             <View style={styles.metaBlock}>
               <View style={styles.metaRow}>
                 <CalendarIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
-                <Text style={styles.metaLabel}>날짜</Text>
+                <Text style={styles.metaLabel}>{t('reservation.fieldDate')}</Text>
                 <Text style={styles.metaValue}>{detail.dateLabel}</Text>
               </View>
               <View style={styles.metaRow}>
                 <ClockOutlineIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
-                <Text style={styles.metaLabel}>시간</Text>
+                <Text style={styles.metaLabel}>{t('reservation.detailMetaTime')}</Text>
                 <Text style={styles.metaValue}>{detail.timeLabel}</Text>
               </View>
               {detail.columnLabel && (
                 <View style={styles.metaRow}>
                   <PaletteIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
-                  <Text style={styles.metaLabel}>배정</Text>
+                  <Text style={styles.metaLabel}>{t('reservation.detailMetaAssign')}</Text>
                   <Text style={styles.metaValue}>{detail.columnLabel}</Text>
                 </View>
               )}
               {(detail.bodyPart || detail.tattooType) && (
                 <View style={styles.metaRow}>
                   <PaletteIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
-                  <Text style={styles.metaLabel}>내용</Text>
+                  <Text style={styles.metaLabel}>{t('reservation.detailMetaContent')}</Text>
                   <Text style={styles.metaValue}>
                     {[detail.tattooType, detail.bodyPart].filter(Boolean).join(' · ')}
                   </Text>
@@ -201,7 +220,7 @@ const ReservationDetailModal = memo(({
             {/* Memo */}
             {detail.memo && (
               <View style={styles.memoBox}>
-                <Text style={styles.memoLabel}>기획서 메모</Text>
+                <Text style={styles.memoLabel}>{t('reservation.detailMemoLabel')}</Text>
                 <Text style={styles.memoText}>{detail.memo}</Text>
               </View>
             )}
@@ -218,7 +237,7 @@ const ReservationDetailModal = memo(({
                   styles.actionDangerText,
                   (isNoShow || isCancelled) && styles.actionDisabledText,
                 ]}>
-                  {isNoShow ? '노쇼 처리됨' : '노쇼 처리'}
+                  {isNoShow ? t('reservation.noShowDone') : t('reservation.noShowAction')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -228,7 +247,7 @@ const ReservationDetailModal = memo(({
                 style={[styles.actionBtn, styles.actionGhost]}
               >
                 <Text style={[styles.actionGhostText, isCancelled && styles.actionDisabledText]}>
-                  수정
+                  {t('common.edit')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -244,7 +263,7 @@ const ReservationDetailModal = memo(({
                   styles.actionCancelText,
                   (isCancelled || isDone) && styles.actionDisabledText,
                 ]}>
-                  {isCancelled ? '취소됨' : '예약 취소'}
+                  {isCancelled ? t('reservation.cancelledLabel') : t('reservation.cancelAction')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -258,7 +277,7 @@ const ReservationDetailModal = memo(({
                   styles.actionPrimaryText,
                   (isDone || isCancelled) && styles.actionDisabledText,
                 ]}>
-                  {isDone ? '완료됨' : '시술 완료'}
+                  {isDone ? t('reservation.completedLabel') : t('reservation.completeAction')}
                 </Text>
               </TouchableOpacity>
             </View>

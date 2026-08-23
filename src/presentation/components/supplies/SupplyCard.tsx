@@ -5,6 +5,7 @@ import {
 import { COLORS } from '../../theme/colors';
 import { HeartIcon, TattooPlaceholderIcon } from '../icons';
 import { TattooSupply } from '../../../domain/entities/supplyTypes';
+import { useTranslation } from '../../store/languageStore';
 
 const { width: W } = Dimensions.get('window');
 const CARD_WIDTH = (W - 16 * 2 - 10) / 2;
@@ -17,7 +18,9 @@ interface Props {
   onPress?: () => void;
 }
 
-const SupplyCard = memo(({ supply, onBookmark, onInquiry, onPress }: Props) => (
+const SupplyCard = memo(({ supply, onBookmark, onInquiry, onPress }: Props) => {
+  const { t } = useTranslation();
+  return (
   <TouchableOpacity
     activeOpacity={onPress ? 0.9 : 1}
     onPress={onPress}
@@ -76,10 +79,11 @@ const SupplyCard = memo(({ supply, onBookmark, onInquiry, onPress }: Props) => (
       activeOpacity={0.85}
       onPress={onInquiry}
     >
-      <Text style={styles.inquiryText}>구매 문의</Text>
+      <Text style={styles.inquiryText}>{t('supplies.buyInquiry')}</Text>
     </TouchableOpacity>
   </TouchableOpacity>
-));
+  );
+});
 
 SupplyCard.displayName = 'SupplyCard';
 export default SupplyCard;

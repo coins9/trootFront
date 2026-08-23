@@ -70,7 +70,7 @@ const SupportScreen = () => {
   }, [settings.kakaoOpenChatUrl, toast, t]);
 
   const openEmail = useCallback(async () => {
-    const url = `mailto:${settings.supportEmail}?subject=${encodeURIComponent('[T:ROOT] 문의')}`;
+    const url = `mailto:${settings.supportEmail}?subject=${encodeURIComponent(t('support.emailSubject'))}`;
     try {
       await Linking.openURL(url);
     } catch {

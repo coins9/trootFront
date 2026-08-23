@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import { SUBJECTS, MOODS } from '../../../data/mock/mockData';
+import { useTranslation } from '../../store/languageStore';
 
 interface SubjectMoodFilterProps {
   selectedSubjects: string[];
@@ -26,12 +27,13 @@ Chip.displayName = 'Chip';
 const SubjectMoodFilter = memo(({
   selectedSubjects, selectedMoods, onToggleSubject, onToggleMood,
 }: SubjectMoodFilterProps) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       {/* 주제 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>주제</Text>
-        <Text style={styles.sectionSubtitle}>무엇을 그릴 것인가?</Text>
+        <Text style={styles.sectionTitle}>{t('filter.subjectSectionLabel')}</Text>
+        <Text style={styles.sectionSubtitle}>{t('filter.subjectSectionSub')}</Text>
         <View style={styles.chipGrid}>
           {SUBJECTS.map((item) => (
             <Chip
@@ -46,8 +48,8 @@ const SubjectMoodFilter = memo(({
 
       {/* 감성 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>감성</Text>
-        <Text style={styles.sectionSubtitle}>어떤 느낌을 줄 것인가?</Text>
+        <Text style={styles.sectionTitle}>{t('filter.moodSectionLabel')}</Text>
+        <Text style={styles.sectionSubtitle}>{t('filter.moodSectionSub')}</Text>
         <View style={styles.chipGrid}>
           {MOODS.map((item) => (
             <Chip

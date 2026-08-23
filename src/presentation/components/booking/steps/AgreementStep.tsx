@@ -2,55 +2,59 @@ import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../../theme/colors';
 import { CheckboxIcon, ShieldCheckIcon } from '../../icons';
+import { useTranslation } from '../../../store/languageStore';
 
 interface AgreementStepProps {
   agreed: boolean;
   onToggle: () => void;
 }
 
-const AgreementStep = memo(({ agreed, onToggle }: AgreementStepProps) => (
-  <View style={styles.container}>
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionLeft}>
-        <Text style={styles.sectionNum}>04</Text>
-        <ShieldCheckIcon size={16} color={COLORS.gold} />
-        <Text style={styles.sectionTitle}>노쇼 방지 동의</Text>
+const AgreementStep = memo(({ agreed, onToggle }: AgreementStepProps) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.container}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionLeft}>
+          <Text style={styles.sectionNum}>04</Text>
+          <ShieldCheckIcon size={16} color={COLORS.gold} />
+          <Text style={styles.sectionTitle}>{t('booking.steps.agreementTitle')}</Text>
+        </View>
+        <Text style={styles.required}>{t('common.required')}</Text>
       </View>
-      <Text style={styles.required}>필수</Text>
-    </View>
-    <Text style={styles.sectionSub}>예약 확정 후 무단 불참 방지를 위한 동의가 필요합니다</Text>
+      <Text style={styles.sectionSub}>{t('booking.steps.agreementSub')}</Text>
 
-    <View style={styles.agreementBox}>
-      <Text style={styles.agreementTitle}>노쇼 방지 정책 안내</Text>
+      <View style={styles.agreementBox}>
+        <Text style={styles.agreementTitle}>{t('booking.steps.agreementPolicyTitle')}</Text>
 
-      <View style={styles.bulletList}>
-        {[
-          '예약 확정 후 24시간 이내 취소 시 위약금이 발생하지 않습니다.',
-          '예약 당일 취소 또는 무단 불참 시 예치금(디파짓)은 환불되지 않습니다.',
-          '예약 변경은 시술 48시간 전까지만 가능합니다.',
-          '작가와 채팅 연결 후 세부 조건은 작가와 직접 협의하세요.',
-        ].map((text, i) => (
-          <View key={i} style={styles.bulletRow}>
-            <View style={styles.bullet} />
-            <Text style={styles.bulletText}>{text}</Text>
-          </View>
-        ))}
+        <View style={styles.bulletList}>
+          {([
+            t('booking.steps.agreementPolicy1'),
+            t('booking.steps.agreementPolicy2'),
+            t('booking.steps.agreementPolicy3'),
+            t('booking.steps.agreementPolicy4'),
+          ] as string[]).map((text, i) => (
+            <View key={i} style={styles.bulletRow}>
+              <View style={styles.bullet} />
+              <Text style={styles.bulletText}>{text}</Text>
+            </View>
+          ))}
+        </View>
       </View>
-    </View>
 
-    <TouchableOpacity
-      onPress={onToggle}
-      activeOpacity={0.85}
-      style={styles.checkRow}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-    >
-      <CheckboxIcon size={22} checked={agreed} />
-      <Text style={[styles.checkLabel, agreed && styles.checkLabelActive]}>
-        위 노쇼 방지 정책을 확인하였으며, 이에 동의합니다.
-      </Text>
-    </TouchableOpacity>
-  </View>
-));
+      <TouchableOpacity
+        onPress={onToggle}
+        activeOpacity={0.85}
+        style={styles.checkRow}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <CheckboxIcon size={22} checked={agreed} />
+        <Text style={[styles.checkLabel, agreed && styles.checkLabelActive]}>
+          {t('booking.steps.agreementCheck')}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 AgreementStep.displayName = 'AgreementStep';
 export default AgreementStep;

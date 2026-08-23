@@ -17,6 +17,7 @@ import {
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { MediaWorkKind } from '../../../domain/entities/shopTypes';
+import { expertWorkKindLabel } from '../../utils/shopDisplayMap';
 import WorkInquiryBottomSheet from '../../components/shopMatching/WorkInquiryBottomSheet';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -186,25 +187,27 @@ const MediaExpertDetailScreen = () => {
 
         {/* ── 태그 ── */}
         <View style={styles.tagWrap}>
-          {expert.tags.map((t) => (
-            <View key={t} style={styles.tag}>
-              <Text style={styles.tagText}>#{t}</Text>
+          {expert.tags.map((tag) => (
+            <View key={tag} style={styles.tag}>
+              <Text style={styles.tagText}>#{expertWorkKindLabel(t, tag as any)}</Text>
             </View>
           ))}
         </View>
 
         {/* ── 단가표 ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionHead}>단가표 (Price Info)</Text>
+          <Text style={styles.sectionHead}>{t('shop.mediaDetail.priceInfo')}</Text>
           <View style={styles.priceCard}>
             <View style={styles.priceHeadRow}>
-              <Text style={styles.priceHeadLabel}>건당</Text>
+              <Text style={styles.priceHeadLabel}>{t('shop.perUnit')}</Text>
               <Text style={styles.priceHeadValue}>
-                {expert.priceMin.toLocaleString()}원 ~ {expert.priceMax.toLocaleString()}원
+                {language === 'en'
+                  ? `₩${expert.priceMin.toLocaleString()} ~ ₩${expert.priceMax.toLocaleString()}`
+                  : `${expert.priceMin.toLocaleString()}${t('shop.card.wonSuffix')} ~ ${expert.priceMax.toLocaleString()}${t('shop.card.wonSuffix')}`}
               </Text>
             </View>
             <View style={styles.priceHintRow}>
-              <Text style={styles.priceHint}>위치/작업 난이도에 따라 변동 가능</Text>
+              <Text style={styles.priceHint}>{t('shop.priceFlexible')}</Text>
               <InfoIcon size={12} color={COLORS.gray} />
             </View>
 
@@ -220,8 +223,12 @@ const MediaExpertDetailScreen = () => {
                     style={[styles.priceGridCell, !isLast && styles.priceCellDivider]}
                   >
                     <Icon size={22} color={COLORS.gold} />
-                    <Text style={styles.priceKindLabel}>{item.kind}</Text>
-                    <Text style={styles.priceKindValue}>{item.price.toLocaleString()}원~</Text>
+                    <Text style={styles.priceKindLabel}>{expertWorkKindLabel(t, item.kind)}</Text>
+                    <Text style={styles.priceKindValue}>
+                      {language === 'en'
+                        ? `₩${item.price.toLocaleString()}~`
+                        : `${item.price.toLocaleString()}${t('shop.card.wonSuffix')}~`}
+                    </Text>
                   </View>
                 );
               })}
@@ -231,7 +238,7 @@ const MediaExpertDetailScreen = () => {
 
         {/* ── 상세 소개 ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionHead}>상세 소개 (Description)</Text>
+          <Text style={styles.sectionHead}>{t('shop.descriptionLabel')}</Text>
           <View style={styles.descCard}>
             <Text style={styles.description}>{displayDesc}</Text>
 
@@ -256,7 +263,7 @@ const MediaExpertDetailScreen = () => {
                 style={styles.expandInline}
                 activeOpacity={0.75}
               >
-                <Text style={styles.expandText}>{expandDesc ? '접기' : '더보기'}</Text>
+                <Text style={styles.expandText}>{expandDesc ? t('shop.collapse') : t('shop.expand')}</Text>
                 {expandDesc
                   ? <ChevronUpIcon size={14} color={COLORS.gray} />
                   : <ChevronDownIcon size={14} color={COLORS.gray} />
@@ -274,7 +281,7 @@ const MediaExpertDetailScreen = () => {
             activeOpacity={0.75}
           >
             <View style={styles.instaLeft}>
-              <Text style={styles.instaText}>포트폴리오 더보기</Text>
+              <Text style={styles.instaText}>{t('shop.portfolioMore')}</Text>
               <InstagramIcon size={16} color={COLORS.gold} />
             </View>
             <ChevronRightIcon size={16} color={COLORS.gray} />
@@ -286,25 +293,25 @@ const MediaExpertDetailScreen = () => {
           <View style={styles.statCol}>
             <View style={styles.statIconLabel}>
               <StarIcon size={13} color={COLORS.gold} filled />
-              <Text style={styles.statLabel}>작업 만족도</Text>
+              <Text style={styles.statLabel}>{t('shop.satisfaction')}</Text>
             </View>
             <Text style={styles.statValue}>
-              {expert.satisfactionRating} <Text style={styles.statValueSub}>(리뷰 {expert.reviewCount})</Text>
+              {expert.satisfactionRating} <Text style={styles.statValueSub}>{t('shop.reviewCountFmt', { count: expert.reviewCount })}</Text>
             </Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCol}>
             <View style={styles.statIconLabel}>
               <StackIcon size={13} color={COLORS.gold} />
-              <Text style={styles.statLabel}>누적 작업 수</Text>
+              <Text style={styles.statLabel}>{t('shop.totalWorks')}</Text>
             </View>
-            <Text style={styles.statValue}>{expert.totalWorks}건</Text>
+            <Text style={styles.statValue}>{expert.totalWorks}{t('shop.workCountUnit')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCol}>
             <View style={styles.statIconLabel}>
               <ClockOutlineIcon size={13} color={COLORS.gold} />
-              <Text style={styles.statLabel}>응답 시간</Text>
+              <Text style={styles.statLabel}>{t('shop.responseTime')}</Text>
             </View>
             <Text style={styles.statValue}>{expert.avgResponseTime}</Text>
           </View>
@@ -318,7 +325,7 @@ const MediaExpertDetailScreen = () => {
           style={styles.ctaBtn}
           activeOpacity={0.85}
         >
-          <Text style={styles.ctaText}>[ 작업 문의하기 ]</Text>
+          <Text style={styles.ctaText}>{t('shop.workInquiryCTA')}</Text>
         </TouchableOpacity>
       </View>
 

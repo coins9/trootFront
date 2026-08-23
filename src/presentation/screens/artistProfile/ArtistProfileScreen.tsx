@@ -93,7 +93,7 @@ const ArtistProfileScreen = () => {
   const handleShare = useCallback(async () => {
     try {
       await Share.share({
-        message: `T:ROOT에서 ${artist.nickname} 타투이스트를 확인해보세요!\nhttps://tattooroot.com`,
+        message: `${t('artistProfile.shareMessage', { name: artist.nickname } as any)}\nhttps://tattooroot.com`,
       });
     } catch {}
   }, [artist.nickname]);
@@ -163,7 +163,7 @@ const ArtistProfileScreen = () => {
     });
     const customer = rv.customerNickname
       ? `${rv.customerNickname.slice(0, 2)}${'*'.repeat(Math.max(rv.customerNickname.length - 2, 2))}`
-      : '익명';
+      : t('artistProfile.anonymous');
     return (
       <View key={rv.id} style={styles.reviewCard}>
         <View style={styles.ratingStars}>
@@ -233,7 +233,7 @@ const ArtistProfileScreen = () => {
           <View style={styles.infoTabItem}>
             <PersonSilhouette size={18} color={COLORS.gold} />
             <View style={styles.infoTabTextGroup}>
-              <Text style={styles.infoTabLabel}>소개</Text>
+              <Text style={styles.infoTabLabel}>{t('artistProfile.bioLabel')}</Text>
               <Text style={styles.infoTabValue}>{artist.bio}</Text>
             </View>
           </View>
@@ -246,8 +246,8 @@ const ArtistProfileScreen = () => {
           >
             <CommentIcon size={18} color={COLORS.gold} strokeWidth={2} />
             <View style={styles.infoTabTextGroup}>
-              <Text style={styles.infoTabLabel}>카카오 오픈채팅</Text>
-              <Text style={[styles.infoTabValue, { color: COLORS.gold }]}>채팅방 바로가기 →</Text>
+              <Text style={styles.infoTabLabel}>{t('artistProfile.kakaoOpenChat')}</Text>
+              <Text style={[styles.infoTabValue, { color: COLORS.gold }]}>{t('artistProfile.kakaoChatLink')}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -388,7 +388,7 @@ const ArtistProfileScreen = () => {
                   onPress={() => Linking.openURL(artist.kakaoLink!).catch(() => {})}
                 >
                   <CommentIcon size={16} color={COLORS.black} strokeWidth={2} />
-                  <Text style={styles.kakaoText}>오픈채팅</Text>
+                  <Text style={styles.kakaoText}>{t('artistProfile.openChat')}</Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity
@@ -476,7 +476,7 @@ const ArtistProfileScreen = () => {
                 onPress={() => setSortOrder((prev) => prev === 'recent' ? 'popular' : 'recent')}
               >
                 <Text style={styles.sortText}>
-                  {sortOrder === 'recent' ? t('artistProfile.sortLatest') : '인기순'}
+                  {sortOrder === 'recent' ? t('artistProfile.sortLatest') : t('artistProfile.sortPopular')}
                 </Text>
                 <ChevronDownIcon size={12} color={COLORS.gray} />
               </TouchableOpacity>
