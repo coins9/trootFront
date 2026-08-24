@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, Animated,
-  Dimensions, Alert,
+  Dimensions, Alert, Image, ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
@@ -19,7 +19,7 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-const { height: SH } = Dimensions.get('window');
+const { width: SW, height: SH } = Dimensions.get('window');
 
 const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) => {
   const visible = artwork !== null;
@@ -54,6 +54,12 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
 
   if (!artwork) return null;
 
+  const displayTitle = language === 'en' && artwork.titleEn ? artwork.titleEn : artwork.title;
+  const displayDesc = language === 'en' && artwork.descriptionEn ? artwork.descriptionEn : artwork.description;
+  const imgUris = (artwork.imageUris?.filter(Boolean) ?? []).length > 0
+    ? (artwork.imageUris?.filter(Boolean) ?? [])
+    : artwork.thumbnailUri ? [artwork.thumbnailUri] : [];
+
   return (
     <Modal
       visible={visible}
@@ -86,10 +92,23 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
             </View>
 
             <View style={styles.imageBox}>
-              <TattooPlaceholderIcon size={60} color="#3a3a3a" />
+              {imgUris.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.imageScrollFill}
+                >
+                  {imgUris.map((uri, idx) => (
+                    <Image key={idx} source={{ uri }} style={styles.imageSlide} resizeMode="cover" />
+                  ))}
+                </ScrollView>
+              ) : (
+                <TattooPlaceholderIcon size={60} color="#3a3a3a" />
+              )}
             </View>
 
-            <Text style={styles.title}>{artwork.title}</Text>
+            <Text style={styles.title}>{displayTitle}</Text>
 
             <View style={styles.metaRow}>
               <View style={styles.metaChip}>
@@ -113,9 +132,9 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
               </View>
             )}
 
-            {artwork.description && (
-              <Text style={styles.description}>{artwork.description}</Text>
-            )}
+            {displayDesc ? (
+              <Text style={styles.description}>{displayDesc}</Text>
+            ) : null}
 
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
@@ -227,6 +246,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
+    overflow: 'hidden',
+  },
+  imageScrollFill: {
+    flex: 1,
+    width: '100%',
+  },
+  imageSlide: {
+    width: SW - 40,
+    height: 200,
   },
   title: {
     color: COLORS.white,

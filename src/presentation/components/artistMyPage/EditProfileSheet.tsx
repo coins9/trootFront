@@ -32,7 +32,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
 
   const [nickname, setNickname] = useState(profile.nickname);
   const [coverImage, setCoverImage] = useState<string | null>(profile.coverImage ?? null);
-  const [avatarImage, setAvatarImage] = useState<string | null>((profile as any).avatarImage ?? null);
+  const [avatarImage, setAvatarImage] = useState<string | null>(profile.avatarUri || null);
   const [regionSido, setRegionSido] = useState<string | null>(profile.regionSido ?? null);
   const [regionSigungu, setRegionSigungu] = useState<string | null>(profile.regionSigungu ?? null);
   const [detailAddress, setDetailAddress] = useState((profile as any).detailAddress ?? '');
@@ -76,7 +76,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
     if (visible) {
       setNickname(profile.nickname);
       setCoverImage(profile.coverImage ?? null);
-      setAvatarImage((profile as any).avatarImage ?? null);
+      setAvatarImage(profile.avatarUri || null);
       setRegionSido(profile.regionSido ?? null);
       setRegionSigungu(profile.regionSigungu ?? null);
       setDetailAddress((profile as any).detailAddress ?? '');

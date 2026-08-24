@@ -2,7 +2,7 @@ import React, { memo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../../theme/colors';
 import { BodyPartIconSvg } from '../../icons';
-import { BOOKING_BODY_PARTS, SIZES } from '../../../../domain/entities/bookingTypes';
+import { BOOKING_BODY_PARTS, BODY_PART_T_KEY, SIZES } from '../../../../domain/entities/bookingTypes';
 import { useTranslation } from '../../../store/languageStore';
 
 interface BodySizeStepProps {
@@ -51,7 +51,7 @@ const BodySizeStep = memo(({
         {BOOKING_BODY_PARTS.map((part) => (
           <Chip
             key={part}
-            label={part}
+            label={t(BODY_PART_T_KEY[part] as any) || part}
             selected={bodyPart === part}
             onPress={() => handleBodyPart(part)}
           />
@@ -68,11 +68,11 @@ const BodySizeStep = memo(({
             activeOpacity={0.8}
             style={[styles.sizeCard, size === s.label && styles.sizeCardActive]}
           >
-            <Text style={[styles.sizeLabel, size === s.label && styles.sizeLabelActive]}>
-              {s.label}
+            <Text style={[styles.sizeLabel, size === s.id && styles.sizeLabelActive]}>
+              {t(s.labelKey as any)}
             </Text>
-            <Text style={[styles.sizeSub, size === s.label && styles.sizeSubActive]}>
-              {s.sub}
+            <Text style={[styles.sizeSub, size === s.id && styles.sizeSubActive]}>
+              {t(s.subKey as any)}
             </Text>
           </TouchableOpacity>
         ))}

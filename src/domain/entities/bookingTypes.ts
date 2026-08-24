@@ -89,11 +89,29 @@ export const BOOKING_BODY_PARTS = [
   '등 (상)', '등 (하)', '허리',
   '허벅지', '종아리', '발목 / 발',
   '목 / 귀 뒤', '기타',
-];
+] as const;
 
-export const SIZES: { id: string; label: string; sub: string }[] = [
-  { id: 'coin', label: '동전 크기', sub: '5cm 이하' },
-  { id: 'fist', label: '주먹 크기', sub: '5 ~ 10cm' },
-  { id: 'palm', label: '손바닥 크기', sub: '10 ~ 20cm' },
-  { id: 'large', label: '그 이상', sub: '20cm+' },
+export const BODY_PART_T_KEY: Record<string, string> = {
+  '팔 (상박)': 'booking.steps.bodyParts.upperArm',
+  '팔 (하박)': 'booking.steps.bodyParts.forearm',
+  '손목 / 손': 'booking.steps.bodyParts.wristHand',
+  '어깨': 'booking.steps.bodyParts.shoulder',
+  '쇄골': 'booking.steps.bodyParts.collarbone',
+  '가슴': 'booking.steps.bodyParts.chest',
+  '복부 / 옆구리': 'booking.steps.bodyParts.abdomenSide',
+  '등 (상)': 'booking.steps.bodyParts.upperBack',
+  '등 (하)': 'booking.steps.bodyParts.lowerBack',
+  '허리': 'booking.steps.bodyParts.waist',
+  '허벅지': 'booking.steps.bodyParts.thigh',
+  '종아리': 'booking.steps.bodyParts.calf',
+  '발목 / 발': 'booking.steps.bodyParts.ankleFoot',
+  '목 / 귀 뒤': 'booking.steps.bodyParts.neckBehindEar',
+  '기타': 'booking.steps.bodyParts.other',
+};
+
+export const SIZES: { id: string; label: string; labelKey: string; subKey: string }[] = [
+  { id: 'coin', label: '동전 크기', labelKey: 'booking.steps.sizes.coinLabel', subKey: 'booking.steps.sizes.coinSub' },
+  { id: 'fist', label: '주먹 크기', labelKey: 'booking.steps.sizes.fistLabel', subKey: 'booking.steps.sizes.fistSub' },
+  { id: 'palm', label: '손바닥 크기', labelKey: 'booking.steps.sizes.palmLabel', subKey: 'booking.steps.sizes.palmSub' },
+  { id: 'large', label: '그 이상', labelKey: 'booking.steps.sizes.largeLabel', subKey: 'booking.steps.sizes.largeSub' },
 ];

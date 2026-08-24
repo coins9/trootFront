@@ -8,6 +8,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import { useTranslation } from '../../store/languageStore';
+import { lightingLabel } from '../../utils/shopDisplayMap';
 import {
   BackArrowIcon, ShareIcon, BookmarkIcon, LocationPinIcon,
   AreaIcon, BedIcon, LightIcon, DoorIcon, PeopleIcon,
@@ -43,7 +44,7 @@ const TattooShareDetailScreen = () => {
   const specs: { Icon: React.ComponentType<any>; label: string; value: string }[] = [
     { Icon: AreaIcon, label: t('shop.card.areaPyeong'), value: `${shop.areaPyeong}${t('shop.card.unitPyeong')}` },
     { Icon: BedIcon, label: t('shop.card.bedCount'), value: `${shop.bedCount}${t('shop.card.unitBed')}` },
-    { Icon: LightIcon, label: t('shop.card.lighting'), value: shop.lighting },
+    { Icon: LightIcon, label: t('shop.card.lighting'), value: lightingLabel(t, shop.lighting as any) },
     { Icon: DoorIcon, label: t('shop.card.privateRoom'), value: shop.privateRoomInfo ?? (shop.hasPrivateRoom ? t('shop.card.privateYes') : t('shop.card.privateNo')) },
     { Icon: PeopleIcon, label: t('shop.card.maxOccupancy'), value: `${shop.maxOccupancy}${t('shop.card.unitPerson')}` },
     { Icon: PeopleIcon, label: t('shop.card.currentNeeded'), value: `${shop.currentOccupancy} / ${shop.requiredOccupancy}${t('shop.card.unitPerson')}` },

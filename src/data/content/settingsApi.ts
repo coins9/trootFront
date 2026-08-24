@@ -117,7 +117,12 @@ export const fetchPublicSettings = async (): Promise<PublicSettings> => {
     if (!res.ok) return DEFAULT_SETTINGS;
 
     const json = (await res.json()) as { success: boolean; data: PublicSettings };
-    return json?.data ? { ...DEFAULT_SETTINGS, ...json.data } : DEFAULT_SETTINGS;
+    if (!json?.data) return DEFAULT_SETTINGS;
+    // 빈 문자열·null은 기본값(폴백 URL 등)을 덮어쓰지 않도록 제외
+    const filtered = Object.fromEntries(
+      Object.entries(json.data).filter(([, v]) => v !== '' && v !== null),
+    ) as Partial<PublicSettings>;
+    return { ...DEFAULT_SETTINGS, ...filtered };
   } catch {
     return DEFAULT_SETTINGS;
   } finally {
