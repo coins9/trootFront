@@ -15,7 +15,7 @@ import {
   CalendarIcon, HeartIcon, StoreIcon, FolderIcon,
   ListIcon, UserOutlineIcon, BellIcon, LockIcon, GlobeIcon, ChatBubbleIcon, ChevronRightIcon,
   PersonSilhouette, PaletteIcon, BarChartIcon,
-  EditPenIcon, LocationPinIcon, StarIcon, HandshakeIcon, CheckCircleIcon, GearIcon,
+  EditPenIcon, LocationPinIcon, StarIcon, HandshakeIcon, CheckCircleIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
@@ -65,7 +65,10 @@ const MyProfileScreen = () => {
   useEffect(() => {
     AsyncStorage.getItem(MODE_KEY)
         .then((val) => {
-          if (val === 'artist' || val === 'vendor' || val === 'user') setMode(val);
+          // shopMatching 조건을 추가해야 정상적으로 복구됩니다.
+          if (val === 'artist' || val === 'vendor' || val === 'user' || val === 'shopMatching') {
+            setMode(val as ProfileMode);
+          }
         })
         .catch(() => {});
   }, []);
@@ -141,16 +144,18 @@ const MyProfileScreen = () => {
   })();
 
   /* ── Menu items ── */
-  const userReservationItems: MenuItem[] = [
+  const userReservationItems: MenuItem[] = useMemo(() => [
     { Icon: CalendarIcon, label: t('profile.bookingManage'), onPress: goTo('ReservationManage') },
     { Icon: HeartIcon, label: t('profile.favArtists'), onPress: goTo('FavoriteArtists') },
     { Icon: PaletteIcon, label: t('profile.favWorks'), onPress: goTo('FavoriteWorks') },
     { Icon: StoreIcon, label: t('profile.favPhotoShops'), onPress: goTo('FavoritePhotoShops') },
     { Icon: FolderIcon, label: t('profile.favSupplies'), onPress: goTo('FavoriteSupplies') },
-  ];
+  ], [t, goTo]);
+
   const userPostItems: MenuItem[] = [
     { Icon: ListIcon, label: t('profile.tattooReview'), onPress: goTo('TattooReview') },
   ];
+
   const openLink = useCallback((url?: string | null) => {
     if (!url) {
       toast(t('common.linkError'), { variant: 'error' });
@@ -398,6 +403,8 @@ const MyProfileScreen = () => {
               <>
                 {renderCompactSection(t('profile.myReservations'), userReservationItems)}
                 {renderCompactSection(t('profile.myPosts'), userPostItems)}
+                {/* 👇 이 부분이 누락되어 있었습니다! 추가해 주세요. */}
+                {renderCompactSection(t('settings.title') || '설정', userSettingItems)}
               </>
           )}
 

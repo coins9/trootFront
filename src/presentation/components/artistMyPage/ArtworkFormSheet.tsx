@@ -7,7 +7,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import {
-  XIcon, TattooPlaceholderIcon,
+  XIcon,
   CheckCircleIcon, PlusIcon,
 } from '../icons';
 import { ArtistArtwork } from '../../../domain/entities/artistMyPageTypes';
@@ -87,25 +87,31 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
   const isEdit = editing !== null;
 
   useEffect(() => {
-    if (visible) setForm(editing ? { ...editing } : emptyForm());
+    if (visible) {
+      setForm(editing ? { ...editing } : emptyForm());
+    }
+  }, [editing, visible]); 
+
+  useEffect(() => {
     Animated.timing(translate, {
       toValue: visible ? 0 : SH,
       duration: 240,
       useNativeDriver: true,
     }).start();
-  }, [visible, editing, translate]);
+  }, [visible, translate]);
 
-  const canSubmit = useMemo(
-    () => form.title.trim().length >= 2 && form.genre && form.bodyPart,
-    [form],
-  );
+  const canSubmit = useMemo(() => {
+    const validKo = form.title && form.title.trim().length >= 2;
+    const validEn = form.titleEn && form.titleEn.trim().length >= 2;
+    return (validKo || validEn) && form.genre && form.bodyPart;
+  }, [form]);
 
   const toggleMulti = useCallback((field: 'subjects' | 'moods', v: string) => {
     setForm((prev) => {
-      const cur = prev[field];
+      const cur = prev[field] || [];
       const next = cur.includes(v)
-        ? cur.filter((x) => x !== v)
-        : [...cur, v];
+          ? cur.filter((x) => x !== v)
+          : [...cur, v];
       return { ...prev, [field]: next };
     });
   }, []);

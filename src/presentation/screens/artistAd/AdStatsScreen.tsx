@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar,
+  View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, StatusBar,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,7 +23,7 @@ import { useMemo } from 'react';
 import { MOCK_PROMO_BANNERS } from '../../../data/mock/artistAdMockData';
 import { ArtistAdItem, ArtistAdStatus } from '../../../domain/entities/artistAdTypes';
 import { useApi, usePagedApi } from '../../hooks/useApi';
-import { artistApi, adApi, reservationApi, type Artwork, type AdCampaign } from '../../../data/api';
+import { artistApi, adApi, reservationApi  } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
 import { adaptyService } from '../../../infrastructure/adapty/adaptyService';
@@ -52,7 +52,12 @@ const AdStatsScreen = () => {
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
   const bottomTabHeight = useBottomTabHeight();
 
-  const { items: artworks } = usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
+  const {
+    items: artworks,
+    loading: isArtworksLoading,
+    loadMore,
+    hasNext
+  } = usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
   const { data: campaigns } = useApi(() => adApi.mine(), []);
   const { data: artistProfile } = useApi(() => artistApi.me(), []);
   const { data: inquiryCounts } = useApi(() => reservationApi.countByArtwork(), []);
@@ -96,7 +101,7 @@ const AdStatsScreen = () => {
     Linking.openURL(url).catch(() => {
       toast(t('adStats.linkError'), { variant: 'error' });
     });
-  }, [toast]);
+  }, [t, toast]);
 
   const handleOpenDetail = useCallback((item: ArtistAdItem) => () => {
     const artwork = artworks.find((aw) => aw.id === item.artworkId);
@@ -169,8 +174,8 @@ const AdStatsScreen = () => {
   }, [executePurchase, activeItem, artistProfile, toast, t]);
 
   const handleBannerAdPurchase = useCallback((plan: BannerAdPlan) => {
-    executePurchase(plan.id, 'banner');
-  }, [executePurchase]);
+    executePurchase(plan.id, 'banner', activeItem?.artworkId);
+  }, [executePurchase, activeItem]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -188,52 +193,59 @@ const AdStatsScreen = () => {
         <Text style={styles.title}>{t('adStats.title')}</Text>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomTabHeight + 32 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* 다중 배너 이미지 캐러셀 (관리자 설정) */}
-        {settings.bannerAdImages.length > 0 && (
-          <BannerCarousel items={settings.bannerAdImages} />
-        )}
-        {settings.bannerPartnerImages.length > 0 && (
-          <BannerCarousel items={settings.bannerPartnerImages} />
-        )}
-
-        {/* Promo banners */}
-        {MOCK_PROMO_BANNERS.map((b) => {
-          // 관리자에서 설정한 문의 링크로 연결, 없으면 배너 기본값(Tally)로 폴백
-          const key = PROMO_URL_KEY[b.id];
-          const url = (key && settings[key]) || b.ctaUrl;
-          return (
-            <PromoBanner
-              key={b.id}
-              banner={b}
-              onPress={() => openPromoUrl(url)}
-            />
-          );
-        })}
-
-        {/* Section title */}
-        <Text style={styles.sectionTitle}>{t('adStats.sectionTitle')}</Text>
-
-        {adItems.length === 0 ? (
-          <Text style={styles.emptyText}>{t('adStats.artworkEmpty')}</Text>
-        ) : (
-          adItems.map((ad) => (
-            <AdCard
-              key={ad.id}
-              ad={ad}
-              onOpenDetail={handleOpenDetail(ad)}
-              onUp={handleUp(ad)}
-              onSuperUp={handleSuperUp(ad)}
-              onCardAd={handleCardAd(ad)}
-              onBannerAd={handleBannerAd(ad)}
-            />
-          ))
-        )}
-      </ScrollView>
+      <FlatList
+          style={styles.scroll}
+          data={adItems}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomTabHeight + 32 }]}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <>
+              {settings.bannerAdImages.length > 0 && (
+                  <BannerCarousel items={settings.bannerAdImages} />
+              )}
+              {settings.bannerPartnerImages.length > 0 && (
+                  <BannerCarousel items={settings.bannerPartnerImages} />
+              )}
+              {MOCK_PROMO_BANNERS.map((b) => {
+                const key = PROMO_URL_KEY[b.id];
+                const url = (key && settings[key]) || b.ctaUrl;
+                return (
+                    <PromoBanner
+                        key={b.id}
+                        banner={b}
+                        onPress={() => openPromoUrl(url)}
+                    />
+                );
+              })}
+              <Text style={styles.sectionTitle}>{t('adStats.sectionTitle')}</Text>
+            </>
+          }
+          renderItem={({ item: ad }) => (
+              <AdCard
+                  ad={ad}
+                  onOpenDetail={handleOpenDetail(ad)}
+                  onUp={handleUp(ad)}
+                  onSuperUp={handleSuperUp(ad)}
+                  onCardAd={handleCardAd(ad)}
+                  onBannerAd={handleBannerAd(ad)}
+              />
+          )}
+          ListEmptyComponent={
+            isArtworksLoading ? (
+                <ActivityIndicator size="large" color={COLORS.gold} style={{ marginTop: 40 }} />
+            ) : (
+                <Text style={styles.emptyText}>{t('adStats.artworkEmpty')}</Text>
+            )
+          }
+          onEndReached={hasNext ? loadMore : undefined}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isArtworksLoading && adItems.length > 0 ? (
+                <ActivityIndicator size="small" color={COLORS.gold} style={{ marginVertical: 20 }} />
+            ) : null
+          }
+      />
 
       <AppBottomTabBar activeTab="ProfileTab" />
       <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
