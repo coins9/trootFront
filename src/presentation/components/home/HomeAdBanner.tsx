@@ -23,63 +23,72 @@ interface Props {
 
 const HomeAdBanner = memo(({ ad, onPress, onWhyAdPress }: Props) => {
   const { t } = useTranslation();
+
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.88}
-      style={styles.card}
-    >
-      <View style={styles.imageWrap}>
-        {ad.imageUri ? (
-          <CachedImage uri={ad.imageUri} style={styles.image} resizeMode="cover" />
-        ) : (
-          <View style={styles.placeholder}>
-            <TattooPlaceholderIcon size={38} color="#2e2e2e" />
-          </View>
-        )}
-      </View>
-
-      <View style={styles.body}>
-        <View style={styles.topRow}>
-          <View style={styles.adBadge}>
-            <Text style={styles.adBadgeText}>AD</Text>
-          </View>
-          <Text style={styles.category} numberOfLines={1}>{ad.category}</Text>
-          <TouchableOpacity
-            onPress={onWhyAdPress}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            activeOpacity={0.7}
-            style={styles.whyBtn}
-          >
-            <Text style={styles.whyText}>{t('common.adInfo')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.title} numberOfLines={2}>{ad.title}</Text>
-        <Text style={styles.subtitle} numberOfLines={1}>{ad.subtitle}</Text>
-
-        <View style={styles.bottomRow}>
-          <Text style={styles.advertiser} numberOfLines={1}>{ad.advertiserName}</Text>
-          {ad.location && (
-            <>
-              <View style={styles.dot} />
-              <LocationPinIcon size={11} color={COLORS.gray} />
-              <Text style={styles.location} numberOfLines={1}>{ad.location}</Text>
-            </>
-          )}
-          {ad.priceLabel && (
-            <>
-              <View style={styles.dot} />
-              <Text style={styles.price} numberOfLines={1}>{ad.priceLabel}</Text>
-            </>
+      <TouchableOpacity
+          onPress={onPress}
+          activeOpacity={0.88}
+          style={styles.card}
+      >
+        <View style={styles.imageWrap}>
+          {ad.imageUri ? (
+              <CachedImage uri={ad.imageUri} style={styles.image} resizeMode="cover" />
+          ) : (
+              <View style={styles.placeholder}>
+                <TattooPlaceholderIcon size={38} color="#2e2e2e" />
+              </View>
           )}
         </View>
-      </View>
 
-      <View style={styles.chevWrap}>
-        <ChevronRightIcon size={16} color={COLORS.gray} />
-      </View>
-    </TouchableOpacity>
+        <View style={styles.body}>
+          <View style={styles.topRow}>
+            <View style={styles.adBadge}>
+              <Text style={styles.adBadgeText}>AD</Text>
+            </View>
+            <Text style={styles.category} numberOfLines={1}>{ad.category}</Text>
+
+            {/* 🚨 1. onWhyAdPress가 있을 때만 '광고 안내' 버튼 렌더링 */}
+            {onWhyAdPress && (
+                <TouchableOpacity
+                    onPress={(e) => {
+                      // 🚨 2. 자식 버튼을 눌렀을 때 부모(전체 카드)의 onPress가 같이 실행되는 것을 방지
+                      e.stopPropagation();
+                      onWhyAdPress();
+                    }}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    activeOpacity={0.7}
+                    style={styles.whyBtn}
+                >
+                  <Text style={styles.whyText}>{t('common.adInfo')}</Text>
+                </TouchableOpacity>
+            )}
+          </View>
+
+          <Text style={styles.title} numberOfLines={2}>{ad.title}</Text>
+          <Text style={styles.subtitle} numberOfLines={1}>{ad.subtitle}</Text>
+
+          <View style={styles.bottomRow}>
+            <Text style={styles.advertiser} numberOfLines={1}>{ad.advertiserName}</Text>
+            {ad.location && (
+                <>
+                  <View style={styles.dot} />
+                  <LocationPinIcon size={11} color={COLORS.gray} />
+                  <Text style={styles.location} numberOfLines={1}>{ad.location}</Text>
+                </>
+            )}
+            {ad.priceLabel && (
+                <>
+                  <View style={styles.dot} />
+                  <Text style={styles.price} numberOfLines={1}>{ad.priceLabel}</Text>
+                </>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.chevWrap}>
+          <ChevronRightIcon size={16} color={COLORS.gray} />
+        </View>
+      </TouchableOpacity>
   );
 });
 

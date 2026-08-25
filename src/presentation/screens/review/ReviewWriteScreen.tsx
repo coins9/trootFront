@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  Image, StatusBar, KeyboardAvoidingView, Platform, ActivityIndicator,
+  Image, StatusBar, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -38,19 +38,19 @@ const StarInput = React.memo(({ value, onChange }: {
   value: number;
   onChange: (v: number) => void;
 }) => (
-  <View style={s.starInputRow}>
-    {[1, 2, 3, 4, 5].map((n) => (
-      <TouchableOpacity
-        key={n}
-        onPress={() => onChange(n)}
-        activeOpacity={0.7}
-        hitSlop={{ top: 6, bottom: 6, left: 3, right: 3 }}
-        style={s.starTouch}
-      >
-        <StarIcon size={30} color={n <= value ? COLORS.gold : COLORS.gray3} filled={n <= value} />
-      </TouchableOpacity>
-    ))}
-  </View>
+    <View style={s.starInputRow}>
+      {[1, 2, 3, 4, 5].map((n) => (
+          <TouchableOpacity
+              key={n}
+              onPress={() => onChange(n)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 3, right: 3 }}
+              style={s.starTouch}
+          >
+            <StarIcon size={30} color={n <= value ? COLORS.gold : COLORS.gray3} filled={n <= value} />
+          </TouchableOpacity>
+      ))}
+    </View>
 ));
 StarInput.displayName = 'StarInput';
 
@@ -61,14 +61,14 @@ const RatingBlock = React.memo(({ label, guide, value, scoreLabel, onChange }: {
   value: number;
   onChange: (v: number) => void;
 }) => (
-  <View style={s.ratingBlock}>
-    <View style={s.ratingHead}>
-      <Text style={s.ratingLabel}>{label}</Text>
-      <Text style={s.ratingValueLabel}>{scoreLabel}</Text>
+    <View style={s.ratingBlock}>
+      <View style={s.ratingHead}>
+        <Text style={s.ratingLabel}>{label}</Text>
+        <Text style={s.ratingValueLabel}>{scoreLabel}</Text>
+      </View>
+      <Text style={s.ratingGuide}>{guide}</Text>
+      <StarInput value={value} onChange={onChange} />
     </View>
-    <Text style={s.ratingGuide}>{guide}</Text>
-    <StarInput value={value} onChange={onChange} />
-  </View>
 ));
 RatingBlock.displayName = 'RatingBlock';
 
@@ -111,8 +111,8 @@ const ReviewWriteScreen = () => {
   }, []);
 
   const allRated = useMemo(
-    () => RATING_LABELS.every((r) => ratings[r.key] > 0),
-    [ratings],
+      () => RATING_LABELS.every((r) => ratings[r.key] > 0),
+      [ratings],
   );
   const textValid = text.trim().length >= TEXT_MIN;
   const canSubmit = allRated && textValid;
@@ -121,15 +121,19 @@ const ReviewWriteScreen = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!allRated) {
-      toast(t('review.noRatingError'), { variant: 'error' });
+      toast(t('review.noRatingError' as any), { variant: 'error' });
       return;
     }
     if (!textValid) {
-      toast(t('review.textTooShortError').replace('{{min}}', String(TEXT_MIN)), { variant: 'error' });
+      toast(t('review.textTooShortError' as any).replace('{{min}}', String(TEXT_MIN)), { variant: 'error' });
       return;
     }
     if (submitting) return;
+
+    // 🚨 3. 키보드를 내려서 화면 전환 시 발생할 수 있는 레이아웃 충돌 방지
+    Keyboard.dismiss();
     setSubmitting(true);
+
     try {
       await reviewApi.create({
         reservationId: review.id,
@@ -140,157 +144,159 @@ const ReviewWriteScreen = () => {
         body: text.trim(),
         images: photos.length > 0 ? photos : undefined,
       });
-      toast(t('review.submitted'), { variant: 'success' });
+      toast(t('review.submitted' as any), { variant: 'success' });
       navigation.goBack();
     } catch (e) {
-      toast(e instanceof ApiError ? e.userMessage : t('common.error'), { variant: 'error' });
+      toast(e instanceof ApiError ? e.userMessage : t('common.error' as any), { variant: 'error' });
     } finally {
       setSubmitting(false);
     }
   }, [allRated, textValid, submitting, review.id, ratings, text, photos, toast, navigation, t]);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+      // 🚨 2. 하단 시스템 바에 여백이 잘리지 않도록 edges=['top'] 으로 수정
+      <SafeAreaView style={s.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
 
-      <View style={s.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        <View style={s.header}>
+          <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>{t('review.writeTitle' as any)}</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <KeyboardAvoidingView
+            style={s.flex1}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>{t('review.writeTitle')}</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <KeyboardAvoidingView
-        style={s.flex1}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          style={s.scroll}
-          contentContainerStyle={s.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Artist / procedure info */}
-          <View style={s.artistCard}>
-            <View style={s.avatar}>
-              {review.artist.avatarUri ? (
-                <Image source={{ uri: review.artist.avatarUri }} style={s.avatarImg} />
-              ) : (
-                <PersonSilhouette size={48} color="#3a3a3a" />
-              )}
-            </View>
-            <View style={s.artistInfo}>
-              <Text style={s.artistName} numberOfLines={1}>{review.artist.nickname}</Text>
-              <View style={s.metaRow}>
-                <CalendarIcon size={13} color={COLORS.gold} strokeWidth={1.6} />
-                <Text style={s.metaText} numberOfLines={1}>
-                  {review.procedureDate} {review.procedureTime}
-                </Text>
+          <ScrollView
+              style={s.scroll}
+              contentContainerStyle={s.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+          >
+            {/* Artist / procedure info */}
+            <View style={s.artistCard}>
+              <View style={s.avatar}>
+                {review.artist?.avatarUri ? (
+                    <Image source={{ uri: review.artist.avatarUri }} style={s.avatarImg} />
+                ) : (
+                    <PersonSilhouette size={48} color="#3a3a3a" />
+                )}
               </View>
-              <View style={s.metaRow}>
-                <PaletteIcon size={13} color={COLORS.gold} strokeWidth={1.6} />
-                <Text style={s.metaText} numberOfLines={1}>
-                  {review.bodyPart} · {review.style}
-                </Text>
+              <View style={s.artistInfo}>
+                <Text style={s.artistName} numberOfLines={1}>{review.artist?.nickname}</Text>
+                <View style={s.metaRow}>
+                  <CalendarIcon size={13} color={COLORS.gold} strokeWidth={1.6} />
+                  <Text style={s.metaText} numberOfLines={1}>
+                    {review.procedureDate} {review.procedureTime}
+                  </Text>
+                </View>
+                <View style={s.metaRow}>
+                  <PaletteIcon size={13} color={COLORS.gold} strokeWidth={1.6} />
+                  <Text style={s.metaText} numberOfLines={1}>
+                    {review.bodyPart} · {review.style}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Ratings */}
-          <Text style={s.sectionTitle}>{t('review.sectionRating')}</Text>
-          <Text style={s.sectionSub}>{t('review.sectionRatingSub')}</Text>
-          <View style={s.ratingsCard}>
-            {RATING_LABELS.map((r, i) => (
-              <View key={r.key}>
-                <RatingBlock
-                  label={r.label}
-                  guide={RATING_GUIDES[r.key]}
-                  value={ratings[r.key]}
-                  scoreLabel={getRatingScoreLabel(t, ratings[r.key])}
-                  onChange={setRating(r.key)}
-                />
-                {i < RATING_LABELS.length - 1 && <View style={s.ratingDivider} />}
-              </View>
-            ))}
-          </View>
+            {/* Ratings */}
+            <Text style={s.sectionTitle}>{t('review.sectionRating' as any)}</Text>
+            <Text style={s.sectionSub}>{t('review.sectionRatingSub' as any)}</Text>
+            <View style={s.ratingsCard}>
+              {RATING_LABELS.map((r, i) => (
+                  <View key={r.key}>
+                    <RatingBlock
+                        label={r.label}
+                        guide={RATING_GUIDES[r.key]}
+                        value={ratings[r.key]}
+                        scoreLabel={getRatingScoreLabel(t, ratings[r.key])}
+                        onChange={setRating(r.key)}
+                    />
+                    {i < RATING_LABELS.length - 1 && <View style={s.ratingDivider} />}
+                  </View>
+              ))}
+            </View>
 
-          {/* Photos */}
-          <Text style={s.sectionTitle}>{t('review.sectionPhoto')}</Text>
-          <Text style={s.sectionSub}>
-            {t('review.sectionPhotoSub').replace('{{max}}', String(PHOTO_MAX))}
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.photoScroll}>
-            <TouchableOpacity
-              style={s.photoAdd}
-              onPress={addPhoto}
-              activeOpacity={0.75}
-              disabled={uploading}
-            >
-              {uploading ? (
-                <ActivityIndicator color={COLORS.gold} />
-              ) : (
-                <>
-                  <CameraAddIcon size={30} color={COLORS.gold} />
-                  <Text style={s.photoAddCount}>{photos.length}/{PHOTO_MAX}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-            {photos.map((uri, i) => (
-              <View key={uri} style={s.photoThumb}>
-                <Image source={{ uri }} style={s.photoPlaceholder} resizeMode="cover" />
-                <TouchableOpacity
-                  style={s.photoRemove}
-                  onPress={() => removePhoto(i)}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                >
-                  <XIcon size={10} color={COLORS.white} strokeWidth={2.5} />
-                </TouchableOpacity>
-              </View>
-            ))}
+            {/* Photos */}
+            <Text style={s.sectionTitle}>{t('review.sectionPhoto' as any)}</Text>
+            <Text style={s.sectionSub}>
+              {t('review.sectionPhotoSub' as any).replace('{{max}}', String(PHOTO_MAX))}
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.photoScroll}>
+              <TouchableOpacity
+                  style={s.photoAdd}
+                  onPress={addPhoto}
+                  activeOpacity={0.75}
+                  disabled={uploading}
+              >
+                {uploading ? (
+                    <ActivityIndicator color={COLORS.gold} />
+                ) : (
+                    <>
+                      <CameraAddIcon size={30} color={COLORS.gold} />
+                      <Text style={s.photoAddCount}>{photos.length}/{PHOTO_MAX}</Text>
+                    </>
+                )}
+              </TouchableOpacity>
+              {photos.map((uri, i) => (
+                  <View key={uri} style={s.photoThumb}>
+                    <Image source={{ uri }} style={s.photoPlaceholder} resizeMode="cover" />
+                    <TouchableOpacity
+                        style={s.photoRemove}
+                        onPress={() => removePhoto(i)}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <XIcon size={10} color={COLORS.white} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  </View>
+              ))}
+            </ScrollView>
+
+            {/* Text */}
+            <Text style={s.sectionTitle}>{t('review.sectionText' as any)}</Text>
+            <TextInput
+                style={s.textarea}
+                placeholder={t('review.placeholder' as any).replace('{{min}}', String(TEXT_MIN))}
+                placeholderTextColor={COLORS.gray2}
+                value={text}
+                onChangeText={(v) => setText(v.slice(0, TEXT_MAX))}
+                multiline
+                textAlignVertical="top"
+            />
+            <Text style={s.counter}>{text.length}/{TEXT_MAX}</Text>
+
+            <View style={s.noticeBox}>
+              <Text style={s.noticeText}>{t('review.noticeText' as any)}</Text>
+            </View>
+
+            <View style={{ height: 24 }} />
           </ScrollView>
 
-          {/* Text */}
-          <Text style={s.sectionTitle}>{t('review.sectionText')}</Text>
-          <TextInput
-            style={s.textarea}
-            placeholder={t('review.placeholder').replace('{{min}}', String(TEXT_MIN))}
-            placeholderTextColor={COLORS.gray2}
-            value={text}
-            onChangeText={(v) => setText(v.slice(0, TEXT_MAX))}
-            multiline
-            textAlignVertical="top"
-          />
-          <Text style={s.counter}>{text.length}/{TEXT_MAX}</Text>
-
-          <View style={s.noticeBox}>
-            <Text style={s.noticeText}>{t('review.noticeText')}</Text>
+          {/* 🚨 2. 하단 시스템 버튼 안전 여백 확보 (Math.max) */}
+          <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 24) + 12 }]}>
+            <TouchableOpacity
+                onPress={handleSubmit}
+                disabled={!canSubmit || submitting}
+                style={[s.submitBtn, (!canSubmit || submitting) && s.submitBtnDisabled]}
+                activeOpacity={0.85}
+            >
+              {submitting ? (
+                  <ActivityIndicator color={COLORS.black} />
+              ) : (
+                  <Text style={[s.submitText, !canSubmit && s.submitTextDisabled]}>
+                    {t('review.submitBtn' as any)}
+                  </Text>
+              )}
+            </TouchableOpacity>
           </View>
-
-          <View style={{ height: 24 }} />
-        </ScrollView>
-
-        <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={!canSubmit || submitting}
-            style={[s.submitBtn, (!canSubmit || submitting) && s.submitBtnDisabled]}
-            activeOpacity={0.85}
-          >
-            {submitting ? (
-              <ActivityIndicator color={COLORS.black} />
-            ) : (
-              <Text style={[s.submitText, !canSubmit && s.submitTextDisabled]}>
-                {t('review.submitBtn')}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
   );
 };
 

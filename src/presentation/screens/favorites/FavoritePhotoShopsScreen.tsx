@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Image,
   StatusBar, Dimensions, Linking, ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+// 🚨 1. 화면 복귀 시 갱신을 위한 useFocusEffect 추가
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
@@ -64,61 +65,62 @@ const ShopCard = React.memo(({ shop, onToggleFavorite, onInquiry }: ShopCardProp
   const LogoIcon = CATEGORY_ICON[shop.category];
 
   return (
-    <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <View style={styles.logoCircle}>
-          {shop.logoUri ? (
-            <Image source={{ uri: shop.logoUri }} style={styles.logoImg} resizeMode="cover" />
-          ) : (
-            <LogoIcon size={26} color={COLORS.gold} strokeWidth={1.6} />
-          )}
-        </View>
-        <View style={styles.headerInfo}>
-          <Text style={styles.name} numberOfLines={1}>{shop.name}</Text>
-          <View style={styles.metaRow}>
-            <StarIcon size={13} color={COLORS.gold} filled />
-            <Text style={styles.rating}>{shop.rating}</Text>
-            <Text style={styles.reviewCount}>({shop.reviewCount})</Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          onPress={onToggleFavorite}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          activeOpacity={0.75}
-        >
-          <HeartIcon size={24} color={COLORS.gold} filled={shop.isFavorite} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.gallery}>
-        {shop.works.map((uri, i) => (
-          <View key={i} style={styles.workItem}>
-            {uri ? (
-              <Image source={{ uri }} style={styles.workImg} resizeMode="cover" />
+      <View style={styles.card}>
+        <View style={styles.headerRow}>
+          <View style={styles.logoCircle}>
+            {shop.logoUri ? (
+                <Image source={{ uri: shop.logoUri }} style={styles.logoImg} resizeMode="cover" />
             ) : (
-              <View style={styles.workPlaceholder}>
-                <TattooPlaceholderIcon size={36} color="#2e2e2e" />
-              </View>
+                <LogoIcon size={26} color={COLORS.gold} strokeWidth={1.6} />
             )}
           </View>
-        ))}
-      </View>
+          <View style={styles.headerInfo}>
+            <Text style={styles.name} numberOfLines={1}>{shop.name}</Text>
+            <View style={styles.metaRow}>
+              <StarIcon size={13} color={COLORS.gold} filled />
+              <Text style={styles.rating}>{shop.rating}</Text>
+              <Text style={styles.reviewCount}>({shop.reviewCount})</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+              onPress={onToggleFavorite}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.75}
+          >
+            <HeartIcon size={24} color={COLORS.gold} filled={shop.isFavorite} />
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.footerRow}>
-        <Text style={styles.priceText}>
-          {t('favorites.estimatedPriceLabel')}<Text style={styles.priceValue}>
-            {t('favorites.priceFrom').replace('{{price}}', shop.estimatedPrice.toLocaleString())}
+        <View style={styles.gallery}>
+          {shop.works.map((uri, i) => (
+              <View key={i} style={styles.workItem}>
+                {uri ? (
+                    <Image source={{ uri }} style={styles.workImg} resizeMode="cover" />
+                ) : (
+                    <View style={styles.workPlaceholder}>
+                      <TattooPlaceholderIcon size={36} color="#2e2e2e" />
+                    </View>
+                )}
+              </View>
+          ))}
+        </View>
+
+        <View style={styles.footerRow}>
+          {/* 🚨 TS2345 방어 */}
+          <Text style={styles.priceText}>
+            {t('favorites.estimatedPriceLabel' as any)}<Text style={styles.priceValue}>
+            {t('favorites.priceFrom' as any).replace('{{price}}', shop.estimatedPrice.toLocaleString())}
           </Text>
-        </Text>
-        <TouchableOpacity
-          onPress={onInquiry}
-          activeOpacity={0.85}
-          style={styles.inquiryBtn}
-        >
-          <Text style={styles.inquiryText}>{t('common.inquire')}</Text>
-        </TouchableOpacity>
+          </Text>
+          <TouchableOpacity
+              onPress={onInquiry}
+              activeOpacity={0.85}
+              style={styles.inquiryBtn}
+          >
+            <Text style={styles.inquiryText}>{t('common.inquire' as any)}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
   );
 });
 ShopCard.displayName = 'ShopCard';
@@ -126,26 +128,40 @@ ShopCard.displayName = 'ShopCard';
 const FavoritePhotoShopsScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets(); // 🚨 안전 여백 훅 추가
   const { toast } = useToast();
   const [removed, setRemoved] = useState<Set<string>>(new Set());
 
+  // 🚨 2. 리로드(reload) 함수 추출
   const {
     items, loading, loadingMore, error, loadMore, reload,
   } = usePagedApi(
-    (cursor) => favoriteApi.list<ShopPost>('shop_post', { cursor, limit: 20 }),
-    [],
+      (cursor) => favoriteApi.list<ShopPost>('shop_post', { cursor, limit: 20 }),
+      [],
+  );
+
+  // 🚨 3. 화면 복귀 시 조용히 새로고침 (Silent Reload)
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          return;
+        }
+        reload();
+      }, [reload])
   );
 
   const shops = useMemo(
-    () => (items.map(toShop).filter(Boolean) as FavoritePhotoShop[]).filter((s) => !removed.has(s.id)),
-    [items, removed],
+      () => (items.map(toShop).filter(Boolean) as FavoritePhotoShop[]).filter((s) => !removed.has(s.id)),
+      [items, removed],
   );
   // 세부 카테고리(사진/영상/보정)는 백엔드 분류가 없어 전체 노출 (칩 UI 유지)
   const filtered = shops;
 
   const handleToggle = useCallback(async (shop: FavoritePhotoShop) => {
     setRemoved((prev) => new Set(prev).add(shop.id));
-    toast(t('favorites.unfavorited').replace('{{name}}', shop.name));
+    toast(t('favorites.unfavorited' as any).replace('{{name}}', shop.name));
     try {
       await favoriteApi.toggle('shop_post', shop.id);
     } catch {
@@ -154,74 +170,76 @@ const FavoritePhotoShopsScreen = () => {
         next.delete(shop.id);
         return next;
       });
-      toast(t('common.error'), { variant: 'error' });
+      toast(t('common.error' as any), { variant: 'error' });
     }
   }, [toast, t]);
 
   const handleInquiry = useCallback((shop: FavoritePhotoShop) => {
     if (shop.kakaoLink) {
       Linking.openURL(shop.kakaoLink).catch(() => {
-        toast(t('favorites.inquiryChannelError').replace('{{name}}', shop.name), { variant: 'error' });
+        toast(t('favorites.inquiryChannelError' as any).replace('{{name}}', shop.name), { variant: 'error' });
       });
       return;
     }
-    toast(t('favorites.inquiryChannelError').replace('{{name}}', shop.name), { variant: 'error' });
+    toast(t('favorites.inquiryChannelError' as any).replace('{{name}}', shop.name), { variant: 'error' });
   }, [toast, t]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      // 🚨 4. 하단이 어설프게 잘리지 않도록 edges=['top'] 으로 수정
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader />
 
-      <View style={styles.subHeader}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.backBtn}
-        >
-          <BackArrowIcon size={22} color={COLORS.white} />
-        </TouchableOpacity>
-        <View style={styles.titleGroup}>
-          <Text style={styles.title}>{t('favorites.photoShops')}</Text>
-          <Text style={styles.subtitle}>{t('favorites.photoShopsSubtitle')}</Text>
+        <View style={styles.subHeader}>
+          <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.backBtn}
+          >
+            <BackArrowIcon size={22} color={COLORS.white} />
+          </TouchableOpacity>
+          <View style={styles.titleGroup}>
+            <Text style={styles.title}>{t('favorites.photoShops' as any)}</Text>
+            <Text style={styles.subtitle}>{t('favorites.photoShopsSubtitle' as any)}</Text>
+          </View>
         </View>
-      </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ShopCard
-            shop={item}
-            onToggleFavorite={() => handleToggle(item)}
-            onInquiry={() => handleInquiry(item)}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.4}
-        refreshing={loading && shops.length > 0}
-        onRefresh={reload}
-        ListFooterComponent={
-          loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null
-        }
-        ListEmptyComponent={
-          loading ? (
-            <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
-          ) : (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>{error ?? t('favorites.emptyPhotoShops')}</Text>
-              {error && (
-                <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
-                  <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )
-        }
-      />
-    </SafeAreaView>
+        <FlatList
+            data={filtered}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+                <ShopCard
+                    shop={item}
+                    onToggleFavorite={() => handleToggle(item)}
+                    onInquiry={() => handleInquiry(item)}
+                />
+            )}
+            // 🚨 5. 기기마다 다른 하단 인디케이터 영역을 고려하여 안전한 여백을 제공 (Math.max)
+            contentContainerStyle={[styles.listContent, { paddingBottom: Math.max(insets.bottom, 24) + 20 }]}
+            showsVerticalScrollIndicator={false}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.4}
+            refreshing={loading && shops.length > 0}
+            onRefresh={reload}
+            ListFooterComponent={
+              loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null
+            }
+            ListEmptyComponent={
+              loading ? (
+                  <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
+              ) : (
+                  <View style={styles.empty}>
+                    <Text style={styles.emptyText}>{error ?? t('favorites.emptyPhotoShops' as any)}</Text>
+                    {error && (
+                        <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
+                          <Text style={styles.retryBtnText}>{t('common.retry' as any)}</Text>
+                        </TouchableOpacity>
+                    )}
+                  </View>
+              )
+            }
+        />
+      </SafeAreaView>
   );
 };
 
@@ -262,7 +280,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: H_PAD,
     paddingTop: 14,
-    paddingBottom: 40,
     gap: 14,
   },
 

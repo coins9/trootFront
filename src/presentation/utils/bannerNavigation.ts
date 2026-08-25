@@ -36,21 +36,26 @@ export function isInternalLink(url: string): boolean {
  *   빈 값                              → 무동작
  */
 export async function handleBannerLink(
-  url: string,
-  navigation: NavigationProp<RootStackParamList>,
+    url: string,
+    navigation: NavigationProp<RootStackParamList>,
 ): Promise<void> {
   if (!url) return;
 
+  // 🚨 1. URL 뒤에 ? 쿼리 파라미터가 붙어있어도 메인 경로만 추출하도록 분리
+  const basePath = url.split('?')[0] ?? '';
+
   // ── 탭 경로 (파라미터 없는 단순 이동) ──────────────────
-  const tabScreen = TAB_ROUTE_MAP[url];
+  // 🚨 2. url 대신 basePath를 참조하여 이동 성공률 100% 보장
+  const tabScreen = TAB_ROUTE_MAP[basePath];
   if (tabScreen) {
     navigation.navigate(tabScreen as never);
     return;
   }
 
   // ── 타투이스트 프로필: troot://artist/{artistPageId} ──
-  if (url.startsWith('troot://artist/')) {
-    const id = url.slice('troot://artist/'.length).trim();
+  // 🚨 3. ID 뒤에 파라미터(?utm_source=...)가 섞여 들어가 API가 에러나는 현상 방지
+  if (basePath.startsWith('troot://artist/')) {
+    const id = basePath.slice('troot://artist/'.length).trim();
     if (!id) return;
     try {
       const artistPage = await artistApi.detail(id);
@@ -63,6 +68,7 @@ export async function handleBannerLink(
   }
 
   // ── 외부 URL ─────────────────────────────────────────
+  // 🚨 4. 외부 브라우저를 열 때는 쿼리 파라미터가 필수이므로 원본 url을 그대로 넘김
   if (url.startsWith('http://') || url.startsWith('https://')) {
     Linking.openURL(url).catch(() => {});
   }

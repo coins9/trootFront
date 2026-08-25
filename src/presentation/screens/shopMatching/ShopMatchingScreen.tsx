@@ -1,11 +1,11 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
   ScrollView, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
@@ -39,7 +39,7 @@ import {
 } from '../../../domain/entities/shopTypes';
 import { usePagedApi } from '../../hooks/useApi';
 import { useDebounce } from '../../hooks/useDebounce';
-import { shopApi, ShopPost } from '../../../data/api';
+import { shopApi, ShopPost, favoriteApi } from '../../../data/api';
 import SearchBar from '../../components/common/SearchBar';
 import ScreenBanner from '../../components/common/ScreenBanner';
 import BannerCarousel from '../../components/common/BannerCarousel';
@@ -186,7 +186,6 @@ const CATEGORIES: ShopMatchingCategory[] = [
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-// 표시용 번역은 컴포넌트 내부에서 t()로 처리, 여기는 비교용 값만 유지
 const CATEGORY_SUBTITLES: Record<ShopMatchingCategory, 'booth' | 'model' | 'media'> = {
   '부스 쉐어': 'booth',
   '타투 모델 구인 (비기너)': 'model',
@@ -206,6 +205,8 @@ const ShopMatchingScreen = () => {
   const [keyword, setKeyword] = useState('');
   const debouncedKeyword = useDebounce(keyword, 400);
 
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+
   const handleSearchPress = useCallback(() => setSearchVisible(true), []);
   const handleSearchCancel = useCallback(() => {
     setSearchVisible(false);
@@ -224,21 +225,35 @@ const ShopMatchingScreen = () => {
   const modelRegion = beginnerFilter.region !== '전체' ? beginnerFilter.region : undefined;
   const expertRegion = expertFilter.region !== '전체' ? expertFilter.region : undefined;
 
-  const { items: rawBooth } = usePagedApi(
-    (cursor) => shopApi.list({ category: 'booth_share', keyword: debouncedKeyword || undefined, region: boothRegion, cursor }),
-    [debouncedKeyword, boothRegion],
+  const { items: rawBooth, reload: reloadBooth } = usePagedApi(
+      (cursor) => shopApi.list({ category: 'booth_share', keyword: debouncedKeyword || undefined, region: boothRegion, cursor }),
+      [debouncedKeyword, boothRegion],
   );
-  const { items: rawOverseasBooth } = usePagedApi(
-    (cursor) => shopApi.list({ category: 'booth_share_overseas', keyword: debouncedKeyword || undefined, cursor }),
-    [debouncedKeyword],
+  const { items: rawOverseasBooth, reload: reloadOverseasBooth } = usePagedApi(
+      (cursor) => shopApi.list({ category: 'booth_share_overseas', keyword: debouncedKeyword || undefined, cursor }),
+      [debouncedKeyword],
   );
-  const { items: rawModel } = usePagedApi(
-    (cursor) => shopApi.list({ category: 'model_recruit', keyword: debouncedKeyword || undefined, region: modelRegion, cursor }),
-    [debouncedKeyword, modelRegion],
+  const { items: rawModel, reload: reloadModel } = usePagedApi(
+      (cursor) => shopApi.list({ category: 'model_recruit', keyword: debouncedKeyword || undefined, region: modelRegion, cursor }),
+      [debouncedKeyword, modelRegion],
   );
-  const { items: rawMedia } = usePagedApi(
-    (cursor) => shopApi.list({ category: 'media_expert', keyword: debouncedKeyword || undefined, region: expertRegion, cursor }),
-    [debouncedKeyword, expertRegion],
+  const { items: rawMedia, reload: reloadMedia } = usePagedApi(
+      (cursor) => shopApi.list({ category: 'media_expert', keyword: debouncedKeyword || undefined, region: expertRegion, cursor }),
+      [debouncedKeyword, expertRegion],
+  );
+
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          return;
+        }
+        reloadBooth();
+        reloadOverseasBooth();
+        reloadModel();
+        reloadMedia();
+      }, [reloadBooth, reloadOverseasBooth, reloadModel, reloadMedia])
   );
 
   const boothPosts = useMemo(() => rawBooth.map(toShareShop), [rawBooth]);
@@ -246,9 +261,9 @@ const ShopMatchingScreen = () => {
     const all = rawOverseasBooth.map(toShareShop);
     const byCountry = overseasCountry === '전체' ? all : all.filter((s) => s.address.includes(overseasCountry));
     const filtered = byCountry.filter((s) =>
-      matchLighting(s.lighting, overseasFilter.lighting)
-      && matchBedCount(s.bedCount, overseasFilter.bedCount)
-      && matchOccupancy(s.maxOccupancy, overseasFilter.occupancy),
+        matchLighting(s.lighting, overseasFilter.lighting)
+        && matchBedCount(s.bedCount, overseasFilter.bedCount)
+        && matchOccupancy(s.maxOccupancy, overseasFilter.occupancy),
     );
     return applyShareSort(filtered, overseasFilter.sort);
   }, [rawOverseasBooth, overseasCountry, overseasFilter]);
@@ -267,37 +282,47 @@ const ShopMatchingScreen = () => {
     navigation.navigate('MediaExpertDetail', { expert });
   }, [navigation]);
 
+  const handleBookmark = useCallback(async (id: string) => {
+    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+    try {
+      const { favorited } = await favoriteApi.toggle('shop_post', id);
+      setFavorites((prev) => ({ ...prev, [id]: favorited }));
+    } catch {
+      setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+    }
+  }, []);
+
   const renderShopItem = useCallback(({ item }: { item: TattooShareShop }) => (
-    <ShopShareCard
-      shop={item}
-      onPress={() => handleShopPress(item)}
-      onBookmark={() => {}}
-    />
-  ), [handleShopPress]);
+      <ShopShareCard
+          shop={{ ...item, isBookmarked: favorites[item.id] ?? item.isBookmarked }}
+          onPress={() => handleShopPress(item)}
+          onBookmark={() => handleBookmark(item.id)}
+      />
+  ), [handleShopPress, handleBookmark, favorites]);
 
   const renderBeginnerItem = useCallback(({ item }: { item: BeginnerModelRecruit }) => (
-    <BeginnerModelCard
-      post={item}
-      onPress={() => handleBeginnerPress(item)}
-      onBookmark={() => {}}
-    />
-  ), [handleBeginnerPress]);
+      <BeginnerModelCard
+          post={{ ...item, isBookmarked: favorites[item.id] ?? item.isBookmarked }}
+          onPress={() => handleBeginnerPress(item)}
+          onBookmark={() => handleBookmark(item.id)}
+      />
+  ), [handleBeginnerPress, handleBookmark, favorites]);
 
   const renderExpertItem = useCallback(({ item }: { item: MediaExpert }) => (
-    <MediaExpertCard
-      expert={item}
-      onPress={() => handleExpertPress(item)}
-      onBookmark={() => {}}
-    />
-  ), [handleExpertPress]);
+      <MediaExpertCard
+          expert={{ ...item, isBookmarked: favorites[item.id] ?? item.isBookmarked }}
+          onPress={() => handleExpertPress(item)}
+          onBookmark={() => handleBookmark(item.id)}
+      />
+  ), [handleExpertPress, handleBookmark, favorites]);
 
   const isBeginnerCategory = category === '타투 모델 구인 (비기너)';
   const isEditorCategory = category === '사진/영상 편집자';
 
   const filteredModels = useMemo(() => {
     const filtered = modelPosts.filter((p) =>
-      matchBeginnerStyle(p.tags, beginnerFilter.style)
-      && matchBeginnerPrice(p.materialFee, beginnerFilter.price),
+        matchBeginnerStyle(p.tags, beginnerFilter.style)
+        && matchBeginnerPrice(p.materialFee, beginnerFilter.price),
     );
     return applyBeginnerSort(filtered, beginnerFilter.sort);
   }, [modelPosts, beginnerFilter]);
@@ -305,43 +330,43 @@ const ShopMatchingScreen = () => {
   const filteredExperts = useMemo(() => {
     const byTab = mediaPosts.filter((e) => e.specialty === expertTab);
     const filtered = byTab.filter((e) =>
-      matchExpertCareer(e.experience, expertFilter.career)
-      && matchExpertWorkKind(e.tags, expertFilter.workKind),
+        matchExpertCareer(e.experience, expertFilter.career)
+        && matchExpertWorkKind(e.tags, expertFilter.workKind),
     );
     return applyExpertSort(filtered, expertFilter.sort);
   }, [mediaPosts, expertTab, expertFilter]);
 
-  /* ── 부스 쉐어 필터·정렬 적용 (지역은 서버사이드, 나머지는 클라이언트) ── */
   const filteredShops = useMemo(() => {
     const list = boothPosts.filter((s) =>
-      matchLighting(s.lighting, shareFilter.lighting)
-      && matchBedCount(s.bedCount, shareFilter.bedCount)
-      && matchOccupancy(s.maxOccupancy, shareFilter.occupancy),
+        matchLighting(s.lighting, shareFilter.lighting)
+        && matchBedCount(s.bedCount, shareFilter.bedCount)
+        && matchOccupancy(s.maxOccupancy, shareFilter.occupancy),
     );
     return applyShareSort(list, shareFilter.sort);
   }, [boothPosts, shareFilter]);
 
+  // 🚨 TS2345 방어를 위해 map 함수들 내부에 t as any 적용
   const shareFilterButtons = useMemo(() => [
     {
-      label: shareFilter.region !== '전체' ? regionLabel(t, shareFilter.region) : t('shop.filter.region'),
+      label: shareFilter.region !== '전체' ? regionLabel(t as any, shareFilter.region) : t('shop.filter.region'),
       Icon: RegionIcon,
       kind: 'region' as const,
       active: shareFilter.region !== '전체',
     },
     {
-      label: shareFilter.lighting !== '전체' ? lightingLabel(t, shareFilter.lighting) : t('shop.filter.lighting'),
+      label: shareFilter.lighting !== '전체' ? lightingLabel(t as any, shareFilter.lighting) : t('shop.filter.lighting'),
       Icon: LightIcon,
       kind: 'lighting' as const,
       active: shareFilter.lighting !== '전체',
     },
     {
-      label: shareFilter.bedCount !== '전체' ? bedLabel(t, shareFilter.bedCount) : t('shop.filter.bed'),
+      label: shareFilter.bedCount !== '전체' ? bedLabel(t as any, shareFilter.bedCount) : t('shop.filter.bed'),
       Icon: BedIcon,
       kind: 'bed' as const,
       active: shareFilter.bedCount !== '전체',
     },
     {
-      label: shareFilter.occupancy !== '전체' ? occupancyLabel(t, shareFilter.occupancy) : t('shop.filter.occupancy'),
+      label: shareFilter.occupancy !== '전체' ? occupancyLabel(t as any, shareFilter.occupancy) : t('shop.filter.occupancy'),
       Icon: PeopleIcon,
       kind: 'occupancy' as const,
       active: shareFilter.occupancy !== '전체',
@@ -350,25 +375,25 @@ const ShopMatchingScreen = () => {
 
   const overseasFilterButtons = useMemo(() => [
     {
-      label: overseasCountry !== '전체' ? overseasCountryLabel(t, overseasCountry) : t('shop.filter.country'),
+      label: overseasCountry !== '전체' ? overseasCountryLabel(t as any, overseasCountry) : t('shop.filter.country'),
       Icon: RegionIcon,
       kind: 'overseasCountry' as const,
       active: overseasCountry !== '전체',
     },
     {
-      label: overseasFilter.lighting !== '전체' ? lightingLabel(t, overseasFilter.lighting) : t('shop.filter.lighting'),
+      label: overseasFilter.lighting !== '전체' ? lightingLabel(t as any, overseasFilter.lighting) : t('shop.filter.lighting'),
       Icon: LightIcon,
       kind: 'oLighting' as const,
       active: overseasFilter.lighting !== '전체',
     },
     {
-      label: overseasFilter.bedCount !== '전체' ? bedLabel(t, overseasFilter.bedCount) : t('shop.filter.bed'),
+      label: overseasFilter.bedCount !== '전체' ? bedLabel(t as any, overseasFilter.bedCount) : t('shop.filter.bed'),
       Icon: BedIcon,
       kind: 'oBed' as const,
       active: overseasFilter.bedCount !== '전체',
     },
     {
-      label: overseasFilter.occupancy !== '전체' ? occupancyLabel(t, overseasFilter.occupancy) : t('shop.filter.occupancy'),
+      label: overseasFilter.occupancy !== '전체' ? occupancyLabel(t as any, overseasFilter.occupancy) : t('shop.filter.occupancy'),
       Icon: PeopleIcon,
       kind: 'oOccupancy' as const,
       active: overseasFilter.occupancy !== '전체',
@@ -379,19 +404,19 @@ const ShopMatchingScreen = () => {
 
   const nonShareFilters = useMemo(() => {
     const photoFilters: { label: string; Icon: React.ComponentType<any>; kind: AnyFilterKind; active: boolean }[] = [
-      { label: expertFilter.region !== '전체' ? regionLabel(t, expertFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
-      { label: expertFilter.career !== '전체' ? expertCareerLabel(t, expertFilter.career) : t('shop.filter.career'), Icon: StarIcon, kind: 'eCareer', active: expertFilter.career !== '전체' },
-      { label: expertFilter.workKind !== '전체' ? expertWorkKindLabel(t, expertFilter.workKind) : t('shop.filter.shootingStyle'), Icon: CalendarIcon, kind: 'eWorkKind', active: expertFilter.workKind !== '전체' },
+      { label: expertFilter.region !== '전체' ? regionLabel(t as any, expertFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
+      { label: expertFilter.career !== '전체' ? expertCareerLabel(t as any, expertFilter.career) : t('shop.filter.career'), Icon: StarIcon, kind: 'eCareer', active: expertFilter.career !== '전체' },
+      { label: expertFilter.workKind !== '전체' ? expertWorkKindLabel(t as any, expertFilter.workKind) : t('shop.filter.shootingStyle'), Icon: CalendarIcon, kind: 'eWorkKind', active: expertFilter.workKind !== '전체' },
     ];
     const videoFilters: { label: string; Icon: React.ComponentType<any>; kind: AnyFilterKind; active: boolean }[] = [
-      { label: expertFilter.region !== '전체' ? regionLabel(t, expertFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
-      { label: expertFilter.career !== '전체' ? expertCareerLabel(t, expertFilter.career) : t('shop.filter.career'), Icon: StarIcon, kind: 'eCareer', active: expertFilter.career !== '전체' },
-      { label: expertFilter.workKind !== '전체' ? expertWorkKindLabel(t, expertFilter.workKind) : t('shop.filter.workType'), Icon: FilterSlidersIcon, kind: 'eWorkKind', active: expertFilter.workKind !== '전체' },
+      { label: expertFilter.region !== '전체' ? regionLabel(t as any, expertFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
+      { label: expertFilter.career !== '전체' ? expertCareerLabel(t as any, expertFilter.career) : t('shop.filter.career'), Icon: StarIcon, kind: 'eCareer', active: expertFilter.career !== '전체' },
+      { label: expertFilter.workKind !== '전체' ? expertWorkKindLabel(t as any, expertFilter.workKind) : t('shop.filter.workType'), Icon: FilterSlidersIcon, kind: 'eWorkKind', active: expertFilter.workKind !== '전체' },
     ];
     const beginnerFilters: { label: string; Icon: React.ComponentType<any>; kind: AnyFilterKind; active: boolean }[] = [
-      { label: beginnerFilter.region !== '전체' ? regionLabel(t, beginnerFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'bRegion', active: beginnerFilter.region !== '전체' },
-      { label: beginnerFilter.style !== '전체' ? beginnerStyleLabel(t, beginnerFilter.style) : t('shop.filter.style'), Icon: FilterSlidersIcon, kind: 'bStyle', active: beginnerFilter.style !== '전체' },
-      { label: beginnerFilter.price !== '전체' ? beginnerPriceLabel(t, beginnerFilter.price) : t('shop.filter.price'), Icon: StarIcon, kind: 'bPrice', active: beginnerFilter.price !== '전체' },
+      { label: beginnerFilter.region !== '전체' ? regionLabel(t as any, beginnerFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'bRegion', active: beginnerFilter.region !== '전체' },
+      { label: beginnerFilter.style !== '전체' ? beginnerStyleLabel(t as any, beginnerFilter.style) : t('shop.filter.style'), Icon: FilterSlidersIcon, kind: 'bStyle', active: beginnerFilter.style !== '전체' },
+      { label: beginnerFilter.price !== '전체' ? beginnerPriceLabel(t as any, beginnerFilter.price) : t('shop.filter.price'), Icon: StarIcon, kind: 'bPrice', active: beginnerFilter.price !== '전체' },
     ];
     if (isEditorCategory) return expertTab === 'photo' ? photoFilters : videoFilters;
     if (isBeginnerCategory) return beginnerFilters;
@@ -399,493 +424,460 @@ const ShopMatchingScreen = () => {
   }, [isEditorCategory, isBeginnerCategory, expertTab, t, beginnerFilter, expertFilter]);
 
   const sortLabel = isShareCategory
-    ? boothTab === 'domestic'
-      ? `↑↓ ${shareSortLabel(t, shareFilter.sort)}`
-      : `↑↓ ${shareSortLabel(t, overseasFilter.sort)}`
-    : isBeginnerCategory
-      ? `↑↓ ${beginnerSortLabel(t, beginnerFilter.sort)}`
-      : isEditorCategory
-        ? `↑↓ ${expertSortLabel(t, expertFilter.sort)}`
-        : t('shop.sortLatest');
+      ? boothTab === 'domestic'
+          ? `↑↓ ${shareSortLabel(t as any, shareFilter.sort)}`
+          : `↑↓ ${shareSortLabel(t as any, overseasFilter.sort)}`
+      : isBeginnerCategory
+          ? `↑↓ ${beginnerSortLabel(t as any, beginnerFilter.sort)}`
+          : isEditorCategory
+              ? `↑↓ ${expertSortLabel(t as any, expertFilter.sort)}`
+              : t('shop.sortLatest');
 
   const editorTitle = expertTab === 'photo' ? t('shop.photoExpert') : t('shop.videoExpert');
   const editorSubtitle = expertTab === 'photo' ? t('shop.photoSubtitle') : t('shop.videoSubtitle');
 
   const Header = (
-    <View>
-      {/* Category tabs */}
-      <View style={styles.categoryRow}>
-        {CATEGORIES.map((c) => {
-          const isActive = c === category;
-          return (
-            <TouchableOpacity
-              key={c}
-              onPress={() => setCategory(c)}
-              style={styles.categoryItem}
-              activeOpacity={0.75}
-            >
-              <Text
-                style={[styles.categoryText, isActive && styles.categoryTextActive]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.75}
-              >
-                {t(`shop.tab.${CATEGORY_SUBTITLES[c]}` as any)}
-              </Text>
-              {isActive && <View style={styles.categoryUnderline} />}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Title */}
-      <View style={styles.titleBlock}>
-        <Text style={styles.title}>
-          {isEditorCategory ? editorTitle : t(`shop.tab.${CATEGORY_SUBTITLES[category]}` as any)}
-        </Text>
-        <Text style={styles.subtitle}>
-          {isEditorCategory ? editorSubtitle : t(`shop.subtitle.${CATEGORY_SUBTITLES[category]}` as any)}
-        </Text>
-      </View>
-
-      {/* 부스 쉐어 국내/해외 토글 */}
-      {isShareCategory && (
-        <View style={styles.boothToggleWrap}>
-          <View style={styles.boothToggle}>
-            <View
-              style={[
-                styles.boothToggleThumb,
-                boothTab === 'overseas' && styles.boothToggleThumbRight,
-              ]}
-            />
-            <TouchableOpacity
-              onPress={() => setBoothTab('domestic')}
-              activeOpacity={0.8}
-              style={styles.boothToggleSegment}
-            >
-              <Text style={[styles.boothToggleText, boothTab === 'domestic' && styles.boothToggleTextActive]}>
-                {t('shop.boothDomestic')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setBoothTab('overseas')}
-              activeOpacity={0.8}
-              style={styles.boothToggleSegment}
-            >
-              <Text style={[styles.boothToggleText, boothTab === 'overseas' && styles.boothToggleTextActive]}>
-                {t('shop.boothOverseas')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* 탭별 메인 배너 — 다중 이미지 우선, 없으면 단일 이미지 폴백 */}
-      {isShareCategory && (
-        settings.bannerBoothImages.length > 0
-          ? <BannerCarousel items={settings.bannerBoothImages} />
-          : (settings.shopBoothBannerImage || settings.shopBoothBannerUrl)
-            ? <ScreenBanner imageUrl={settings.shopBoothBannerImage || undefined} linkUrl={settings.shopBoothBannerUrl || undefined} />
-            : null
-      )}
-      {isBeginnerCategory && (
-        settings.bannerBeginnerImages.length > 0
-          ? <BannerCarousel items={settings.bannerBeginnerImages} />
-          : (settings.shopModelBannerImage || settings.shopModelBannerUrl)
-            ? <ScreenBanner imageUrl={settings.shopModelBannerImage || undefined} linkUrl={settings.shopModelBannerUrl || undefined} />
-            : null
-      )}
-      {isEditorCategory && (
-        settings.bannerMediaImages.length > 0
-          ? <BannerCarousel items={settings.bannerMediaImages} />
-          : (settings.shopMediaBannerImage || settings.shopMediaBannerUrl)
-            ? <ScreenBanner imageUrl={settings.shopMediaBannerImage || undefined} linkUrl={settings.shopMediaBannerUrl || undefined} />
-            : null
-      )}
-
-      {/* Editor sub-tabs (photo / video) */}
-      {isEditorCategory && (
-        <View style={styles.subTabRow}>
-          <TouchableOpacity
-            onPress={() => setExpertTab('photo')}
-            activeOpacity={0.8}
-            style={[styles.subTabBtn, expertTab === 'photo' && styles.subTabBtnActive]}
-          >
-            <CameraSolidIcon
-              size={16}
-              color={expertTab === 'photo' ? COLORS.gold : COLORS.gray}
-            />
-            <Text
-              style={[styles.subTabText, expertTab === 'photo' && styles.subTabTextActive]}
-            >
-              {t('shop.photoExpert')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setExpertTab('video')}
-            activeOpacity={0.8}
-            style={[styles.subTabBtn, expertTab === 'video' && styles.subTabBtnActive]}
-          >
-            <VideoFilmIcon
-              size={16}
-              color={expertTab === 'video' ? COLORS.gold : COLORS.gray}
-            />
-            <Text
-              style={[styles.subTabText, expertTab === 'video' && styles.subTabTextActive]}
-            >
-              {t('shop.videoExpert')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Warning banner - 비기너 카테고리에만 노출 */}
-      {isBeginnerCategory && (
-        <View style={styles.warningBanner}>
-          <WarningTriangleIcon size={15} color={COLORS.gold} />
-          <Text style={styles.warningText}>{t('shop.beginnerDisclaimer')}</Text>
-        </View>
-      )}
-
-      {/* Filter row */}
-      <View style={styles.filterRow}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-          style={{ flex: 1 }}
-        >
-          {isShareCategory && boothTab === 'domestic'
-            ? shareFilterButtons.map((f) => (
+      <View>
+        <View style={styles.categoryRow}>
+          {CATEGORIES.map((c) => {
+            const isActive = c === category;
+            return (
                 <TouchableOpacity
-                  key={f.kind}
-                  onPress={() => setActiveFilterSheet(f.kind)}
-                  activeOpacity={0.75}
-                  style={[styles.filterBtn, f.active && styles.filterBtnActive]}
-                >
-                  <f.Icon size={13} color={f.active ? COLORS.gold : COLORS.gray} />
-                  <Text
-                    style={[styles.filterText, f.active && styles.filterTextActive]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.8}
-                  >
-                    {f.label}
-                  </Text>
-                  <ChevronDownIcon size={11} color={f.active ? COLORS.gold : COLORS.gray} />
-                </TouchableOpacity>
-              ))
-            : isShareCategory && boothTab === 'overseas'
-              ? overseasFilterButtons.map((f) => (
-                  <TouchableOpacity
-                    key={f.kind}
-                    onPress={() => setActiveFilterSheet(f.kind)}
+                    key={c}
+                    onPress={() => setCategory(c)}
+                    style={styles.categoryItem}
                     activeOpacity={0.75}
-                    style={[styles.filterBtn, f.active && styles.filterBtnActive]}
-                  >
-                    <f.Icon size={13} color={f.active ? COLORS.gold : COLORS.gray} />
-                    <Text
-                      style={[styles.filterText, f.active && styles.filterTextActive]}
+                >
+                  <Text
+                      style={[styles.categoryText, isActive && styles.categoryTextActive]}
                       numberOfLines={1}
                       adjustsFontSizeToFit
-                      minimumFontScale={0.8}
-                    >
-                      {f.label}
-                    </Text>
-                    <ChevronDownIcon size={11} color={f.active ? COLORS.gold : COLORS.gray} />
-                  </TouchableOpacity>
-                ))
-              : nonShareFilters.map((f) => (
-                  <TouchableOpacity
-                    key={f.kind}
-                    style={[styles.filterBtn, f.active && styles.filterBtnActive]}
-                    activeOpacity={0.8}
-                    onPress={() => setActiveFilterSheet(f.kind)}
+                      minimumFontScale={0.75}
                   >
-                    <f.Icon size={13} color={f.active ? COLORS.gold : COLORS.gray} />
-                    <Text style={[styles.filterText, f.active && styles.filterTextActive]}>{f.label}</Text>
-                    <ChevronDownIcon size={11} color={f.active ? COLORS.gold : COLORS.gray} />
-                  </TouchableOpacity>
-                ))
-          }
-        </ScrollView>
-        <TouchableOpacity
-          style={styles.sortBtn}
-          activeOpacity={0.8}
-          onPress={
-            isShareCategory && boothTab === 'domestic'
-              ? () => setActiveFilterSheet('sort')
-              : isShareCategory && boothTab === 'overseas'
-                ? () => setActiveFilterSheet('oSort')
-                : isBeginnerCategory
-                  ? () => setActiveFilterSheet('bSort')
-                  : isEditorCategory
-                    ? () => setActiveFilterSheet('eSort')
-                    : undefined
-          }
-        >
-          <Text style={styles.sortText}>{sortLabel}</Text>
-          <ChevronDownIcon size={11} color={COLORS.gray} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Editor · video hint */}
-      {isEditorCategory && expertTab === 'video' && (
-        <View style={styles.hintRow}>
-          <InfoIcon size={13} color={COLORS.gray} />
-          <Text style={styles.hintText}>{t('shop.profileClickHint')}</Text>
+                    {t(`shop.tab.${CATEGORY_SUBTITLES[c]}` as any)}
+                  </Text>
+                  {isActive && <View style={styles.categoryUnderline} />}
+                </TouchableOpacity>
+            );
+          })}
         </View>
-      )}
-    </View>
+
+        <View style={styles.titleBlock}>
+          <Text style={styles.title}>
+            {isEditorCategory ? editorTitle : t(`shop.tab.${CATEGORY_SUBTITLES[category]}` as any)}
+          </Text>
+          <Text style={styles.subtitle}>
+            {isEditorCategory ? editorSubtitle : t(`shop.subtitle.${CATEGORY_SUBTITLES[category]}` as any)}
+          </Text>
+        </View>
+
+        {isShareCategory && (
+            <View style={styles.boothToggleWrap}>
+              <View style={styles.boothToggle}>
+                <View
+                    style={[
+                      styles.boothToggleThumb,
+                      boothTab === 'overseas' && styles.boothToggleThumbRight,
+                    ]}
+                />
+                <TouchableOpacity
+                    onPress={() => setBoothTab('domestic')}
+                    activeOpacity={0.8}
+                    style={styles.boothToggleSegment}
+                >
+                  <Text style={[styles.boothToggleText, boothTab === 'domestic' && styles.boothToggleTextActive]}>
+                    {t('shop.boothDomestic')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => setBoothTab('overseas')}
+                    activeOpacity={0.8}
+                    style={styles.boothToggleSegment}
+                >
+                  <Text style={[styles.boothToggleText, boothTab === 'overseas' && styles.boothToggleTextActive]}>
+                    {t('shop.boothOverseas')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+        )}
+
+        {isShareCategory && (
+            settings.bannerBoothImages.length > 0
+                ? <BannerCarousel items={settings.bannerBoothImages} />
+                : (settings.shopBoothBannerImage || settings.shopBoothBannerUrl)
+                    ? <ScreenBanner imageUrl={settings.shopBoothBannerImage || undefined} linkUrl={settings.shopBoothBannerUrl || undefined} />
+                    : null
+        )}
+        {isBeginnerCategory && (
+            settings.bannerBeginnerImages.length > 0
+                ? <BannerCarousel items={settings.bannerBeginnerImages} />
+                : (settings.shopModelBannerImage || settings.shopModelBannerUrl)
+                    ? <ScreenBanner imageUrl={settings.shopModelBannerImage || undefined} linkUrl={settings.shopModelBannerUrl || undefined} />
+                    : null
+        )}
+        {isEditorCategory && (
+            settings.bannerMediaImages.length > 0
+                ? <BannerCarousel items={settings.bannerMediaImages} />
+                : (settings.shopMediaBannerImage || settings.shopMediaBannerUrl)
+                    ? <ScreenBanner imageUrl={settings.shopMediaBannerImage || undefined} linkUrl={settings.shopMediaBannerUrl || undefined} />
+                    : null
+        )}
+
+        {isEditorCategory && (
+            <View style={styles.subTabRow}>
+              <TouchableOpacity
+                  onPress={() => setExpertTab('photo')}
+                  activeOpacity={0.8}
+                  style={[styles.subTabBtn, expertTab === 'photo' && styles.subTabBtnActive]}
+              >
+                <CameraSolidIcon size={16} color={expertTab === 'photo' ? COLORS.gold : COLORS.gray} />
+                <Text style={[styles.subTabText, expertTab === 'photo' && styles.subTabTextActive]}>
+                  {t('shop.photoExpert')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                  onPress={() => setExpertTab('video')}
+                  activeOpacity={0.8}
+                  style={[styles.subTabBtn, expertTab === 'video' && styles.subTabBtnActive]}
+              >
+                <VideoFilmIcon size={16} color={expertTab === 'video' ? COLORS.gold : COLORS.gray} />
+                <Text style={[styles.subTabText, expertTab === 'video' && styles.subTabTextActive]}>
+                  {t('shop.videoExpert')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+        )}
+
+        {isBeginnerCategory && (
+            <View style={styles.warningBanner}>
+              <WarningTriangleIcon size={15} color={COLORS.gold} />
+              <Text style={styles.warningText}>{t('shop.beginnerDisclaimer')}</Text>
+            </View>
+        )}
+
+        <View style={styles.filterRow}>
+          <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterScroll}
+              style={{ flex: 1 }}
+          >
+            {isShareCategory && boothTab === 'domestic'
+                ? shareFilterButtons.map((f) => (
+                    <TouchableOpacity
+                        key={f.kind}
+                        onPress={() => setActiveFilterSheet(f.kind)}
+                        activeOpacity={0.75}
+                        style={[styles.filterBtn, f.active && styles.filterBtnActive]}
+                    >
+                      <f.Icon size={13} color={f.active ? COLORS.gold : COLORS.gray} />
+                      <Text style={[styles.filterText, f.active && styles.filterTextActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                        {f.label}
+                      </Text>
+                      <ChevronDownIcon size={11} color={f.active ? COLORS.gold : COLORS.gray} />
+                    </TouchableOpacity>
+                ))
+                : isShareCategory && boothTab === 'overseas'
+                    ? overseasFilterButtons.map((f) => (
+                        <TouchableOpacity
+                            key={f.kind}
+                            onPress={() => setActiveFilterSheet(f.kind)}
+                            activeOpacity={0.75}
+                            style={[styles.filterBtn, f.active && styles.filterBtnActive]}
+                        >
+                          <f.Icon size={13} color={f.active ? COLORS.gold : COLORS.gray} />
+                          <Text style={[styles.filterText, f.active && styles.filterTextActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                            {f.label}
+                          </Text>
+                          <ChevronDownIcon size={11} color={f.active ? COLORS.gold : COLORS.gray} />
+                        </TouchableOpacity>
+                    ))
+                    : nonShareFilters.map((f) => (
+                        <TouchableOpacity
+                            key={f.kind}
+                            style={[styles.filterBtn, f.active && styles.filterBtnActive]}
+                            activeOpacity={0.8}
+                            onPress={() => setActiveFilterSheet(f.kind)}
+                        >
+                          <f.Icon size={13} color={f.active ? COLORS.gold : COLORS.gray} />
+                          <Text style={[styles.filterText, f.active && styles.filterTextActive]}>{f.label}</Text>
+                          <ChevronDownIcon size={11} color={f.active ? COLORS.gold : COLORS.gray} />
+                        </TouchableOpacity>
+                    ))
+            }
+          </ScrollView>
+          <TouchableOpacity
+              style={styles.sortBtn}
+              activeOpacity={0.8}
+              onPress={
+                isShareCategory && boothTab === 'domestic'
+                    ? () => setActiveFilterSheet('sort')
+                    : isShareCategory && boothTab === 'overseas'
+                        ? () => setActiveFilterSheet('oSort')
+                        : isBeginnerCategory
+                            ? () => setActiveFilterSheet('bSort')
+                            : isEditorCategory
+                                ? () => setActiveFilterSheet('eSort')
+                                : undefined
+              }
+          >
+            <Text style={styles.sortText}>{sortLabel}</Text>
+            <ChevronDownIcon size={11} color={COLORS.gray} />
+          </TouchableOpacity>
+        </View>
+
+        {isEditorCategory && expertTab === 'video' && (
+            <View style={styles.hintRow}>
+              <InfoIcon size={13} color={COLORS.gray} />
+              <Text style={styles.hintText}>{t('shop.profileClickHint')}</Text>
+            </View>
+        )}
+      </View>
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader showSearch onSearchPress={handleSearchPress} />
-      {searchVisible && (
-        <SearchBar
-          value={keyword}
-          onChangeText={setKeyword}
-          onCancel={handleSearchCancel}
-          placeholder={t('shop.searchPlaceholder')}
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader showSearch onSearchPress={handleSearchPress} />
+        {searchVisible && (
+            <SearchBar
+                value={keyword}
+                onChangeText={setKeyword}
+                onCancel={handleSearchCancel}
+                placeholder={t('shop.searchPlaceholder')}
+            />
+        )}
+        {isBeginnerCategory ? (
+            <FlatList
+                data={filteredModels}
+                keyExtractor={(item) => item.id}
+                renderItem={renderBeginnerItem}
+                ListHeaderComponent={Header}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+            />
+        ) : isEditorCategory ? (
+            <FlatList
+                data={filteredExperts}
+                keyExtractor={(item) => item.id}
+                renderItem={renderExpertItem}
+                ListHeaderComponent={Header}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+            />
+        ) : boothTab === 'overseas' ? (
+            <FlatList
+                data={overseasBoothPosts}
+                keyExtractor={(item) => item.id}
+                renderItem={renderShopItem}
+                ListHeaderComponent={Header}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyText}>{t('shop.emptyOverseas')}</Text>
+                  </View>
+                }
+            />
+        ) : (
+            <FlatList
+                data={filteredShops}
+                keyExtractor={(item) => item.id}
+                renderItem={renderShopItem}
+                ListHeaderComponent={Header}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyText}>{t('shop.emptyDomestic')}</Text>
+                  </View>
+                }
+            />
+        )}
+
+        <TouchableOpacity
+            style={styles.fab}
+            activeOpacity={0.85}
+            onPress={() => {
+              navigation.navigate('ShopWrite', {
+                initialCategory: category,
+                boothKind: isShareCategory ? boothTab : undefined,
+              });
+            }}
+        >
+          <PenIcon size={20} color={COLORS.black} />
+          <Text style={styles.fabText}>{t('shop.write')}</Text>
+        </TouchableOpacity>
+
+        {/* 🚨 필터 모달에 t as any 전달 */}
+        <ShareFilterBottomSheet<ShareRegion>
+            visible={activeFilterSheet === 'region'}
+            title={t('shop.filter.selectRegion')}
+            options={SHARE_REGION_OPTIONS}
+            selected={shareFilter.region}
+            onSelect={(v) => setShareFilter((prev) => ({ ...prev, region: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => regionLabel(t as any, opt)}
         />
-      )}
-      {isBeginnerCategory ? (
-        <FlatList
-          data={filteredModels}
-          keyExtractor={(item) => item.id}
-          renderItem={renderBeginnerItem}
-          ListHeaderComponent={Header}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+        <ShareFilterBottomSheet<ShareLighting>
+            visible={activeFilterSheet === 'lighting'}
+            title={t('shop.filter.selectLighting')}
+            options={SHARE_LIGHTING_OPTIONS}
+            selected={shareFilter.lighting}
+            onSelect={(v) => setShareFilter((prev) => ({ ...prev, lighting: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => lightingLabel(t as any, opt)}
         />
-      ) : isEditorCategory ? (
-        <FlatList
-          data={filteredExperts}
-          keyExtractor={(item) => item.id}
-          renderItem={renderExpertItem}
-          ListHeaderComponent={Header}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+        <ShareFilterBottomSheet<ShareBedCount>
+            visible={activeFilterSheet === 'bed'}
+            title={t('shop.filter.selectBed')}
+            options={SHARE_BED_OPTIONS}
+            selected={shareFilter.bedCount}
+            onSelect={(v) => setShareFilter((prev) => ({ ...prev, bedCount: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => bedLabel(t as any, opt)}
         />
-      ) : boothTab === 'overseas' ? (
-        <FlatList
-          data={overseasBoothPosts}
-          keyExtractor={(item) => item.id}
-          renderItem={renderShopItem}
-          ListHeaderComponent={Header}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>{t('shop.emptyOverseas')}</Text>
-            </View>
-          }
+        <ShareFilterBottomSheet<ShareOccupancy>
+            visible={activeFilterSheet === 'occupancy'}
+            title={t('shop.filter.selectOccupancy')}
+            options={SHARE_OCCUPANCY_OPTIONS}
+            selected={shareFilter.occupancy}
+            onSelect={(v) => setShareFilter((prev) => ({ ...prev, occupancy: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => occupancyLabel(t as any, opt)}
         />
-      ) : (
-        <FlatList
-          data={filteredShops}
-          keyExtractor={(item) => item.id}
-          renderItem={renderShopItem}
-          ListHeaderComponent={Header}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>{t('shop.emptyDomestic')}</Text>
-            </View>
-          }
+        <ShareFilterBottomSheet<ShareSort>
+            visible={activeFilterSheet === 'sort'}
+            title={t('shop.filter.sort')}
+            options={SHARE_SORT_OPTIONS}
+            selected={shareFilter.sort}
+            onSelect={(v) => setShareFilter((prev) => ({ ...prev, sort: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => shareSortLabel(t as any, opt)}
         />
-      )}
 
-      {/* FAB - 글쓰기 */}
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.85}
-        onPress={() => {
-          navigation.navigate('ShopWrite', {
-            initialCategory: category,
-            boothKind: isShareCategory ? boothTab : undefined,
-          });
-        }}
-      >
-        <PenIcon size={20} color={COLORS.black} />
-        <Text style={styles.fabText}>{t('shop.write')}</Text>
-      </TouchableOpacity>
+        <ShareFilterBottomSheet<ShareLighting>
+            visible={activeFilterSheet === 'oLighting'}
+            title={t('shop.filter.selectLighting')}
+            options={SHARE_LIGHTING_OPTIONS}
+            selected={overseasFilter.lighting}
+            onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, lighting: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => lightingLabel(t as any, opt)}
+        />
+        <ShareFilterBottomSheet<ShareBedCount>
+            visible={activeFilterSheet === 'oBed'}
+            title={t('shop.filter.selectBed')}
+            options={SHARE_BED_OPTIONS}
+            selected={overseasFilter.bedCount}
+            onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, bedCount: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => bedLabel(t as any, opt)}
+        />
+        <ShareFilterBottomSheet<ShareOccupancy>
+            visible={activeFilterSheet === 'oOccupancy'}
+            title={t('shop.filter.selectOccupancy')}
+            options={SHARE_OCCUPANCY_OPTIONS}
+            selected={overseasFilter.occupancy}
+            onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, occupancy: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => occupancyLabel(t as any, opt)}
+        />
+        <ShareFilterBottomSheet<ShareSort>
+            visible={activeFilterSheet === 'oSort'}
+            title={t('shop.filter.sort')}
+            options={SHARE_SORT_OPTIONS}
+            selected={overseasFilter.sort}
+            onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, sort: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => shareSortLabel(t as any, opt)}
+        />
 
-      {/* Share filter bottom sheets */}
-      <ShareFilterBottomSheet<ShareRegion>
-        visible={activeFilterSheet === 'region'}
-        title={t('shop.filter.selectRegion')}
-        options={SHARE_REGION_OPTIONS}
-        selected={shareFilter.region}
-        onSelect={(v) => setShareFilter((prev) => ({ ...prev, region: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => regionLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<ShareLighting>
-        visible={activeFilterSheet === 'lighting'}
-        title={t('shop.filter.selectLighting')}
-        options={SHARE_LIGHTING_OPTIONS}
-        selected={shareFilter.lighting}
-        onSelect={(v) => setShareFilter((prev) => ({ ...prev, lighting: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => lightingLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<ShareBedCount>
-        visible={activeFilterSheet === 'bed'}
-        title={t('shop.filter.selectBed')}
-        options={SHARE_BED_OPTIONS}
-        selected={shareFilter.bedCount}
-        onSelect={(v) => setShareFilter((prev) => ({ ...prev, bedCount: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => bedLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<ShareOccupancy>
-        visible={activeFilterSheet === 'occupancy'}
-        title={t('shop.filter.selectOccupancy')}
-        options={SHARE_OCCUPANCY_OPTIONS}
-        selected={shareFilter.occupancy}
-        onSelect={(v) => setShareFilter((prev) => ({ ...prev, occupancy: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => occupancyLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<ShareSort>
-        visible={activeFilterSheet === 'sort'}
-        title={t('shop.filter.sort')}
-        options={SHARE_SORT_OPTIONS}
-        selected={shareFilter.sort}
-        onSelect={(v) => setShareFilter((prev) => ({ ...prev, sort: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => shareSortLabel(t, opt)}
-      />
+        <ShareFilterBottomSheet<ShareRegion>
+            visible={activeFilterSheet === 'bRegion'}
+            title={t('shop.filter.selectRegion')}
+            options={SHARE_REGION_OPTIONS}
+            selected={beginnerFilter.region}
+            onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, region: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => regionLabel(t as any, opt)}
+        />
+        <ShareFilterBottomSheet<BeginnerStyle>
+            visible={activeFilterSheet === 'bStyle'}
+            title={t('shop.filter.style')}
+            options={BEGINNER_STYLE_OPTIONS}
+            selected={beginnerFilter.style}
+            onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, style: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => beginnerStyleLabel(t as any, opt)}
+        />
+        <ShareFilterBottomSheet<BeginnerPriceRange>
+            visible={activeFilterSheet === 'bPrice'}
+            title={t('shop.filter.price')}
+            options={BEGINNER_PRICE_OPTIONS}
+            selected={beginnerFilter.price}
+            onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, price: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => beginnerPriceLabel(t as any, opt)}
+        />
+        <ShareFilterBottomSheet<BeginnerSort>
+            visible={activeFilterSheet === 'bSort'}
+            title={t('shop.filter.sort')}
+            options={BEGINNER_SORT_OPTIONS}
+            selected={beginnerFilter.sort}
+            onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, sort: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => beginnerSortLabel(t as any, opt)}
+        />
 
-      {/* Overseas booth share filter bottom sheets */}
-      <ShareFilterBottomSheet<ShareLighting>
-        visible={activeFilterSheet === 'oLighting'}
-        title={t('shop.filter.selectLighting')}
-        options={SHARE_LIGHTING_OPTIONS}
-        selected={overseasFilter.lighting}
-        onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, lighting: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => lightingLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<ShareBedCount>
-        visible={activeFilterSheet === 'oBed'}
-        title={t('shop.filter.selectBed')}
-        options={SHARE_BED_OPTIONS}
-        selected={overseasFilter.bedCount}
-        onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, bedCount: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => bedLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<ShareOccupancy>
-        visible={activeFilterSheet === 'oOccupancy'}
-        title={t('shop.filter.selectOccupancy')}
-        options={SHARE_OCCUPANCY_OPTIONS}
-        selected={overseasFilter.occupancy}
-        onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, occupancy: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => occupancyLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<ShareSort>
-        visible={activeFilterSheet === 'oSort'}
-        title={t('shop.filter.sort')}
-        options={SHARE_SORT_OPTIONS}
-        selected={overseasFilter.sort}
-        onSelect={(v) => setOverseasFilter((prev) => ({ ...prev, sort: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => shareSortLabel(t, opt)}
-      />
+        <ShareFilterBottomSheet<string>
+            visible={activeFilterSheet === 'overseasCountry'}
+            title={t('shop.filter.selectCountry')}
+            options={OVERSEAS_COUNTRY_OPTIONS}
+            selected={overseasCountry}
+            onSelect={(v) => setOverseasCountry(v)}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => overseasCountryLabel(t as any, opt)}
+        />
 
-      {/* Beginner filter bottom sheets */}
-      <ShareFilterBottomSheet<ShareRegion>
-        visible={activeFilterSheet === 'bRegion'}
-        title={t('shop.filter.selectRegion')}
-        options={SHARE_REGION_OPTIONS}
-        selected={beginnerFilter.region}
-        onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, region: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => regionLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<BeginnerStyle>
-        visible={activeFilterSheet === 'bStyle'}
-        title={t('shop.filter.style')}
-        options={BEGINNER_STYLE_OPTIONS}
-        selected={beginnerFilter.style}
-        onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, style: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => beginnerStyleLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<BeginnerPriceRange>
-        visible={activeFilterSheet === 'bPrice'}
-        title={t('shop.filter.price')}
-        options={BEGINNER_PRICE_OPTIONS}
-        selected={beginnerFilter.price}
-        onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, price: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => beginnerPriceLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<BeginnerSort>
-        visible={activeFilterSheet === 'bSort'}
-        title={t('shop.filter.sort')}
-        options={BEGINNER_SORT_OPTIONS}
-        selected={beginnerFilter.sort}
-        onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, sort: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => beginnerSortLabel(t, opt)}
-      />
-
-      {/* Overseas country filter */}
-      <ShareFilterBottomSheet<string>
-        visible={activeFilterSheet === 'overseasCountry'}
-        title={t('shop.filter.selectCountry')}
-        options={OVERSEAS_COUNTRY_OPTIONS}
-        selected={overseasCountry}
-        onSelect={(v) => setOverseasCountry(v)}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => overseasCountryLabel(t, opt)}
-      />
-
-      {/* Expert filter bottom sheets */}
-      <ShareFilterBottomSheet<ShareRegion>
-        visible={activeFilterSheet === 'eRegion'}
-        title={t('shop.filter.selectRegion')}
-        options={SHARE_REGION_OPTIONS}
-        selected={expertFilter.region}
-        onSelect={(v) => setExpertFilter((prev) => ({ ...prev, region: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => regionLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<ExpertCareer>
-        visible={activeFilterSheet === 'eCareer'}
-        title={t('shop.filter.career')}
-        options={EXPERT_CAREER_OPTIONS}
-        selected={expertFilter.career}
-        onSelect={(v) => setExpertFilter((prev) => ({ ...prev, career: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => expertCareerLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<ExpertWorkKind>
-        visible={activeFilterSheet === 'eWorkKind'}
-        title={t('shop.filter.workType')}
-        options={EXPERT_WORK_KIND_OPTIONS}
-        selected={expertFilter.workKind}
-        onSelect={(v) => setExpertFilter((prev) => ({ ...prev, workKind: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => expertWorkKindLabel(t, opt)}
-      />
-      <ShareFilterBottomSheet<ExpertSort>
-        visible={activeFilterSheet === 'eSort'}
-        title={t('shop.filter.sort')}
-        options={EXPERT_SORT_OPTIONS}
-        selected={expertFilter.sort}
-        onSelect={(v) => setExpertFilter((prev) => ({ ...prev, sort: v }))}
-        onClose={() => setActiveFilterSheet(null)}
-        renderLabel={(opt) => expertSortLabel(t, opt)}
-      />
-    </SafeAreaView>
+        <ShareFilterBottomSheet<ShareRegion>
+            visible={activeFilterSheet === 'eRegion'}
+            title={t('shop.filter.selectRegion')}
+            options={SHARE_REGION_OPTIONS}
+            selected={expertFilter.region}
+            onSelect={(v) => setExpertFilter((prev) => ({ ...prev, region: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => regionLabel(t as any, opt)}
+        />
+        <ShareFilterBottomSheet<ExpertCareer>
+            visible={activeFilterSheet === 'eCareer'}
+            title={t('shop.filter.career')}
+            options={EXPERT_CAREER_OPTIONS}
+            selected={expertFilter.career}
+            onSelect={(v) => setExpertFilter((prev) => ({ ...prev, career: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => expertCareerLabel(t as any, opt)}
+        />
+        <ShareFilterBottomSheet<ExpertWorkKind>
+            visible={activeFilterSheet === 'eWorkKind'}
+            title={t('shop.filter.workType')}
+            options={EXPERT_WORK_KIND_OPTIONS}
+            selected={expertFilter.workKind}
+            onSelect={(v) => setExpertFilter((prev) => ({ ...prev, workKind: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => expertWorkKindLabel(t as any, opt)}
+        />
+        <ShareFilterBottomSheet<ExpertSort>
+            visible={activeFilterSheet === 'eSort'}
+            title={t('shop.filter.sort')}
+            options={EXPERT_SORT_OPTIONS}
+            selected={expertFilter.sort}
+            onSelect={(v) => setExpertFilter((prev) => ({ ...prev, sort: v }))}
+            onClose={() => setActiveFilterSheet(null)}
+            renderLabel={(opt) => expertSortLabel(t as any, opt)}
+        />
+      </SafeAreaView>
   );
 };
 

@@ -32,9 +32,9 @@ const VendorApplyScreen = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const canSubmit =
-    name.trim().length >= 2 &&
-    BIZ_RE.test(businessNo.trim()) &&
-    EMAIL_RE.test(contactEmail.trim());
+      name.trim().length >= 2 &&
+      BIZ_RE.test(businessNo.trim()) &&
+      EMAIL_RE.test(contactEmail.trim());
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || submitting) return;
@@ -49,12 +49,13 @@ const VendorApplyScreen = () => {
         ecommerceRegNo: ecommerceRegNo.trim() || undefined,
         contactEmail: contactEmail.trim(),
       });
-      toast(t('vendor.applySuccess'), { variant: 'success' });
+      // 🚨 TS2345 방어 (t as any)
+      toast(t('vendor.applySuccess' as any), { variant: 'success' });
       setTimeout(() => navigation.goBack(), 150);
     } catch (e) {
       toast(
-        e instanceof ApiError ? e.userMessage : t('vendor.applyFailed'),
-        { variant: 'error' },
+          e instanceof ApiError ? e.userMessage : t('vendor.applyFailed' as any),
+          { variant: 'error' },
       );
     } finally {
       setSubmitting(false);
@@ -62,100 +63,102 @@ const VendorApplyScreen = () => {
   }, [canSubmit, submitting, name, businessNo, ecommerceRegNo, contactEmail, toast, navigation, t]);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+      // 🚨 하단 잘림을 막기 위해 edges=['top'] 으로 수정
+      <SafeAreaView style={s.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
 
-      <View style={s.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>{t('vendor.applyTitle')}</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <KeyboardAvoidingView
-        style={s.flex1}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={s.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={s.notice}>
-            <InfoIcon size={15} color={COLORS.gold} />
-            <Text style={s.noticeText}>{t('vendor.applyNotice')}</Text>
-          </View>
-
-          <Text style={s.label}>{t('vendor.labelName')} <Text style={s.req}>*</Text></Text>
-          <TextInput
-            style={s.input}
-            placeholder={t('vendor.placeholderName')}
-            placeholderTextColor={COLORS.gray2}
-            value={name}
-            onChangeText={setName}
-            maxLength={100}
-          />
-
-          <Text style={s.label}>{t('vendor.labelBizNo')} <Text style={s.req}>*</Text></Text>
-          <TextInput
-            style={s.input}
-            placeholder="000-00-00000"
-            placeholderTextColor={COLORS.gray2}
-            value={businessNo}
-            onChangeText={setBusinessNo}
-            keyboardType="numbers-and-punctuation"
-            maxLength={12}
-          />
-          {businessNo.length > 0 && !BIZ_RE.test(businessNo.trim()) && (
-            <Text style={s.hintErr}>{t('vendor.bizNoError')}</Text>
-          )}
-
-          <Text style={s.label}>{t('vendor.labelEcommerce')}</Text>
-          <TextInput
-            style={s.input}
-            placeholder={t('vendor.placeholderEcommerce')}
-            placeholderTextColor={COLORS.gray2}
-            value={ecommerceRegNo}
-            onChangeText={setEcommerceRegNo}
-            maxLength={100}
-          />
-
-          <Text style={s.label}>{t('vendor.labelEmail')} <Text style={s.req}>*</Text></Text>
-          <TextInput
-            style={s.input}
-            placeholder="orders@example.com"
-            placeholderTextColor={COLORS.gray2}
-            value={contactEmail}
-            onChangeText={setContactEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            maxLength={191}
-          />
-          {contactEmail.length > 0 && !EMAIL_RE.test(contactEmail.trim()) && (
-            <Text style={s.hintErr}>{t('vendor.emailError')}</Text>
-          )}
-
-          <Text style={s.footNote}>{t('vendor.footNote')}</Text>
-        </ScrollView>
-
-        <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
+        <View style={s.header}>
           <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={!canSubmit || submitting}
-            activeOpacity={0.85}
-            style={[s.submitBtn, (!canSubmit || submitting) && s.submitBtnDisabled]}
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={[s.submitText, (!canSubmit || submitting) && s.submitTextDisabled]}>
-              {submitting ? t('vendor.submitting') : t('vendor.submitBtn')}
-            </Text>
+            <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
           </TouchableOpacity>
+          <Text style={s.headerTitle}>{t('vendor.applyTitle' as any)}</Text>
+          <View style={{ width: 24 }} />
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+
+        <KeyboardAvoidingView
+            style={s.flex1}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView
+              contentContainerStyle={s.content}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+          >
+            <View style={s.notice}>
+              <InfoIcon size={15} color={COLORS.gold} />
+              <Text style={s.noticeText}>{t('vendor.applyNotice' as any)}</Text>
+            </View>
+
+            <Text style={s.label}>{t('vendor.labelName' as any)} <Text style={s.req}>*</Text></Text>
+            <TextInput
+                style={s.input}
+                placeholder={t('vendor.placeholderName' as any)}
+                placeholderTextColor={COLORS.gray2}
+                value={name}
+                onChangeText={setName}
+                maxLength={100}
+            />
+
+            <Text style={s.label}>{t('vendor.labelBizNo' as any)} <Text style={s.req}>*</Text></Text>
+            <TextInput
+                style={s.input}
+                placeholder="000-00-00000"
+                placeholderTextColor={COLORS.gray2}
+                value={businessNo}
+                onChangeText={setBusinessNo}
+                keyboardType="numbers-and-punctuation"
+                maxLength={12}
+            />
+            {businessNo.length > 0 && !BIZ_RE.test(businessNo.trim()) && (
+                <Text style={s.hintErr}>{t('vendor.bizNoError' as any)}</Text>
+            )}
+
+            <Text style={s.label}>{t('vendor.labelEcommerce' as any)}</Text>
+            <TextInput
+                style={s.input}
+                placeholder={t('vendor.placeholderEcommerce' as any)}
+                placeholderTextColor={COLORS.gray2}
+                value={ecommerceRegNo}
+                onChangeText={setEcommerceRegNo}
+                maxLength={100}
+            />
+
+            <Text style={s.label}>{t('vendor.labelEmail' as any)} <Text style={s.req}>*</Text></Text>
+            <TextInput
+                style={s.input}
+                placeholder="orders@example.com"
+                placeholderTextColor={COLORS.gray2}
+                value={contactEmail}
+                onChangeText={setContactEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                maxLength={191}
+            />
+            {contactEmail.length > 0 && !EMAIL_RE.test(contactEmail.trim()) && (
+                <Text style={s.hintErr}>{t('vendor.emailError' as any)}</Text>
+            )}
+
+            <Text style={s.footNote}>{t('vendor.footNote' as any)}</Text>
+          </ScrollView>
+
+          {/* 🚨 버튼이 아이폰 하단 홈 인디케이터에 가려지지 않도록 안전한 여백(Math.max) 보장 */}
+          <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 24) + 12 }]}>
+            <TouchableOpacity
+                onPress={handleSubmit}
+                disabled={!canSubmit || submitting}
+                activeOpacity={0.85}
+                style={[s.submitBtn, (!canSubmit || submitting) && s.submitBtnDisabled]}
+            >
+              <Text style={[s.submitText, (!canSubmit || submitting) && s.submitTextDisabled]}>
+                {submitting ? t('vendor.submitting' as any) : t('vendor.submitBtn' as any)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
   );
 };
 

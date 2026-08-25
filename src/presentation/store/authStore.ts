@@ -79,9 +79,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
 
       const json = (await res.json().catch(() => null)) as
-        | { success: true; data: AuthSession }
-        | { success: false; error: { code: string; message: string; details?: unknown } }
-        | null;
+          | { success: true; data: AuthSession }
+          | { success: false; error: { code: string; message: string; details?: unknown } }
+          | null;
 
       const errorCode = (json as { error?: { code?: string } } | null)?.error?.code;
 
@@ -125,13 +125,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     });
 
     const json = (await res.json().catch(() => null)) as
-      | { success: true; data: { nickname: string; activeRole: AccountRole } }
-      | { success: false; error: { code: string } }
-      | null;
+        | { success: true; data: { nickname: string; activeRole: AccountRole } }
+        | { success: false; error: { code: string } }
+        | null;
 
     if (!res.ok || !json || json.success === false) {
       throw new Error(
-        (json as { error?: { code?: string } } | null)?.error?.code ?? 'ONBOARDING_FAILED',
+          (json as { error?: { code?: string } } | null)?.error?.code ?? 'ONBOARDING_FAILED',
       );
     }
 
@@ -153,13 +153,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         body: JSON.stringify({ refreshToken: current.refreshToken }),
       });
       const json = (await res.json().catch(() => null)) as
-        | { success: true; data: AuthSession }
-        | { success: false }
-        | null;
-      if (!res.ok || !json || json.success === false) return;
+          | { success: true; data: AuthSession }
+          | { success: false }
+          | null;
+
+      // 🚨 수정된 부분: 만료되었거나 에러가 난 토큰은 강제로 폐기(로그아웃)하여 앱 먹통(좀비 상태) 방지
+      if (!res.ok || !json || json.success === false) {
+        await get().forceLogout();
+        return;
+      }
+
       await persist(json.data);
       set({ session: json.data });
-    } catch { /* 실패해도 기존 세션 유지 */ }
+    } catch {
+      /* 네트워크 실패 등 일시적 에러는 기존 세션 유지 */
+    }
   },
 
   applyTokens: async (accessToken, refreshToken) => {

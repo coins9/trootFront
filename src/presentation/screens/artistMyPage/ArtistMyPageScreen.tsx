@@ -1,11 +1,12 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Image,
   StatusBar, Dimensions, LayoutAnimation, Platform, UIManager, Linking,
   TextInput, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+// 🚨 1. 자동 새로고침(Silent Reload)을 위한 useFocusEffect 추가
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
@@ -96,8 +97,8 @@ function toReviewItem(r: ReviewByArtist): ArtistReviewItem {
 }
 
 if (
-  Platform.OS === 'android' &&
-  UIManager.setLayoutAnimationEnabledExperimental
+    Platform.OS === 'android' &&
+    UIManager.setLayoutAnimationEnabledExperimental
 ) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
@@ -128,7 +129,7 @@ const ArtistMyPageScreen = () => {
 
   const { data: apiProfile, loading: profileLoading, reload: reloadProfile } = useApi(() => artistApi.me(), []);
   const { items: apiArtworks, setItems: setApiArtworks, reload: reloadArtworks } =
-    usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
+      usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
 
   /* ==== 타투이스트 등록 폼 상태 ==== */
   const [regName, setRegName] = useState('');
@@ -149,28 +150,44 @@ const ArtistMyPageScreen = () => {
       reloadProfile();
       reloadArtworks();
     } catch {
-      toast(t('common.error'), { variant: 'error' });
+      toast(t('common.error' as any), { variant: 'error' });
     } finally {
       setRegSubmitting(false);
     }
   }, [canRegister, regName, regHandle, refresh, reloadProfile, reloadArtworks, toast, t]);
   const artistPageId = apiProfile?.id ?? '';
-  const { items: apiReviews, setItems: setApiReviews } =
-    usePagedApi(
-      (cursor) => artistPageId
-        ? reviewApi.byArtist(artistPageId, { cursor })
-        : Promise.resolve({ items: [], nextCursor: null, hasNext: false }),
-      [artistPageId],
-    );
+
+  // 🚨 2. 리뷰 데이터도 Silent Reload 가능하도록 reload 훅 추출
+  const { items: apiReviews, setItems: setApiReviews, reload: reloadReviews } =
+      usePagedApi(
+          (cursor) => artistPageId
+              ? reviewApi.byArtist(artistPageId, { cursor })
+              : Promise.resolve({ items: [], nextCursor: null, hasNext: false }),
+          [artistPageId],
+      );
+
+  // 🚨 3. 화면 포커스 시 데이터 조용히 자동 최신화
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          return;
+        }
+        reloadProfile();
+        reloadArtworks();
+        if (artistPageId) reloadReviews();
+      }, [reloadProfile, reloadArtworks, reloadReviews, artistPageId])
+  );
 
   const profileBase = useMemo(
-    () => apiProfile ? toSelfProfile(apiProfile) : null,
-    [apiProfile],
+      () => apiProfile ? toSelfProfile(apiProfile) : null,
+      [apiProfile],
   );
   const [profileOverride, setProfileOverride] = useState<Partial<ArtistSelfProfile>>({});
   const profile: ArtistSelfProfile = profileBase
-    ? { ...profileBase, ...profileOverride }
-    : { id: '', nickname: '', handle: '', location: '', intro: '', avatarUri: '',
+      ? { ...profileBase, ...profileOverride }
+      : { id: '', nickname: '', handle: '', location: '', intro: '', avatarUri: '',
         rating: 0, reviewCount: 0, likes: 0, bookedCount: 0, tags: [] };
 
   const artworks = useMemo(() => apiArtworks.map(toArtwork), [apiArtworks]);
@@ -186,14 +203,14 @@ const ArtistMyPageScreen = () => {
 
   const requestReviewSupport = useCallback(() => {
     setConfirm({
-      title: t('artistMyPage.reviewSupportTitle'),
-      message: t('artistMyPage.reviewSupportMsg'),
-      cancelLabel: t('common.cancel'),
-      confirmLabel: t('artistMyPage.reviewSupportConfirm'),
+      title: t('artistMyPage.reviewSupportTitle' as any),
+      message: t('artistMyPage.reviewSupportMsg' as any),
+      cancelLabel: t('common.cancel' as any),
+      confirmLabel: t('artistMyPage.reviewSupportConfirm' as any),
       variant: 'danger',
       onConfirm: () => {
         Linking.openURL('https://tally.so/r/troot-review-support').catch(() => {
-          toast(t('common.linkError'), { variant: 'error' });
+          toast(t('common.linkError' as any), { variant: 'error' });
         });
       },
     });
@@ -203,8 +220,8 @@ const ArtistMyPageScreen = () => {
   const totalLikes = profile.likes;
 
   const answeredCount = useMemo(
-    () => reviews.filter((r) => r.isAnswered).length,
-    [reviews],
+      () => reviews.filter((r) => r.isAnswered).length,
+      [reviews],
   );
 
   /* ==== Profile ==== */
@@ -251,10 +268,10 @@ const ArtistMyPageScreen = () => {
       setProfileOverride((prev) => ({ ...prev, ...override }));
       reloadProfile();
       setEditProfileOpen(false);
-      toast(t('artistMyPage.saved'), { variant: 'success' });
+      toast(t('artistMyPage.saved' as any), { variant: 'success' });
     } catch {
       setEditProfileOpen(false);
-      toast(t('common.error'), { variant: 'error' });
+      toast(t('common.error' as any), { variant: 'error' });
     }
   }, [toast, reloadProfile, t, isLocalUri]);
 
@@ -292,24 +309,25 @@ const ArtistMyPageScreen = () => {
       setArtworkFormOpen(false);
       setArtworkFormEditing(null);
       toast(
-        artworkFormEditing ? t('artistMyPage.artworkSaved') : t('artistMyPage.artworkAdded'),
-        { variant: 'success' },
+          artworkFormEditing ? t('artistMyPage.artworkSaved' as any) : t('artistMyPage.artworkAdded' as any),
+          { variant: 'success' },
       );
     } catch {
-      toast(t('common.error'), { variant: 'error' });
+      toast(t('common.error' as any), { variant: 'error' });
     }
   }, [artworkFormEditing, toast, reloadArtworks, t]);
+
   const handleDeleteArtwork = useCallback(async (id: string) => {
     try {
       await artistApi.deleteArtwork(id);
       easeLayoutAnim();
       setApiArtworks((prev) => prev.filter((a) => a.id !== id));
     } catch {
-      toast(t('common.error'), { variant: 'error' });
+      toast(t('common.error' as any), { variant: 'error' });
       return;
     }
     setArtworkDetail(null);
-    toast(t('artistMyPage.artworkDeleted'), { variant: 'success' });
+    toast(t('artistMyPage.artworkDeleted' as any), { variant: 'success' });
   }, [toast, setApiArtworks, t]);
 
   /* ==== Review ==== */
@@ -318,327 +336,329 @@ const ArtistMyPageScreen = () => {
       await reviewApi.reply(id, reply.content);
       easeLayoutAnim();
       setApiReviews((prev) => prev.map((r) => (
-        r.id === id ? { ...r, reply: reply.content, repliedAt: new Date().toISOString() } : r
+          r.id === id ? { ...r, reply: reply.content, repliedAt: new Date().toISOString() } : r
       )));
     } catch {
-      toast(t('artistMyPage.replyFailed'), { variant: 'error' });
+      toast(t('artistMyPage.replyFailed' as any), { variant: 'error' });
       return;
     }
     setReviewOpen(null);
-    toast(t('artistMyPage.replySaved'), { variant: 'success' });
+    toast(t('artistMyPage.replySaved' as any), { variant: 'success' });
   }, [toast, setApiReviews, t]);
 
   /* 타투이스트 등록 UI — 프로필이 없고 로딩이 끝난 경우 */
   if (!profileLoading && !apiProfile) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-        <LogoHeader />
-        <View style={styles.subHeader}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={styles.backBtn}
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+          <LogoHeader />
+          <View style={styles.subHeader}>
+            <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.backBtn}
+            >
+              <BackArrowIcon size={22} color={COLORS.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('artistMyPage.registerPageTitle' as any)}</Text>
+          </View>
+          <ScrollView
+              // 🚨 4. 하단 잘림 방지 (안전 여백 추가)
+              contentContainerStyle={[styles.regContainer, { paddingBottom: Math.max(insets.bottom, 24) + 60 }]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
           >
-            <BackArrowIcon size={22} color={COLORS.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('artistMyPage.registerPageTitle')}</Text>
-        </View>
-        <ScrollView
-          contentContainerStyle={styles.regContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={styles.regTitle}>{t('artistMyPage.registerTitle')}</Text>
-          <Text style={styles.regSubtitle}>{t('artistMyPage.registerSubtitle')}</Text>
+            <Text style={styles.regTitle}>{t('artistMyPage.registerTitle' as any)}</Text>
+            <Text style={styles.regSubtitle}>{t('artistMyPage.registerSubtitle' as any)}</Text>
 
-          <Text style={styles.regLabel}>{t('artistMyPage.registerNameLabel')}</Text>
-          <TextInput
-            style={styles.regInput}
-            placeholder={t('artistMyPage.registerNamePlaceholder')}
-            placeholderTextColor={COLORS.gray2}
-            value={regName}
-            onChangeText={setRegName}
-            maxLength={100}
-            autoCapitalize="none"
-          />
+            <Text style={styles.regLabel}>{t('artistMyPage.registerNameLabel' as any)}</Text>
+            <TextInput
+                style={styles.regInput}
+                placeholder={t('artistMyPage.registerNamePlaceholder' as any)}
+                placeholderTextColor={COLORS.gray2}
+                value={regName}
+                onChangeText={setRegName}
+                maxLength={100}
+                autoCapitalize="none"
+            />
 
-          <Text style={styles.regLabel}>{t('artistMyPage.registerHandleLabel')}</Text>
-          <TextInput
-            style={styles.regInput}
-            placeholder={t('artistMyPage.registerHandlePlaceholder')}
-            placeholderTextColor={COLORS.gray2}
-            value={regHandle}
-            onChangeText={(v) => setRegHandle(v.replace(/\s/g, ''))}
-            maxLength={50}
-            autoCapitalize="none"
-          />
+            <Text style={styles.regLabel}>{t('artistMyPage.registerHandleLabel' as any)}</Text>
+            <TextInput
+                style={styles.regInput}
+                placeholder={t('artistMyPage.registerHandlePlaceholder' as any)}
+                placeholderTextColor={COLORS.gray2}
+                value={regHandle}
+                onChangeText={(v) => setRegHandle(v.replace(/\s/g, ''))}
+                maxLength={50}
+                autoCapitalize="none"
+            />
 
-          <TouchableOpacity
-            onPress={handleRegister}
-            disabled={!canRegister || regSubmitting}
-            activeOpacity={0.85}
-            style={[styles.regBtn, (!canRegister || regSubmitting) && styles.regBtnDisabled]}
-          >
-            {regSubmitting
-              ? <ActivityIndicator color={COLORS.black} />
-              : <Text style={[styles.regBtnText, (!canRegister || regSubmitting) && styles.regBtnTextDisabled]}>
-                  {t('artistMyPage.registerSubmit')}
-                </Text>
-            }
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
+            <TouchableOpacity
+                onPress={handleRegister}
+                disabled={!canRegister || regSubmitting}
+                activeOpacity={0.85}
+                style={[styles.regBtn, (!canRegister || regSubmitting) && styles.regBtnDisabled]}
+            >
+              {regSubmitting
+                  ? <ActivityIndicator color={COLORS.black} />
+                  : <Text style={[styles.regBtnText, (!canRegister || regSubmitting) && styles.regBtnTextDisabled]}>
+                    {t('artistMyPage.registerSubmit' as any)}
+                  </Text>
+              }
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 80 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Sub header */}
-        <View style={styles.subHeader}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={styles.backBtn}
-          >
-            <BackArrowIcon size={22} color={COLORS.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('artistMyPage.title')}</Text>
-        </View>
+        <ScrollView
+            style={styles.scroll}
+            // 🚨 5. 하단 잘림 방지 (안전 여백 확보)
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + 80 }]}
+            showsVerticalScrollIndicator={false}
+        >
+          {/* Sub header */}
+          <View style={styles.subHeader}>
+            <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.backBtn}
+            >
+              <BackArrowIcon size={22} color={COLORS.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('artistMyPage.title' as any)}</Text>
+          </View>
 
-        {/* Profile card */}
-        <View style={styles.profileCard}>
-          <View style={styles.profileRow}>
-            <View style={styles.avatar}>
-              {profile.avatarUri ? (
-                <Image source={{ uri: profile.avatarUri }} style={styles.avatarImg} />
+          {/* Profile card */}
+          <View style={styles.profileCard}>
+            <View style={styles.profileRow}>
+              <View style={styles.avatar}>
+                {profile.avatarUri ? (
+                    <Image source={{ uri: profile.avatarUri }} style={styles.avatarImg} />
+                ) : (
+                    <PersonSilhouette size={64} color="#3a3a3a" />
+                )}
+              </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.name}>{profile.nickname}</Text>
+                <Text style={styles.handle}>{profile.handle}</Text>
+                <View style={styles.locationRow}>
+                  <LocationPinIcon size={12} color={COLORS.gray} />
+                  <Text style={styles.location} numberOfLines={1}>{profile.location || t('artistMyPage.locationDefault' as any)}</Text>
+                </View>
+              </View>
+            </View>
+
+            <Text style={styles.intro} numberOfLines={2}>{profile.intro}</Text>
+
+            {/* Stats row */}
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <View style={styles.starWrap}>
+                  <StarIcon size={16} color={COLORS.gold} filled />
+                  <Text style={styles.ratingText}>{avgRating.toFixed(1)}</Text>
+                </View>
+                <Text style={styles.statLabel}>{t('artistMyPage.ratingLabel' as any)} · {profile.reviewCount}</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <View style={styles.statValueRow}>
+                  <HeartIcon size={14} color={COLORS.gold} filled />
+                  <Text style={styles.statValue}>{totalLikes.toLocaleString()}</Text>
+                </View>
+                <Text style={styles.statLabel}>{t('artistMyPage.totalLikes' as any)}</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{profile.bookedCount}</Text>
+                <Text style={styles.statLabel}>{t('artistMyPage.completedBookings' as any)}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+                onPress={() => setEditProfileOpen(true)}
+                activeOpacity={0.85}
+                style={styles.editProfileBtn}
+            >
+              <EditPenIcon size={13} color={COLORS.gold} strokeWidth={1.8} />
+              <Text style={styles.editProfileText}>{t('artistMyPage.editProfile' as any)}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Segmented tabs */}
+          <View style={styles.segRow}>
+            <TouchableOpacity
+                onPress={() => { easeLayoutAnim(); setTab('artworks'); }}
+                activeOpacity={0.85}
+                style={[styles.segBtn, tab === 'artworks' && styles.segBtnActive]}
+            >
+              <Text style={[styles.segText, tab === 'artworks' && styles.segTextActive]}>
+                {t('artistMyPage.tabArtworks' as any)} · {artworks.length}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={() => { easeLayoutAnim(); setTab('reviews'); }}
+                activeOpacity={0.85}
+                style={[styles.segBtn, tab === 'reviews' && styles.segBtnActive]}
+            >
+              <Text style={[styles.segText, tab === 'reviews' && styles.segTextActive]}>
+                {t('artistMyPage.tabReviews' as any)} · {answeredCount}/{reviews.length}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {tab === 'artworks' ? (
+              artworks.length === 0 ? (
+                  <View style={styles.empty}>
+                    <Text style={styles.emptyText}>{t('artistMyPage.artworkEmpty' as any)}</Text>
+                    <TouchableOpacity
+                        onPress={() => handleOpenArtworkForm(null)}
+                        activeOpacity={0.85}
+                        style={styles.emptyBtn}
+                    >
+                      <Text style={styles.emptyBtnText}>{t('artistMyPage.artworkAdd' as any)}</Text>
+                    </TouchableOpacity>
+                  </View>
               ) : (
-                <PersonSilhouette size={64} color="#3a3a3a" />
-              )}
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.name}>{profile.nickname}</Text>
-              <Text style={styles.handle}>{profile.handle}</Text>
-              <View style={styles.locationRow}>
-                <LocationPinIcon size={12} color={COLORS.gray} />
-                <Text style={styles.location} numberOfLines={1}>{profile.location || t('artistMyPage.locationDefault')}</Text>
-              </View>
-            </View>
-          </View>
+                  <View style={styles.grid}>
+                    {artworks.map((aw, i) => (
+                        <TouchableOpacity
+                            key={aw.id}
+                            onPress={() => setArtworkDetail(aw)}
+                            activeOpacity={0.88}
+                            style={[
+                              styles.gridItem,
+                              (i % GRID_COL !== GRID_COL - 1) && { marginRight: GRID_GAP },
+                            ]}
+                        >
+                          {aw.thumbnailUri ? (
+                              <Image source={{ uri: aw.thumbnailUri }} style={styles.gridImg} />
+                          ) : (
+                              <View style={styles.gridPlaceholder}>
+                                <TattooPlaceholderIcon size={30} color="#3a3a3a" />
+                              </View>
+                          )}
+                          {aw.isPromoted && (
+                              <View style={styles.gridAdBadge}>
+                                <Text style={styles.gridAdText}>{t('artistMyPage.adRunning' as any)}</Text>
+                              </View>
+                          )}
+                        </TouchableOpacity>
+                    ))}
+                  </View>
+              )
+          ) : (
+              reviews.length === 0 ? (
+                  <View style={styles.empty}>
+                    <Text style={styles.emptyText}>{t('artistMyPage.reviewEmpty' as any)}</Text>
+                  </View>
+              ) : (
+                  <View style={styles.reviewList}>
+                    {reviews.map((rv) => (
+                        <TouchableOpacity
+                            key={rv.id}
+                            onPress={() => setReviewOpen(rv)}
+                            activeOpacity={0.9}
+                            style={styles.reviewCard}
+                        >
+                          <View style={styles.reviewHeaderRow}>
+                            <Text style={styles.reviewCustomer}>{rv.customer}</Text>
+                            <View style={styles.reviewStars}>
+                              {[1,2,3,4,5].map((n) => (
+                                  <StarIcon key={n} size={11} color={COLORS.gold} filled={n <= rv.rating} />
+                              ))}
+                            </View>
+                            {rv.isAnswered ? (
+                                <View style={styles.answeredBadge}>
+                                  <Text style={styles.answeredText}>{t('artistMyPage.answered' as any)}</Text>
+                                </View>
+                            ) : (
+                                <View style={styles.pendingBadge}>
+                                  <Text style={styles.pendingText}>{t('artistMyPage.pendingReply' as any)}</Text>
+                                </View>
+                            )}
+                          </View>
+                          <Text style={styles.reviewArtwork}>{rv.artworkTitle}</Text>
+                          <Text style={styles.reviewContent} numberOfLines={2}>
+                            {rv.content}
+                          </Text>
+                          {rv.imageUris.length > 0 && (
+                              <View style={styles.reviewImages}>
+                                {rv.imageUris.slice(0, 3).map((_, i) => (
+                                    <View key={i} style={styles.reviewImageThumb}>
+                                      <TattooPlaceholderIcon size={20} color="#3a3a3a" />
+                                    </View>
+                                ))}
+                              </View>
+                          )}
+                          {rv.reply && (
+                              <View style={styles.replyBox}>
+                                <Text style={styles.replyLabel}>{t('artistMyPage.myReply' as any)}</Text>
+                                <Text style={styles.replyContent} numberOfLines={2}>
+                                  {rv.reply.content}
+                                </Text>
+                              </View>
+                          )}
+                          <View style={styles.reviewFooter}>
+                            <Text style={styles.reviewDate}>{rv.createdAt}</Text>
+                            <View style={styles.reviewDetailBtn}>
+                              <Text style={styles.reviewDetailText}>
+                                {rv.isAnswered ? t('artistMyPage.editReply' as any) : t('artistMyPage.writeReply' as any)}
+                              </Text>
+                              <ChevronRightIcon size={12} color={COLORS.gold} />
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                    ))}
+                  </View>
+              )
+          )}
+        </ScrollView>
 
-          <Text style={styles.intro} numberOfLines={2}>{profile.intro}</Text>
-
-          {/* Stats row */}
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <View style={styles.starWrap}>
-                <StarIcon size={16} color={COLORS.gold} filled />
-                <Text style={styles.ratingText}>{avgRating.toFixed(1)}</Text>
-              </View>
-              <Text style={styles.statLabel}>{t('artistMyPage.ratingLabel')} · {profile.reviewCount}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <View style={styles.statValueRow}>
-                <HeartIcon size={14} color={COLORS.gold} filled />
-                <Text style={styles.statValue}>{totalLikes.toLocaleString()}</Text>
-              </View>
-              <Text style={styles.statLabel}>{t('artistMyPage.totalLikes')}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{profile.bookedCount}</Text>
-              <Text style={styles.statLabel}>{t('artistMyPage.completedBookings')}</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            onPress={() => setEditProfileOpen(true)}
-            activeOpacity={0.85}
-            style={styles.editProfileBtn}
-          >
-            <EditPenIcon size={13} color={COLORS.gold} strokeWidth={1.8} />
-            <Text style={styles.editProfileText}>{t('artistMyPage.editProfile')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Segmented tabs */}
-        <View style={styles.segRow}>
-          <TouchableOpacity
-            onPress={() => { easeLayoutAnim(); setTab('artworks'); }}
-            activeOpacity={0.85}
-            style={[styles.segBtn, tab === 'artworks' && styles.segBtnActive]}
-          >
-            <Text style={[styles.segText, tab === 'artworks' && styles.segTextActive]}>
-              {t('artistMyPage.tabArtworks')} · {artworks.length}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => { easeLayoutAnim(); setTab('reviews'); }}
-            activeOpacity={0.85}
-            style={[styles.segBtn, tab === 'reviews' && styles.segBtnActive]}
-          >
-            <Text style={[styles.segText, tab === 'reviews' && styles.segTextActive]}>
-              {t('artistMyPage.tabReviews')} · {answeredCount}/{reviews.length}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {tab === 'artworks' ? (
-          artworks.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>{t('artistMyPage.artworkEmpty')}</Text>
-              <TouchableOpacity
+        {/* 🚨 6. FAB(작품 추가 버튼) 하단 잘림 방지 (안전 위치) */}
+        {tab === 'artworks' && (
+            <TouchableOpacity
                 onPress={() => handleOpenArtworkForm(null)}
                 activeOpacity={0.85}
-                style={styles.emptyBtn}
-              >
-                <Text style={styles.emptyBtnText}>{t('artistMyPage.artworkAdd')}</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.grid}>
-              {artworks.map((aw, i) => (
-                <TouchableOpacity
-                  key={aw.id}
-                  onPress={() => setArtworkDetail(aw)}
-                  activeOpacity={0.88}
-                  style={[
-                    styles.gridItem,
-                    (i % GRID_COL !== GRID_COL - 1) && { marginRight: GRID_GAP },
-                  ]}
-                >
-                  {aw.thumbnailUri ? (
-                    <Image source={{ uri: aw.thumbnailUri }} style={styles.gridImg} />
-                  ) : (
-                    <View style={styles.gridPlaceholder}>
-                      <TattooPlaceholderIcon size={30} color="#3a3a3a" />
-                    </View>
-                  )}
-                  {aw.isPromoted && (
-                    <View style={styles.gridAdBadge}>
-                      <Text style={styles.gridAdText}>{t('artistMyPage.adRunning')}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          )
-        ) : (
-          reviews.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>{t('artistMyPage.reviewEmpty')}</Text>
-            </View>
-          ) : (
-            <View style={styles.reviewList}>
-              {reviews.map((rv) => (
-                <TouchableOpacity
-                  key={rv.id}
-                  onPress={() => setReviewOpen(rv)}
-                  activeOpacity={0.9}
-                  style={styles.reviewCard}
-                >
-                  <View style={styles.reviewHeaderRow}>
-                    <Text style={styles.reviewCustomer}>{rv.customer}</Text>
-                    <View style={styles.reviewStars}>
-                      {[1,2,3,4,5].map((n) => (
-                        <StarIcon key={n} size={11} color={COLORS.gold} filled={n <= rv.rating} />
-                      ))}
-                    </View>
-                    {rv.isAnswered ? (
-                      <View style={styles.answeredBadge}>
-                        <Text style={styles.answeredText}>{t('artistMyPage.answered')}</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.pendingBadge}>
-                        <Text style={styles.pendingText}>{t('artistMyPage.pendingReply')}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.reviewArtwork}>{rv.artworkTitle}</Text>
-                  <Text style={styles.reviewContent} numberOfLines={2}>
-                    {rv.content}
-                  </Text>
-                  {rv.imageUris.length > 0 && (
-                    <View style={styles.reviewImages}>
-                      {rv.imageUris.slice(0, 3).map((_, i) => (
-                        <View key={i} style={styles.reviewImageThumb}>
-                          <TattooPlaceholderIcon size={20} color="#3a3a3a" />
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                  {rv.reply && (
-                    <View style={styles.replyBox}>
-                      <Text style={styles.replyLabel}>{t('artistMyPage.myReply')}</Text>
-                      <Text style={styles.replyContent} numberOfLines={2}>
-                        {rv.reply.content}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.reviewFooter}>
-                    <Text style={styles.reviewDate}>{rv.createdAt}</Text>
-                    <View style={styles.reviewDetailBtn}>
-                      <Text style={styles.reviewDetailText}>
-                        {rv.isAnswered ? t('artistMyPage.editReply') : t('artistMyPage.writeReply')}
-                      </Text>
-                      <ChevronRightIcon size={12} color={COLORS.gold} />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )
+                style={[styles.fab, { bottom: Math.max(insets.bottom, 24) + 16 }]}
+            >
+              <PlusIcon size={28} color={COLORS.black} strokeWidth={2.4} />
+            </TouchableOpacity>
         )}
-      </ScrollView>
 
-      {/* FAB (작품 탭에서만) — 바텀탭 위 */}
-      {tab === 'artworks' && (
-        <TouchableOpacity
-          onPress={() => handleOpenArtworkForm(null)}
-          activeOpacity={0.85}
-          style={[styles.fab, { bottom: insets.bottom + 16 }]}
-        >
-          <PlusIcon size={28} color={COLORS.black} strokeWidth={2.4} />
-        </TouchableOpacity>
-      )}
+        {/* Sheets & Modals */}
+        <EditProfileSheet
+            visible={editProfileOpen}
+            profile={profile}
+            onClose={() => setEditProfileOpen(false)}
+            onSave={handleSaveProfile}
+        />
+        <ArtworkDetailModal
+            artwork={artworkDetail}
+            onClose={() => setArtworkDetail(null)}
+            onEdit={(aw) => handleOpenArtworkForm(aw)}
+            onDelete={handleDeleteArtwork}
+        />
+        <ArtworkFormSheet
+            visible={artworkFormOpen}
+            editing={artworkFormEditing}
+            onClose={closeArtworkForm}
+            onSubmit={handleSubmitArtwork}
+        />
+        <ReviewManageModal
+            review={reviewOpen}
+            onClose={() => setReviewOpen(null)}
+            onSubmitReply={handleSubmitReply}
+            onRequestSupport={requestReviewSupport}
+        />
+        <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
 
-      {/* Sheets & Modals */}
-      <EditProfileSheet
-        visible={editProfileOpen}
-        profile={profile}
-        onClose={() => setEditProfileOpen(false)}
-        onSave={handleSaveProfile}
-      />
-      <ArtworkDetailModal
-        artwork={artworkDetail}
-        onClose={() => setArtworkDetail(null)}
-        onEdit={(aw) => handleOpenArtworkForm(aw)}
-        onDelete={handleDeleteArtwork}
-      />
-      <ArtworkFormSheet
-        visible={artworkFormOpen}
-        editing={artworkFormEditing}
-        onClose={closeArtworkForm}
-        onSubmit={handleSubmitArtwork}
-      />
-      <ReviewManageModal
-        review={reviewOpen}
-        onClose={() => setReviewOpen(null)}
-        onSubmitReply={handleSubmitReply}
-        onRequestSupport={requestReviewSupport}
-      />
-      <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
-
-    </SafeAreaView>
+      </SafeAreaView>
   );
 };
 
@@ -1021,7 +1041,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 24,
     width: 56, height: 56,
     borderRadius: 28,
     backgroundColor: COLORS.gold,
@@ -1038,7 +1057,6 @@ const styles = StyleSheet.create({
   regContainer: {
     paddingHorizontal: 24,
     paddingTop: 32,
-    paddingBottom: 60,
     gap: 0,
   },
   regTitle: {

@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, StatusBar, TouchableOpacity, Image,
-  ActivityIndicator, Linking, Alert, TextInput, Modal,
+  ActivityIndicator, Linking, TextInput, Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -42,22 +42,23 @@ const MyProductsScreen = () => {
   const [chatModalVisible, setChatModalVisible] = useState(false);
   const [chatUrlInput, setChatUrlInput] = useState('');
 
+  // 🚨 TS2345 방어: t as any 추가
   const getStatusLabel = (status: MyVendor['status']): string => {
     const map: Record<MyVendor['status'], string> = {
-      pending: t('vendor.statusPending'),
-      approved: t('vendor.statusApprovedLabel'),
-      rejected: t('vendor.statusRejected'),
-      suspended: t('vendor.statusSuspendedLabel'),
+      pending: t('vendor.statusPending' as any),
+      approved: t('vendor.statusApprovedLabel' as any),
+      rejected: t('vendor.statusRejected' as any),
+      suspended: t('vendor.statusSuspendedLabel' as any),
     };
     return map[status];
   };
 
   const getStatusDesc = (status: MyVendor['status']): string => {
     const map: Record<MyVendor['status'], string> = {
-      pending: t('vendor.statusPendingDesc'),
+      pending: t('vendor.statusPendingDesc' as any),
       approved: '',
-      rejected: t('vendor.statusRejectedDesc'),
-      suspended: t('vendor.statusSuspendedDesc'),
+      rejected: t('vendor.statusRejectedDesc' as any),
+      suspended: t('vendor.statusSuspendedDesc' as any),
     };
     return map[status];
   };
@@ -73,14 +74,15 @@ const MyProductsScreen = () => {
     try {
       const updated = await supplyVendorApi.updateVendor({ openChatUrl: url });
       setVendor(updated);
-      toast(t('vendor.chatUrlSaved'), { variant: 'success' });
+      toast(t('vendor.chatUrlSaved' as any), { variant: 'success' });
     } catch {
-      toast(t('vendor.saveFailed'), { variant: 'error' });
+      toast(t('vendor.saveFailed' as any), { variant: 'error' });
     }
   };
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // 🚨 1. 화면 복귀 시 로딩 깜빡임 방지(Silent Reload)를 위한 isSilent 파라미터 추가
+  const load = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     setError(null);
     try {
       const me = await supplyVendorApi.me();
@@ -91,244 +93,255 @@ const MyProductsScreen = () => {
       if (e instanceof ApiError && e.status === 404) {
         setVendor(null); // 아직 입점 신청 전
       } else {
-        setError(e instanceof ApiError ? e.userMessage : t('vendor.loadInfoFailed'));
+        setError(e instanceof ApiError ? e.userMessage : t('vendor.loadInfoFailed' as any));
       }
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   }, [t]);
 
-  // 등록/수정 화면에서 돌아왔을 때 목록을 갱신한다
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  // 🚨 1. 등록/수정 화면에서 돌아왔을 때 부드럽게 목록 갱신
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          void load(false); // 처음엔 스피너 표시
+        } else {
+          void load(true); // 뒤로가기 복귀 시에는 스피너 없이 갱신
+        }
+      }, [load])
+  );
 
   const handleDelete = useCallback((product: MyProduct) => {
     setConfirm({
-      title: t('vendor.deleteProductTitle'),
-      message: t('vendor.deleteProductMsg', { name: product.name }),
-      cancelLabel: t('common.cancel'),
-      confirmLabel: t('common.delete'),
+      title: t('vendor.deleteProductTitle' as any),
+      message: t('vendor.deleteProductMsg' as any, { name: product.name }),
+      cancelLabel: t('common.cancel' as any),
+      confirmLabel: t('common.delete' as any),
       variant: 'danger',
       onConfirm: async () => {
         setConfirm(null);
         try {
           await supplyVendorApi.deleteProduct(product.id);
           setProducts((prev) => prev.filter((p) => p.id !== product.id));
-          toast(t('vendor.productDeleted'), { variant: 'success' });
+          toast(t('vendor.productDeleted' as any), { variant: 'success' });
         } catch (e) {
-          toast(e instanceof ApiError ? e.userMessage : t('vendor.deleteFailed'), { variant: 'error' });
+          toast(e instanceof ApiError ? e.userMessage : t('vendor.deleteFailed' as any), { variant: 'error' });
         }
       },
     });
   }, [toast, t]);
 
   const formatPrice = useCallback((priceKrw: number): string =>
-    language === 'ko'
-      ? `${priceKrw.toLocaleString()}원`
-      : `₩${priceKrw.toLocaleString()}`,
-  [language]);
+          language === 'ko'
+              ? `${priceKrw.toLocaleString()}원`
+              : `₩${priceKrw.toLocaleString()}`,
+      [language]);
 
   const renderItem = useCallback(({ item }: { item: MyProduct }) => (
-    <View style={s.card}>
-      <View style={s.thumb}>
-        {item.thumbnail ? (
-          <Image source={{ uri: item.thumbnail }} style={s.thumbImg} resizeMode="cover" />
-        ) : (
-          <TattooPlaceholderIcon size={30} color="#3a3a3a" />
-        )}
-      </View>
+      <View style={s.card}>
+        <View style={s.thumb}>
+          {item.thumbnail ? (
+              <Image source={{ uri: item.thumbnail }} style={s.thumbImg} resizeMode="cover" />
+          ) : (
+              <TattooPlaceholderIcon size={30} color="#3a3a3a" />
+          )}
+        </View>
 
-      <View style={s.cardBody}>
-        <Text style={s.cardName} numberOfLines={1}>{item.name}</Text>
-        <Text style={s.cardPrice}>{formatPrice(item.priceKrw)}</Text>
-        <View style={s.cardMetaRow}>
-          <Text style={s.cardMeta}>{t('vendor.stockFmt', { count: item.stock })}</Text>
-          <Text style={s.cardDot}>·</Text>
-          <Text style={[s.cardMeta, !item.isActive && s.inactive]}>
-            {item.isActive ? t('vendor.onSale') : t('vendor.offSale')}
-          </Text>
+        <View style={s.cardBody}>
+          <Text style={s.cardName} numberOfLines={1}>{item.name}</Text>
+          <Text style={s.cardPrice}>{formatPrice(item.priceKrw)}</Text>
+          <View style={s.cardMetaRow}>
+            <Text style={s.cardMeta}>{t('vendor.stockFmt' as any, { count: item.stock })}</Text>
+            <Text style={s.cardDot}>·</Text>
+            <Text style={[s.cardMeta, !item.isActive && s.inactive]}>
+              {item.isActive ? t('vendor.onSale' as any) : t('vendor.offSale' as any)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={s.cardActions}>
+          <TouchableOpacity
+              onPress={() => navigation.navigate('ProductForm', { productId: item.id })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <EditPenIcon size={18} color={COLORS.gold} strokeWidth={1.7} />
+          </TouchableOpacity>
+          <TouchableOpacity
+              onPress={() => handleDelete(item)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={s.deleteText}>{t('common.delete' as any)}</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      <View style={s.cardActions}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('ProductForm', { productId: item.id })}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <EditPenIcon size={18} color={COLORS.gold} strokeWidth={1.7} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => handleDelete(item)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={s.deleteText}>{t('common.delete')}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
   ), [navigation, handleDelete, formatPrice, t]);
 
   const canRegister = vendor?.status === 'approved';
 
   return (
-    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+      // 🚨 2. 하단이 잘리지 않도록 edges=['top'] 으로 수정
+      <SafeAreaView style={s.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
 
-      <View style={s.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>{t('vendor.title')}</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      {loading ? (
-        <View style={s.state}><ActivityIndicator color={COLORS.gold} /></View>
-      ) : error ? (
-        <View style={s.state}>
-          <Text style={s.stateText}>{error}</Text>
-          <TouchableOpacity onPress={load} style={s.retry}>
-            <Text style={s.retryText}>{t('common.retry')}</Text>
-          </TouchableOpacity>
-        </View>
-      ) : !vendor ? (
-        /* 입점 신청 전 */
-        <View style={s.state}>
-          <Text style={s.emptyTitle}>{t('vendor.applyRequired')}</Text>
-          <Text style={s.stateText}>{t('vendor.applyRequiredDesc')}</Text>
+        <View style={s.header}>
           <TouchableOpacity
-            style={s.primaryBtn}
-            activeOpacity={0.85}
-            onPress={() => {
-              // 관리자에 왈라 입점 링크가 있으면 그리로, 없으면 앱 내부 신청으로 폴백
-              if (settings.bannerSupplyUrl) {
-                Linking.openURL(settings.bannerSupplyUrl).catch(() => {});
-              } else {
-                navigation.navigate('VendorApply');
-              }
-            }}
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={s.primaryBtnText}>{t('vendor.submitBtn')}</Text>
-            <ChevronRightIcon size={16} color={COLORS.black} />
+            <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
           </TouchableOpacity>
+          <Text style={s.headerTitle}>{t('vendor.title' as any)}</Text>
+          <View style={{ width: 24 }} />
         </View>
-      ) : (
-        <>
-          <View style={s.statusBox}>
-            <View style={s.statusRow}>
-              <Text style={s.vendorName}>{vendor.name}</Text>
-              <View style={[s.statusBadge, { borderColor: STATUS_COLOR[vendor.status] }]}>
-                <Text style={[s.statusText, { color: STATUS_COLOR[vendor.status] }]}>
-                  {getStatusLabel(vendor.status)}
-                </Text>
-              </View>
+
+        {loading ? (
+            <View style={s.state}><ActivityIndicator color={COLORS.gold} /></View>
+        ) : error ? (
+            <View style={s.state}>
+              <Text style={s.stateText}>{error}</Text>
+              <TouchableOpacity onPress={() => load(false)} style={s.retry}>
+                <Text style={s.retryText}>{t('common.retry' as any)}</Text>
+              </TouchableOpacity>
             </View>
-            {!!getStatusDesc(vendor.status) && (
-              <Text style={s.statusDesc}>{getStatusDesc(vendor.status)}</Text>
-            )}
-            {vendor.status === 'approved' && (
-              <Text style={s.statusDesc}>
-                {t('vendor.approvedSummary', {
-                  count: products.length,
-                  rate: Number(vendor.commissionRate).toFixed(0),
-                })}
-              </Text>
-            )}
-            {vendor.status === 'approved' && (
-              <View style={s.chatRow}>
-                <TouchableOpacity
-                  style={s.chatBtn}
-                  activeOpacity={0.8}
+        ) : !vendor ? (
+            /* 입점 신청 전 */
+            <View style={s.state}>
+              <Text style={s.emptyTitle}>{t('vendor.applyRequired' as any)}</Text>
+              <Text style={s.stateText}>{t('vendor.applyRequiredDesc' as any)}</Text>
+              <TouchableOpacity
+                  style={s.primaryBtn}
+                  activeOpacity={0.85}
                   onPress={() => {
-                    if (vendor.openChatUrl) {
-                      Linking.openURL(vendor.openChatUrl).catch(() => {});
+                    if (settings.bannerSupplyUrl) {
+                      Linking.openURL(settings.bannerSupplyUrl).catch(() => {});
                     } else {
-                      openChatModal();
+                      navigation.navigate('VendorApply');
                     }
                   }}
-                >
-                  <Text style={s.chatBtnText}>
-                    {vendor.openChatUrl ? t('vendor.chatLinkGoto') : t('vendor.chatLinkRegister')}
-                  </Text>
-                </TouchableOpacity>
-                {vendor.openChatUrl && (
-                  <TouchableOpacity
-                    onPress={openChatModal}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <EditPenIcon size={14} color={COLORS.gray} strokeWidth={1.7} />
-                  </TouchableOpacity>
-                )}
-                {vendor.inquiryCount > 0 && (
-                  <Text style={s.inquiryCount}>
-                    {t('vendor.inquiryCountFmt', { count: vendor.inquiryCount })}
-                  </Text>
-                )}
-              </View>
-            )}
-
-          </View>
-
-          <FlatList
-            data={products}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={[
-              s.listContent,
-              { paddingBottom: insets.bottom + 90 },
-            ]}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              canRegister ? (
-                <View style={s.state}>
-                  <Text style={s.stateText}>{t('vendor.productEmptyHint')}</Text>
-                </View>
-              ) : null
-            }
-          />
-
-          {canRegister && (
-            <TouchableOpacity
-              style={[s.fab, { bottom: insets.bottom + 20 }]}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('ProductForm', {})}
-            >
-              <PlusIcon size={28} color={COLORS.black} strokeWidth={2.4} />
-            </TouchableOpacity>
-          )}
-        </>
-      )}
-
-      {/* Chat URL Edit Modal */}
-      <Modal visible={chatModalVisible} transparent animationType="fade" onRequestClose={() => setChatModalVisible(false)}>
-        <View style={s.modalBackdrop}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>{t('vendor.chatUrlModalTitle')}</Text>
-            <TextInput
-              style={s.modalInput}
-              value={chatUrlInput}
-              onChangeText={setChatUrlInput}
-              placeholder="open.kakao.com/o/..."
-              placeholderTextColor={COLORS.gray3}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              autoFocus
-            />
-            <View style={s.modalActions}>
-              <TouchableOpacity style={s.modalCancelBtn} onPress={() => setChatModalVisible(false)}>
-                <Text style={s.modalCancelText}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.modalSaveBtn} onPress={saveChatUrl}>
-                <Text style={s.modalSaveText}>{t('common.save')}</Text>
+              >
+                <Text style={s.primaryBtnText}>{t('vendor.submitBtn' as any)}</Text>
+                <ChevronRightIcon size={16} color={COLORS.black} />
               </TouchableOpacity>
             </View>
+        ) : (
+            <>
+              <View style={s.statusBox}>
+                <View style={s.statusRow}>
+                  <Text style={s.vendorName}>{vendor.name}</Text>
+                  <View style={[s.statusBadge, { borderColor: STATUS_COLOR[vendor.status] }]}>
+                    <Text style={[s.statusText, { color: STATUS_COLOR[vendor.status] }]}>
+                      {getStatusLabel(vendor.status)}
+                    </Text>
+                  </View>
+                </View>
+                {!!getStatusDesc(vendor.status) && (
+                    <Text style={s.statusDesc}>{getStatusDesc(vendor.status)}</Text>
+                )}
+                {vendor.status === 'approved' && (
+                    <Text style={s.statusDesc}>
+                      {t('vendor.approvedSummary' as any, {
+                        count: products.length,
+                        rate: Number(vendor.commissionRate).toFixed(0),
+                      })}
+                    </Text>
+                )}
+                {vendor.status === 'approved' && (
+                    <View style={s.chatRow}>
+                      <TouchableOpacity
+                          style={s.chatBtn}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            if (vendor.openChatUrl) {
+                              Linking.openURL(vendor.openChatUrl).catch(() => {});
+                            } else {
+                              openChatModal();
+                            }
+                          }}
+                      >
+                        <Text style={s.chatBtnText}>
+                          {vendor.openChatUrl ? t('vendor.chatLinkGoto' as any) : t('vendor.chatLinkRegister' as any)}
+                        </Text>
+                      </TouchableOpacity>
+                      {vendor.openChatUrl && (
+                          <TouchableOpacity
+                              onPress={openChatModal}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <EditPenIcon size={14} color={COLORS.gray} strokeWidth={1.7} />
+                          </TouchableOpacity>
+                      )}
+                      {vendor.inquiryCount > 0 && (
+                          <Text style={s.inquiryCount}>
+                            {t('vendor.inquiryCountFmt' as any, { count: vendor.inquiryCount })}
+                          </Text>
+                      )}
+                    </View>
+                )}
+              </View>
+
+              <FlatList
+                  data={products}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderItem}
+                  contentContainerStyle={[
+                    s.listContent,
+                    // 🚨 2. 기기마다 다른 하단 인디케이터(Safe Area) 침범을 막는 여백 추가
+                    { paddingBottom: Math.max(insets.bottom, 24) + 90 },
+                  ]}
+                  showsVerticalScrollIndicator={false}
+                  ListEmptyComponent={
+                    canRegister ? (
+                        <View style={s.state}>
+                          <Text style={s.stateText}>{t('vendor.productEmptyHint' as any)}</Text>
+                        </View>
+                    ) : null
+                  }
+              />
+
+              {canRegister && (
+                  <TouchableOpacity
+                      // 🚨 2. 플로팅 버튼(FAB) 역시 시스템 제스쳐 바를 피해 안전하게 띄움
+                      style={[s.fab, { bottom: Math.max(insets.bottom, 24) + 20 }]}
+                      activeOpacity={0.85}
+                      onPress={() => navigation.navigate('ProductForm', {})}
+                  >
+                    <PlusIcon size={28} color={COLORS.black} strokeWidth={2.4} />
+                  </TouchableOpacity>
+              )}
+            </>
+        )}
+
+        {/* Chat URL Edit Modal */}
+        <Modal visible={chatModalVisible} transparent animationType="fade" onRequestClose={() => setChatModalVisible(false)}>
+          <View style={s.modalBackdrop}>
+            <View style={s.modalCard}>
+              <Text style={s.modalTitle}>{t('vendor.chatUrlModalTitle' as any)}</Text>
+              <TextInput
+                  style={s.modalInput}
+                  value={chatUrlInput}
+                  onChangeText={setChatUrlInput}
+                  placeholder="open.kakao.com/o/..."
+                  placeholderTextColor={COLORS.gray3}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  autoFocus
+              />
+              <View style={s.modalActions}>
+                <TouchableOpacity style={s.modalCancelBtn} onPress={() => setChatModalVisible(false)}>
+                  <Text style={s.modalCancelText}>{t('common.cancel' as any)}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.modalSaveBtn} onPress={saveChatUrl}>
+                  <Text style={s.modalSaveText}>{t('common.save' as any)}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
-      </Modal>
-      <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
-    </SafeAreaView>
+        </Modal>
+        <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
+      </SafeAreaView>
   );
 };
 

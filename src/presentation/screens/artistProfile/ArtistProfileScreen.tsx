@@ -1,11 +1,12 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View, Text, Image, TouchableOpacity, ScrollView,
   StyleSheet, Dimensions, StatusBar, Share, Linking,
 } from 'react-native';
 import CachedImage from '../../components/common/CachedImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+// 🚨 1. 화면 복귀 시 갱신을 위한 useFocusEffect 추가
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
@@ -47,20 +48,22 @@ const ArtistProfileScreen = () => {
   const [sortOrder, setSortOrder] = useState<'recent' | 'popular'>('recent');
 
   const GRID_GENRES = useMemo(() => [
-    { key: 'all', label: t('filter.genreAll') },
-    { key: 'black_grey', label: t('filter.genreBlackGrey') },
-    { key: 'realistic', label: t('filter.genreRealistic') },
-    { key: 'portrait', label: t('filter.genrePortrait') },
-    { key: 'mini', label: t('filter.genreMini') },
+    // 🚨 TS2345 방어: t as any 추가
+    { key: 'all', label: t('filter.genreAll' as any) },
+    { key: 'black_grey', label: t('filter.genreBlackGrey' as any) },
+    { key: 'realistic', label: t('filter.genreRealistic' as any) },
+    { key: 'portrait', label: t('filter.genrePortrait' as any) },
+    { key: 'mini', label: t('filter.genreMini' as any) },
   ], [t]);
+
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [showAllPortfolio, setShowAllPortfolio] = useState(false);
 
   useEffect(() => {
     favoriteApi.check('artist', [artist.id])
-      .then((map) => setFollowing(map[artist.id] ?? false))
-      .catch(() => {});
+        .then((map) => setFollowing(map[artist.id] ?? false))
+        .catch(() => {});
   }, [artist.id]);
 
   const handleFollowToggle = useCallback(async () => {
@@ -72,44 +75,63 @@ const ArtistProfileScreen = () => {
       await favoriteApi.toggle('artist', artist.id);
     } catch {
       setFollowing(!next);
-      toast(t('common.error'), { variant: 'error' });
+      toast(t('common.error' as any), { variant: 'error' });
     } finally {
       setFollowLoading(false);
     }
   }, [following, followLoading, artist.id, toast, t]);
+
   const [bookingVisible, setBookingVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
 
   const handleReportSubmit = useCallback((_reason: ReportReason, _detail: string) => {
-    toast(t('artistProfile.reported'), { variant: 'success' });
+    toast(t('artistProfile.reported' as any), { variant: 'success' });
   }, [toast, t]);
 
-  const { data: reviewPage } = useApi(
-    () => reviewApi.byArtist(artist.id, { limit: 5 }),
-    [artist.id],
+  // 🚨 2. 리로드(reload) 함수 추출
+  const { data: reviewPage, reload: reloadReviews } = useApi(
+      () => reviewApi.byArtist(artist.id, { limit: 5 }),
+      [artist.id],
   );
   const recentReviews = reviewPage?.items ?? [];
 
   const handleShare = useCallback(async () => {
     try {
       await Share.share({
-        message: `${t('artistProfile.shareMessage', { name: artist.nickname } as any)}\nhttps://tattooroot.com`,
+        message: `${t('artistProfile.shareMessage' as any, { name: artist.nickname } as any)}\nhttps://tattooroot.com`,
       });
     } catch {}
-  }, [artist.nickname]);
+  }, [artist.nickname, t]);
 
   // 포트폴리오 — 실제 작가 작품 목록
-  const { items: artworks, loadMore } = usePagedApi(
-    (cursor) => artistApi.artworks(artist.id, { cursor, limit: 30 }),
-    [artist.id],
+  const { items: artworks, loadMore, reload: reloadArtworks } = usePagedApi(
+      (cursor) => artistApi.artworks(artist.id, { cursor, limit: 30 }),
+      [artist.id],
   );
   const artistTattoos = useMemo(() => artworks.map((a) => toTattoo(a)), [artworks]);
+
+  // 🚨 3. 화면 복귀 시 조용히 새로고침 (Silent Reload)
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          return;
+        }
+        reloadArtworks();
+        reloadReviews();
+        favoriteApi.check('artist', [artist.id])
+            .then((map) => setFollowing(map[artist.id] ?? false))
+            .catch(() => {});
+      }, [reloadArtworks, reloadReviews, artist.id])
+  );
 
   // 장르 필터 + 정렬 — activeGenreKey / sortOrder 변경 시 재계산
   const filteredTattoos = useMemo(() => {
     let result = activeGenreKey === 'all'
-      ? artistTattoos
-      : artistTattoos.filter((t) => t.genres.includes(activeGenreKey));
+        ? artistTattoos
+        // 🚨 4. 앱 튕김 방지: genres가 없을 경우 대비 (?.)
+        : artistTattoos.filter((t) => t.genres?.includes(activeGenreKey));
     if (sortOrder === 'popular') {
       result = [...result].sort((a, b) => b.likeCount - a.likeCount);
     }
@@ -117,42 +139,42 @@ const ArtistProfileScreen = () => {
   }, [artistTattoos, activeGenreKey, sortOrder]);
 
   const portfolioImages = useMemo(
-    () => filteredTattoos.map((t) => t.images[0] ?? ''),
-    [filteredTattoos],
+      () => filteredTattoos.map((t) => t.images?.[0] ?? ''), // 🚨 방어코드 추가
+      [filteredTattoos],
   );
   const portfolioItems = showAllPortfolio ? portfolioImages : portfolioImages.slice(0, 9);
 
   const handleTattooPress = useCallback(
-    (tattoo: Tattoo) => navigation.navigate('TattooDetail', { tattoo }),
-    [navigation],
+      (tattoo: Tattoo) => navigation.navigate('TattooDetail', { tattoo }),
+      [navigation],
   );
 
   const renderPortfolioItem = (item: string, index: number) => (
-    <TouchableOpacity
-      key={index}
-      style={styles.portfolioItem}
-      activeOpacity={0.85}
-      onPress={() => {
-        const tattoo = filteredTattoos[index];
-        if (tattoo) handleTattooPress(tattoo);
-      }}
-    >
-      {item ? (
-        <Image source={{ uri: item }} style={styles.portfolioImage} resizeMode="cover" />
-      ) : (
-        <View style={styles.portfolioPlaceholder}>
-          <TattooPlaceholderIcon size={40} color="#2e2e2e" />
+      <TouchableOpacity
+          key={index}
+          style={styles.portfolioItem}
+          activeOpacity={0.85}
+          onPress={() => {
+            const tattoo = filteredTattoos[index];
+            if (tattoo) handleTattooPress(tattoo);
+          }}
+      >
+        {item ? (
+            <Image source={{ uri: item }} style={styles.portfolioImage} resizeMode="cover" />
+        ) : (
+            <View style={styles.portfolioPlaceholder}>
+              <TattooPlaceholderIcon size={40} color="#2e2e2e" />
+            </View>
+        )}
+        <View style={styles.multiIcon}>
+          <View style={styles.multiIconInner} />
         </View>
-      )}
-      <View style={styles.multiIcon}>
-        <View style={styles.multiIconInner} />
-      </View>
-      {artist.isSelectedMaster && (
-        <View style={styles.selectedMasterBadge}>
-          <Text style={styles.selectedMasterBadgeText}>★ SM</Text>
-        </View>
-      )}
-    </TouchableOpacity>
+        {artist.isSelectedMaster && (
+            <View style={styles.selectedMasterBadge}>
+              <Text style={styles.selectedMasterBadgeText}>★ SM</Text>
+            </View>
+        )}
+      </TouchableOpacity>
   );
 
   const renderReviewItem = (rv: ReviewByArtist) => {
@@ -162,412 +184,410 @@ const ArtistProfileScreen = () => {
       year: 'numeric', month: '2-digit', day: '2-digit',
     });
     const customer = rv.customerNickname
-      ? `${rv.customerNickname.slice(0, 2)}${'*'.repeat(Math.max(rv.customerNickname.length - 2, 2))}`
-      : t('artistProfile.anonymous');
+        ? `${rv.customerNickname.slice(0, 2)}${'*'.repeat(Math.max(rv.customerNickname.length - 2, 2))}`
+        : t('artistProfile.anonymous' as any);
     return (
-      <View key={rv.id} style={styles.reviewCard}>
-        <View style={styles.ratingStars}>
-          {[1, 2, 3, 4, 5].map((s) => (
-            <StarIcon key={s} size={15} color={COLORS.gold} filled={s <= Math.round(avg)} />
-          ))}
-          <Text style={styles.reviewScore}>{score.toFixed(1)}</Text>
-        </View>
-        <Text style={styles.reviewMeta}>{customer} | {date}</Text>
-        <View style={styles.reviewBody}>
-          <View style={styles.reviewTextBlock}>
-            <Text style={styles.reviewText} numberOfLines={4}>{rv.body}</Text>
+        <View key={rv.id} style={styles.reviewCard}>
+          <View style={styles.ratingStars}>
+            {[1, 2, 3, 4, 5].map((s) => (
+                <StarIcon key={s} size={15} color={COLORS.gold} filled={s <= Math.round(avg)} />
+            ))}
+            <Text style={styles.reviewScore}>{score.toFixed(1)}</Text>
           </View>
-          {rv.images.length > 0 && (
-            <View style={styles.reviewImages}>
-              {rv.images.slice(0, 2).filter(Boolean).map((uri, i) => (
-                <CachedImage key={i} uri={uri} style={styles.reviewImageReal} resizeMode="cover" />
-              ))}
+          <Text style={styles.reviewMeta}>{customer} | {date}</Text>
+          <View style={styles.reviewBody}>
+            <View style={styles.reviewTextBlock}>
+              <Text style={styles.reviewText} numberOfLines={4}>{rv.body}</Text>
             </View>
-          )}
+            {rv.images.length > 0 && (
+                <View style={styles.reviewImages}>
+                  {rv.images.slice(0, 2).filter(Boolean).map((uri, i) => (
+                      <CachedImage key={i} uri={uri} style={styles.reviewImageReal} resizeMode="cover" />
+                  ))}
+                </View>
+            )}
+          </View>
         </View>
-      </View>
     );
   };
 
   const renderReviewsTab = () => (
-    <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-      {recentReviews.length === 0 ? (
-        <View style={styles.reviewEmpty}>
-          <Text style={styles.reviewEmptyText}>{t('artistProfile.noReviews')}</Text>
-        </View>
-      ) : (
-        recentReviews.map(renderReviewItem)
-      )}
-    </View>
+      <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+        {recentReviews.length === 0 ? (
+            <View style={styles.reviewEmpty}>
+              <Text style={styles.reviewEmptyText}>{t('artistProfile.noReviews' as any)}</Text>
+            </View>
+        ) : (
+            recentReviews.map(renderReviewItem)
+        )}
+      </View>
   );
 
   const renderInfoTab = () => (
-    <View style={styles.infoTab}>
-      <View style={styles.infoTabRow}>
-        <View style={styles.infoTabItem}>
-          <LocationPinIcon size={18} color={COLORS.gold} />
-          <View style={styles.infoTabTextGroup}>
-            <Text style={styles.infoTabLabel}>{t('artistProfile.regionLabel')}</Text>
-            <Text style={styles.infoTabValue}>{artist.city} · {artist.district}</Text>
+      <View style={styles.infoTab}>
+        <View style={styles.infoTabRow}>
+          <View style={styles.infoTabItem}>
+            <LocationPinIcon size={18} color={COLORS.gold} />
+            <View style={styles.infoTabTextGroup}>
+              <Text style={styles.infoTabLabel}>{t('artistProfile.regionLabel' as any)}</Text>
+              <Text style={styles.infoTabValue}>{artist.city} · {artist.district}</Text>
+            </View>
           </View>
+          {!!artist.availableHours && (
+              <View style={styles.infoTabItem}>
+                <ClockIcon size={18} color={COLORS.gold} />
+                <View style={styles.infoTabTextGroup}>
+                  <Text style={styles.infoTabLabel}>{t('artistProfile.consultLabel' as any)}</Text>
+                  <Text style={styles.infoTabValue}>{artist.availableHours}</Text>
+                </View>
+              </View>
+          )}
+          {!!artist.closedDay && (
+              <View style={styles.infoTabItem}>
+                <CalendarIcon size={18} color={COLORS.gold} />
+                <View style={styles.infoTabTextGroup}>
+                  <Text style={styles.infoTabLabel}>{t('artistProfile.dayOffLabel' as any)}</Text>
+                  <Text style={styles.infoTabValue}>{artist.closedDay}</Text>
+                </View>
+              </View>
+          )}
+          {!!artist.bio && (
+              <View style={styles.infoTabItem}>
+                <PersonSilhouette size={18} color={COLORS.gold} />
+                <View style={styles.infoTabTextGroup}>
+                  <Text style={styles.infoTabLabel}>{t('artistProfile.bioLabel' as any)}</Text>
+                  <Text style={styles.infoTabValue}>{artist.bio}</Text>
+                </View>
+              </View>
+          )}
+          {!!artist.kakaoLink && (
+              <TouchableOpacity
+                  style={styles.infoTabItem}
+                  activeOpacity={0.8}
+                  onPress={() => Linking.openURL(artist.kakaoLink || '').catch(() => {})}
+              >
+                <CommentIcon size={18} color={COLORS.gold} strokeWidth={2} />
+                <View style={styles.infoTabTextGroup}>
+                  <Text style={styles.infoTabLabel}>{t('artistProfile.kakaoOpenChat' as any)}</Text>
+                  <Text style={[styles.infoTabValue, { color: COLORS.gold }]}>{t('artistProfile.kakaoChatLink' as any)}</Text>
+                </View>
+              </TouchableOpacity>
+          )}
         </View>
-        {!!artist.availableHours && (
-          <View style={styles.infoTabItem}>
-            <ClockIcon size={18} color={COLORS.gold} />
-            <View style={styles.infoTabTextGroup}>
-              <Text style={styles.infoTabLabel}>{t('artistProfile.consultLabel')}</Text>
-              <Text style={styles.infoTabValue}>{artist.availableHours}</Text>
-            </View>
-          </View>
-        )}
-        {!!artist.closedDay && (
-          <View style={styles.infoTabItem}>
-            <CalendarIcon size={18} color={COLORS.gold} />
-            <View style={styles.infoTabTextGroup}>
-              <Text style={styles.infoTabLabel}>{t('artistProfile.dayOffLabel')}</Text>
-              <Text style={styles.infoTabValue}>{artist.closedDay}</Text>
-            </View>
-          </View>
-        )}
-        {!!artist.bio && (
-          <View style={styles.infoTabItem}>
-            <PersonSilhouette size={18} color={COLORS.gold} />
-            <View style={styles.infoTabTextGroup}>
-              <Text style={styles.infoTabLabel}>{t('artistProfile.bioLabel')}</Text>
-              <Text style={styles.infoTabValue}>{artist.bio}</Text>
-            </View>
-          </View>
-        )}
-        {!!artist.kakaoLink && (
-          <TouchableOpacity
-            style={styles.infoTabItem}
-            activeOpacity={0.8}
-            onPress={() => Linking.openURL(artist.kakaoLink!).catch(() => {})}
-          >
-            <CommentIcon size={18} color={COLORS.gold} strokeWidth={2} />
-            <View style={styles.infoTabTextGroup}>
-              <Text style={styles.infoTabLabel}>{t('artistProfile.kakaoOpenChat')}</Text>
-              <Text style={[styles.infoTabValue, { color: COLORS.gold }]}>{t('artistProfile.kakaoChatLink')}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
       </View>
-    </View>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
-        style={styles.scroll}
-      >
-        {/* ── 상단 커버 + 프로필 헤더 (스크린샷3 목업 그대로) ── */}
-        <View style={styles.coverWrapper}>
-          {artist.coverImage ? (
-            <Image
-              source={{ uri: artist.coverImage }}
-              style={styles.coverImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.coverImage, styles.coverPlaceholder]} />
-          )}
-          <View style={styles.coverGradient} pointerEvents="none" />
-
-          {/* Top action buttons */}
-          <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.topBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <BackArrowIcon size={22} color={COLORS.white} />
-            </TouchableOpacity>
-            <View style={styles.topRight}>
-              <TouchableOpacity
-                style={styles.topBtn}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                onPress={handleShare}
-              >
-                <ShareIcon size={22} color={COLORS.white} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.topBtn}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                onPress={() => setReportVisible(true)}
-              >
-                <DotsIcon size={22} color={COLORS.white} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Profile header — avatar + info side-by-side */}
-          <View style={styles.profileHeader}>
-            <View style={styles.avatarCircle}>
-              {artist.profileImage ? (
+        <ScrollView
+            showsVerticalScrollIndicator={false}
+            stickyHeaderIndices={[1]}
+            style={styles.scroll}
+        >
+          {/* ── 상단 커버 + 프로필 헤더 ── */}
+          <View style={styles.coverWrapper}>
+            {artist.coverImage ? (
                 <Image
-                  source={{ uri: artist.profileImage }}
-                  style={styles.avatarImage}
-                  resizeMode="cover"
+                    source={{ uri: artist.coverImage }}
+                    style={styles.coverImage}
+                    resizeMode="cover"
                 />
-              ) : (
-                <PersonSilhouette size={68} color="#3a3a3a" />
-              )}
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.nickname}>{artist.nickname}</Text>
-              <View style={styles.locationRow}>
-                <LocationPinIcon size={13} color={COLORS.gray} />
-                <Text style={styles.locationText}>{artist.city} · {artist.district}</Text>
+            ) : (
+                <View style={[styles.coverImage, styles.coverPlaceholder]} />
+            )}
+            <View style={styles.coverGradient} pointerEvents="none" />
+
+            {/* Top action buttons */}
+            <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+              <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.topBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <BackArrowIcon size={22} color={COLORS.white} />
+              </TouchableOpacity>
+              <View style={styles.topRight}>
+                <TouchableOpacity
+                    style={styles.topBtn}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={handleShare}
+                >
+                  <ShareIcon size={22} color={COLORS.white} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.topBtn}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={() => setReportVisible(true)}
+                >
+                  <DotsIcon size={22} color={COLORS.white} />
+                </TouchableOpacity>
               </View>
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <StarIcon size={13} color={COLORS.gold} filled />
-                  <Text style={styles.statValue}>{artist.rating}</Text>
-                  <Text style={styles.statLabelSmall}>{t('artistProfile.reviewScore', { count: artist.reviewCount } as any)}</Text>
+            </View>
+
+            {/* Profile header */}
+            <View style={styles.profileHeader}>
+              <View style={styles.avatarCircle}>
+                {artist.profileImage ? (
+                    <Image
+                        source={{ uri: artist.profileImage }}
+                        style={styles.avatarImage}
+                        resizeMode="cover"
+                    />
+                ) : (
+                    <PersonSilhouette size={68} color="#3a3a3a" />
+                )}
+              </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.nickname}>{artist.nickname}</Text>
+                <View style={styles.locationRow}>
+                  <LocationPinIcon size={13} color={COLORS.gray} />
+                  <Text style={styles.locationText}>{artist.city} · {artist.district}</Text>
                 </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItemStack}>
-                  <Text style={styles.statValueBig}>{artist.followerCount}</Text>
-                  <Text style={styles.statLabelSmall}>{t('artistProfile.followers')}</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItemStack}>
-                  <Text style={styles.statValueBig}>{artist.totalSessions}</Text>
-                  <Text style={styles.statLabelSmall}>{t('artistProfile.totalSessions')}</Text>
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <StarIcon size={13} color={COLORS.gold} filled />
+                    <Text style={styles.statValue}>{artist.rating}</Text>
+                    <Text style={styles.statLabelSmall}>{t('artistProfile.reviewScore' as any, { count: artist.reviewCount } as any)}</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItemStack}>
+                    <Text style={styles.statValueBig}>{artist.followerCount}</Text>
+                    <Text style={styles.statLabelSmall}>{t('artistProfile.followers' as any)}</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItemStack}>
+                    <Text style={styles.statValueBig}>{artist.totalSessions}</Text>
+                    <Text style={styles.statLabelSmall}>{t('artistProfile.totalSessions' as any)}</Text>
+                  </View>
                 </View>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* Sticky tab bar wrapper (index 1) */}
-        <View style={styles.stickySection}>
-          {/* Specialty + Actions + Badges */}
-          <View style={styles.underCoverBlock}>
-            <View style={styles.specialtiesRow}>
-              {artist.specialties.map((s) => (
-                <View key={s} style={styles.specialtyChip}>
-                  <Text style={styles.specialtyText}>{s}</Text>
-                </View>
-              ))}
-            </View>
-
-            {artistTagLabels(artist.tags).length > 0 && (
-              <View style={styles.tagsRow}>
-                {artistTagLabels(artist.tags).map((t) => (
-                  <View key={t} style={styles.tagChip}>
-                    <Text style={styles.tagText}>{t}</Text>
-                  </View>
+          {/* Sticky tab bar wrapper */}
+          <View style={styles.stickySection}>
+            <View style={styles.underCoverBlock}>
+              {/* 🚨 방어코드: specialties가 없을 경우 빈 배열 매핑 */}
+              <View style={styles.specialtiesRow}>
+                {(artist.specialties ?? []).map((s) => (
+                    <View key={s} style={styles.specialtyChip}>
+                      <Text style={styles.specialtyText}>{s}</Text>
+                    </View>
                 ))}
               </View>
-            )}
 
-            <View style={styles.actionsRow}>
-              <TouchableOpacity
-                onPress={handleFollowToggle}
-                style={[styles.followBtn, following && styles.followBtnActive]}
-                activeOpacity={0.8}
-              >
-                <BookmarkIcon
-                  size={16}
-                  color={following ? COLORS.gold : COLORS.white}
-                  filled={following}
-                />
-                <Text style={[styles.followText, following && styles.followTextActive]}>
-                  {following ? t('artistProfile.following') : t('artistProfile.follow')}
-                </Text>
-              </TouchableOpacity>
-              {artist.kakaoLink ? (
+              {artistTagLabels(artist.tags ?? []).length > 0 && (
+                  <View style={styles.tagsRow}>
+                    {artistTagLabels(artist.tags ?? []).map((t) => (
+                        <View key={t} style={styles.tagChip}>
+                          <Text style={styles.tagText}>{t}</Text>
+                        </View>
+                    ))}
+                  </View>
+              )}
+
+              <View style={styles.actionsRow}>
                 <TouchableOpacity
-                  style={styles.kakaoBtn}
-                  activeOpacity={0.85}
-                  onPress={() => Linking.openURL(artist.kakaoLink!).catch(() => {})}
+                    onPress={handleFollowToggle}
+                    style={[styles.followBtn, following && styles.followBtnActive]}
+                    activeOpacity={0.8}
                 >
-                  <CommentIcon size={16} color={COLORS.black} strokeWidth={2} />
-                  <Text style={styles.kakaoText}>{t('artistProfile.openChat')}</Text>
-                </TouchableOpacity>
-              ) : null}
-              <TouchableOpacity
-                style={[styles.consultBtn, artist.kakaoLink ? styles.consultBtnNarrow : undefined]}
-                activeOpacity={0.85}
-                onPress={() => setBookingVisible(true)}
-              >
-                <CommentIcon size={16} color={COLORS.black} strokeWidth={2} />
-                <Text style={styles.consultText}>{t('artistProfile.cta')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* 3-column badge card */}
-            <View style={styles.badgeCard}>
-              <View style={styles.badgeCol}>
-                <ShieldCheckIcon size={18} color={COLORS.gold} />
-                <Text style={styles.badgeTitle}>{t('artistProfile.certified')}</Text>
-                <Text style={styles.badgeSub}>{t('artistProfile.certifiedSub')}</Text>
-              </View>
-              <View style={styles.badgeDivider} />
-              <View style={styles.badgeCol}>
-                <ShieldCheckIcon size={18} color={COLORS.gold} />
-                <Text style={styles.badgeTitle}>{t('artistProfile.hygienic')}</Text>
-                <Text style={styles.badgeSub}>{t('artistProfile.hygienicSub')}</Text>
-              </View>
-              <View style={styles.badgeDivider} />
-              <View style={styles.badgeCol}>
-                <LockIcon size={18} color={COLORS.gold} />
-                <Text style={styles.badgeTitle}>{t('artistProfile.depositProtect')}</Text>
-                <Text style={styles.badgeSub}>{t('artistProfile.depositProtectSub')}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Tab bar */}
-          <View style={styles.tabBar}>
-            {([
-              { key: 'works' as TabType, label: t('artistProfile.tabWorks') },
-              { key: 'reviews' as TabType, label: t('artistProfile.reviewCount', { count: artist.reviewCount } as any) },
-              { key: 'info' as TabType, label: t('artistProfile.tabInfo') },
-            ]).map((tab) => {
-              const isActive = activeTab === tab.key;
-              return (
-                <TouchableOpacity
-                  key={tab.key}
-                  style={[styles.tabItem, isActive && styles.tabItemActive]}
-                  onPress={() => setActiveTab(tab.key)}
-                >
-                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                    {tab.label}
+                  <BookmarkIcon
+                      size={16}
+                      color={following ? COLORS.gold : COLORS.white}
+                      filled={following}
+                  />
+                  <Text style={[styles.followText, following && styles.followTextActive]}>
+                    {following ? t('artistProfile.following' as any) : t('artistProfile.follow' as any)}
                   </Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* ── Content by tab ── */}
-        {activeTab === 'works' && (
-          <View>
-            <View style={styles.genreFilterRow}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.genreFilterContent}
-                style={{ flex: 1 }}
-              >
-                {GRID_GENRES.map((g) => {
-                  const isActive = activeGenreKey === g.key;
-                  return (
+                {artist.kakaoLink ? (
                     <TouchableOpacity
-                      key={g.key}
-                      onPress={() => setActiveGenreKey(g.key)}
-                      style={[styles.genreChip, isActive && styles.genreChipActive]}
+                        style={styles.kakaoBtn}
+                        activeOpacity={0.85}
+                        onPress={() => Linking.openURL(artist.kakaoLink || '').catch(() => {})}
                     >
-                      <Text style={[styles.genreChipText, isActive && styles.genreChipTextActive]}>
-                        {g.label}
+                      <CommentIcon size={16} color={COLORS.black} strokeWidth={2} />
+                      <Text style={styles.kakaoText}>{t('artistProfile.openChat' as any)}</Text>
+                    </TouchableOpacity>
+                ) : null}
+                <TouchableOpacity
+                    style={[styles.consultBtn, artist.kakaoLink ? styles.consultBtnNarrow : undefined]}
+                    activeOpacity={0.85}
+                    onPress={() => setBookingVisible(true)}
+                >
+                  <CommentIcon size={16} color={COLORS.black} strokeWidth={2} />
+                  <Text style={styles.consultText}>{t('artistProfile.cta' as any)}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.badgeCard}>
+                <View style={styles.badgeCol}>
+                  <ShieldCheckIcon size={18} color={COLORS.gold} />
+                  <Text style={styles.badgeTitle}>{t('artistProfile.certified' as any)}</Text>
+                  <Text style={styles.badgeSub}>{t('artistProfile.certifiedSub' as any)}</Text>
+                </View>
+                <View style={styles.badgeDivider} />
+                <View style={styles.badgeCol}>
+                  <ShieldCheckIcon size={18} color={COLORS.gold} />
+                  <Text style={styles.badgeTitle}>{t('artistProfile.hygienic' as any)}</Text>
+                  <Text style={styles.badgeSub}>{t('artistProfile.hygienicSub' as any)}</Text>
+                </View>
+                <View style={styles.badgeDivider} />
+                <View style={styles.badgeCol}>
+                  <LockIcon size={18} color={COLORS.gold} />
+                  <Text style={styles.badgeTitle}>{t('artistProfile.depositProtect' as any)}</Text>
+                  <Text style={styles.badgeSub}>{t('artistProfile.depositProtectSub' as any)}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Tab bar */}
+            <View style={styles.tabBar}>
+              {([
+                { key: 'works' as TabType, label: t('artistProfile.tabWorks' as any) },
+                { key: 'reviews' as TabType, label: t('artistProfile.reviewCount' as any, { count: artist.reviewCount } as any) },
+                { key: 'info' as TabType, label: t('artistProfile.tabInfo' as any) },
+              ]).map((tab) => {
+                const isActive = activeTab === tab.key;
+                return (
+                    <TouchableOpacity
+                        key={tab.key}
+                        style={[styles.tabItem, isActive && styles.tabItemActive]}
+                        onPress={() => setActiveTab(tab.key)}
+                    >
+                      <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                        {tab.label}
                       </Text>
                     </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-              <TouchableOpacity
-                style={styles.sortBtn}
-                onPress={() => setSortOrder((prev) => prev === 'recent' ? 'popular' : 'recent')}
-              >
-                <Text style={styles.sortText}>
-                  {sortOrder === 'recent' ? t('artistProfile.sortLatest') : t('artistProfile.sortPopular')}
-                </Text>
-                <ChevronDownIcon size={12} color={COLORS.gray} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.portfolioGrid}>
-              {portfolioItems.map((item, idx) => renderPortfolioItem(item, idx))}
-            </View>
-
-            {!showAllPortfolio && portfolioImages.length > 9 && (
-              <TouchableOpacity
-                style={styles.showMoreBtn}
-                onPress={() => { setShowAllPortfolio(true); loadMore(); }}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.showMoreText}>{t('artistProfile.moreWorks')}</Text>
-                <ChevronDownIcon size={16} color={COLORS.gray} />
-              </TouchableOpacity>
-            )}
-
-            {/* Latest Reviews */}
-            {recentReviews.length > 0 && (
-              <>
-                <View style={styles.latestReviewHeader}>
-                  <Text style={styles.latestReviewTitle}>{t('artistProfile.latestReviews')}</Text>
-                  <TouchableOpacity
-                    style={styles.moreReviews}
-                    onPress={() => setActiveTab('reviews')}
-                  >
-                    <Text style={styles.moreReviewsText}>{t('artistProfile.moreReviews')}</Text>
-                    <ChevronRightIcon size={13} color={COLORS.gray} />
-                  </TouchableOpacity>
-                </View>
-                <View style={{ paddingHorizontal: 16 }}>
-                  {renderReviewItem(recentReviews[0])}
-                </View>
-              </>
-            )}
-
-            {/* 하단 정보 3컬럼 */}
-            <View style={styles.bottomInfoRow}>
-              <View style={styles.bottomInfoItem}>
-                <LocationPinIcon size={16} color={COLORS.gold} />
-                <View style={styles.bottomInfoTextGroup}>
-                  <Text style={styles.bottomInfoLabel}>{t('artistProfile.regionLabel')}</Text>
-                  <Text style={styles.bottomInfoValue}>{artist.city} · {artist.district}</Text>
-                </View>
-              </View>
-              <View style={styles.bottomInfoItem}>
-                <View style={styles.clockDot}>
-                  <View style={styles.clockRing} />
-                </View>
-                <View style={styles.bottomInfoTextGroup}>
-                  <Text style={styles.bottomInfoLabel}>{t('artistProfile.consultLabel')}</Text>
-                  <Text style={styles.bottomInfoValue}>{artist.availableHours}</Text>
-                </View>
-              </View>
-              <View style={styles.bottomInfoItem}>
-                <View style={styles.calendarDot}>
-                  <View style={styles.calendarInner} />
-                </View>
-                <View style={styles.bottomInfoTextGroup}>
-                  <Text style={styles.bottomInfoLabel}>{t('artistProfile.dayOffLabel')}</Text>
-                  <Text style={styles.bottomInfoValue}>{artist.closedDay}</Text>
-                </View>
-              </View>
+                );
+              })}
             </View>
           </View>
-        )}
-        {activeTab === 'reviews' && renderReviewsTab()}
-        {activeTab === 'info' && renderInfoTab()}
 
-        <View style={{ height: insets.bottom + 24 }} />
-      </ScrollView>
+          {/* ── Content by tab ── */}
+          {activeTab === 'works' && (
+              <View>
+                <View style={styles.genreFilterRow}>
+                  <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.genreFilterContent}
+                      style={{ flex: 1 }}
+                  >
+                    {GRID_GENRES.map((g) => {
+                      const isActive = activeGenreKey === g.key;
+                      return (
+                          <TouchableOpacity
+                              key={g.key}
+                              onPress={() => setActiveGenreKey(g.key)}
+                              style={[styles.genreChip, isActive && styles.genreChipActive]}
+                          >
+                            <Text style={[styles.genreChipText, isActive && styles.genreChipTextActive]}>
+                              {g.label}
+                            </Text>
+                          </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                  <TouchableOpacity
+                      style={styles.sortBtn}
+                      onPress={() => setSortOrder((prev) => prev === 'recent' ? 'popular' : 'recent')}
+                  >
+                    <Text style={styles.sortText}>
+                      {sortOrder === 'recent' ? t('artistProfile.sortLatest' as any) : t('artistProfile.sortPopular' as any)}
+                    </Text>
+                    <ChevronDownIcon size={12} color={COLORS.gray} />
+                  </TouchableOpacity>
+                </View>
 
-      <BookingBottomSheet
-        visible={bookingVisible}
-        artistPageId={artist.id}
-        artistName={artist.nickname}
-        artistKakaoLink={artist.kakaoLink}
-        onClose={() => setBookingVisible(false)}
-      />
+                <View style={styles.portfolioGrid}>
+                  {portfolioItems.map((item, idx) => renderPortfolioItem(item, idx))}
+                </View>
 
-      <ReportSheet
-        visible={reportVisible}
-        targetName={artist.nickname}
-        onClose={() => setReportVisible(false)}
-        onSubmit={handleReportSubmit}
-        onViewPolicy={() => navigation.navigate('SafetyPolicy')}
-      />
-    </View>
+                {!showAllPortfolio && portfolioImages.length > 9 && (
+                    <TouchableOpacity
+                        style={styles.showMoreBtn}
+                        onPress={() => { setShowAllPortfolio(true); loadMore(); }}
+                        activeOpacity={0.85}
+                    >
+                      <Text style={styles.showMoreText}>{t('artistProfile.moreWorks' as any)}</Text>
+                      <ChevronDownIcon size={16} color={COLORS.gray} />
+                    </TouchableOpacity>
+                )}
+
+                {recentReviews.length > 0 && (
+                    <>
+                      <View style={styles.latestReviewHeader}>
+                        <Text style={styles.latestReviewTitle}>{t('artistProfile.latestReviews' as any)}</Text>
+                        <TouchableOpacity
+                            style={styles.moreReviews}
+                            onPress={() => setActiveTab('reviews')}
+                        >
+                          <Text style={styles.moreReviewsText}>{t('artistProfile.moreReviews' as any)}</Text>
+                          <ChevronRightIcon size={13} color={COLORS.gray} />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={{ paddingHorizontal: 16 }}>
+                        {renderReviewItem(recentReviews[0])}
+                      </View>
+                    </>
+                )}
+
+                <View style={styles.bottomInfoRow}>
+                  <View style={styles.bottomInfoItem}>
+                    <LocationPinIcon size={16} color={COLORS.gold} />
+                    <View style={styles.bottomInfoTextGroup}>
+                      <Text style={styles.bottomInfoLabel}>{t('artistProfile.regionLabel' as any)}</Text>
+                      <Text style={styles.bottomInfoValue}>{artist.city} · {artist.district}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.bottomInfoItem}>
+                    <View style={styles.clockDot}>
+                      <View style={styles.clockRing} />
+                    </View>
+                    <View style={styles.bottomInfoTextGroup}>
+                      <Text style={styles.bottomInfoLabel}>{t('artistProfile.consultLabel' as any)}</Text>
+                      <Text style={styles.bottomInfoValue}>{artist.availableHours}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.bottomInfoItem}>
+                    <View style={styles.calendarDot}>
+                      <View style={styles.calendarInner} />
+                    </View>
+                    <View style={styles.bottomInfoTextGroup}>
+                      <Text style={styles.bottomInfoLabel}>{t('artistProfile.dayOffLabel' as any)}</Text>
+                      <Text style={styles.bottomInfoValue}>{artist.closedDay}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+          )}
+          {activeTab === 'reviews' && renderReviewsTab()}
+          {activeTab === 'info' && renderInfoTab()}
+
+          {/* 🚨 5. 하단 시스템 버튼 가림 방지 */}
+          <View style={{ height: Math.max(insets.bottom, 24) + 24 }} />
+        </ScrollView>
+
+        <BookingBottomSheet
+            visible={bookingVisible}
+            artistPageId={artist.id}
+            artistName={artist.nickname}
+            artistKakaoLink={artist.kakaoLink}
+            onClose={() => setBookingVisible(false)}
+        />
+
+        <ReportSheet
+            visible={reportVisible}
+            targetName={artist.nickname}
+            onClose={() => setReportVisible(false)}
+            onSubmit={handleReportSubmit}
+            onViewPolicy={() => navigation.navigate('SafetyPolicy')}
+        />
+      </View>
   );
 };
 

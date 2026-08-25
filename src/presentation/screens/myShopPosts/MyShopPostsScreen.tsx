@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator,
+  View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -153,6 +153,11 @@ const MyShopPostsScreen = () => {
 
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
 
+  // 🚨 1. 프로필에서 넘겨준 카테고리(defaultCategory)를 기본값으로 설정
+  const [selectedCategory, setSelectedCategory] = useState<ShopMatchingCategory | '전체'>(
+      (route.params as any)?.defaultCategory ?? '전체'
+  );
+
   const {
     items: rawItems,
     loading,
@@ -162,14 +167,18 @@ const MyShopPostsScreen = () => {
     reload,
   } = usePagedApi((cursor) => shopApi.mine({ cursor }), []);
 
-  // 화면 포커스 복귀 시 목록 재조회 (글 작성/수정 후 반영)
   const hasFocused = useRef(false);
   useFocusEffect(useCallback(() => {
     if (!hasFocused.current) { hasFocused.current = true; return; }
     reload();
   }, [reload]));
 
-  const posts = useMemo(() => rawItems.map(toMyPost), [rawItems]);
+  // 🚨 2. 선택된 카테고리에 맞게 내 글 목록 필터링
+  const posts = useMemo(() => {
+    const mapped = rawItems.map(toMyPost);
+    if (selectedCategory === '전체') return mapped;
+    return mapped.filter(p => p.category === selectedCategory);
+  }, [rawItems, selectedCategory]);
 
   const handleEdit = useCallback((post: MyShopPost) => {
     navigation.navigate('ShopWrite', { initialCategory: post.category, postId: post.id });
@@ -178,17 +187,17 @@ const MyShopPostsScreen = () => {
   const handleToggleStatus = useCallback(async (post: MyShopPost) => {
     const nextStatus = post.status === 'open' ? 'closed' : 'open';
     setItems(prev =>
-      prev.map(p => p.id === post.id ? { ...p, status: nextStatus as PostStatus } : p),
+        prev.map(p => p.id === post.id ? { ...p, status: nextStatus as PostStatus } : p),
     );
     try {
       await shopApi.setStatus(post.id, nextStatus);
       toast(
-        nextStatus === 'closed' ? t('myShopPosts.statusClosed') : t('myShopPosts.statusOpen'),
-        { variant: 'success' },
+          nextStatus === 'closed' ? t('myShopPosts.statusClosed') : t('myShopPosts.statusOpen'),
+          { variant: 'success' },
       );
     } catch {
       setItems(prev =>
-        prev.map(p => p.id === post.id ? { ...p, status: (nextStatus === 'closed' ? 'open' : 'closed') as PostStatus } : p),
+          prev.map(p => p.id === post.id ? { ...p, status: (nextStatus === 'closed' ? 'open' : 'closed') as PostStatus } : p),
       );
       toast(t('common.error'), { variant: 'error' });
     }
@@ -215,68 +224,88 @@ const MyShopPostsScreen = () => {
   }, [setItems, toast, t]);
 
   const renderItem = useCallback(({ item }: { item: MyShopPost }) => (
-    <PostCard
-      post={item}
-      onEdit={handleEdit}
-      onToggleStatus={handleToggleStatus}
-      onDelete={handleDelete}
-    />
+      <PostCard
+          post={item}
+          onEdit={handleEdit}
+          onToggleStatus={handleToggleStatus}
+          onDelete={handleDelete}
+      />
   ), [handleEdit, handleToggleStatus, handleDelete]);
 
+  // 상단 탭 목록
+  const TABS: (ShopMatchingCategory | '전체')[] = ['전체', '부스 쉐어', '타투 모델 구인 (비기너)', '사진/영상 편집자'];
+
   return (
-    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+      <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
 
-      <View style={s.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>{t('myShopPosts.title')}</Text>
-        <View style={{ width: 24 }} />
-      </View>
+        <View style={s.header}>
+          <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>{t('myShopPosts.title')}</Text>
+          <View style={{ width: 24 }} />
+        </View>
 
-      <FlatList
-        data={posts}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={[s.listContent, { paddingBottom: 16 + insets.bottom }]}
-        showsVerticalScrollIndicator={false}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.3}
-        ListFooterComponent={
-          loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ marginVertical: 16 }} /> : null
-        }
-        ListEmptyComponent={
-          loading ? (
-            <View style={s.empty}>
-              <ActivityIndicator color={COLORS.gold} size="large" />
-            </View>
-          ) : (
-            <View style={s.empty}>
-              <PenIcon size={40} color={COLORS.gray3} />
-              <Text style={s.emptyTitle}>{t('myShopPosts.empty')}</Text>
-              <Text style={s.emptyDesc}>{t('myShopPosts.writeFirst')}</Text>
-              <TouchableOpacity
-                style={s.emptyBtn}
-                onPress={() => navigation.navigate('ShopWrite')}
-                activeOpacity={0.85}
-              >
-                <PenIcon size={16} color={COLORS.black} />
-                <Text style={s.emptyBtnText}>{t('shop.writeHeader')}</Text>
-              </TouchableOpacity>
-            </View>
-          )
-        }
-      />
+        {/* 🚨 3. 누락되었던 가로 스크롤 탭 UI 복구 */}
+        <View style={s.filterBar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {TABS.map(tab => (
+                <TouchableOpacity
+                    key={tab}
+                    style={[s.filterTab, selectedCategory === tab && s.filterTabActive]}
+                    onPress={() => setSelectedCategory(tab)}
+                    activeOpacity={0.8}
+                >
+                  <Text style={[s.filterTabText, selectedCategory === tab && s.filterTabTextActive]}>
+                    {tab === '전체' ? t('common.all') : getCategoryLabel(tab as ShopMatchingCategory, t)}
+                  </Text>
+                </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
-      <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
-    </SafeAreaView>
+        <FlatList
+            data={posts}
+            keyExtractor={item => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={[s.listContent, { paddingBottom: 16 + insets.bottom }]}
+            showsVerticalScrollIndicator={false}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={
+              loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ marginVertical: 16 }} /> : null
+            }
+            ListEmptyComponent={
+              loading ? (
+                  <View style={s.empty}>
+                    <ActivityIndicator color={COLORS.gold} size="large" />
+                  </View>
+              ) : (
+                  <View style={s.empty}>
+                    <PenIcon size={40} color={COLORS.gray3} />
+                    <Text style={s.emptyTitle}>{t('myShopPosts.empty')}</Text>
+                    <Text style={s.emptyDesc}>{t('myShopPosts.writeFirst')}</Text>
+                    <TouchableOpacity
+                        style={s.emptyBtn}
+                        onPress={() => navigation.navigate('ShopWrite')}
+                        activeOpacity={0.85}
+                    >
+                      <PenIcon size={16} color={COLORS.black} />
+                      <Text style={s.emptyBtnText}>{t('shop.writeHeader')}</Text>
+                    </TouchableOpacity>
+                  </View>
+              )
+            }
+        />
+
+        <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
+      </SafeAreaView>
   );
 };
-
 export default MyShopPostsScreen;
 
 const s = StyleSheet.create({

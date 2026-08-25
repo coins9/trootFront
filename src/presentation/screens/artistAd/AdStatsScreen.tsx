@@ -56,30 +56,48 @@ const AdStatsScreen = () => {
     items: artworks,
     loading: isArtworksLoading,
     loadMore,
-    hasNext
+    hasNext,
+    reload: reloadArtworks // 👈 추가
   } = usePagedApi((cursor) => artistApi.myArtworks({ cursor }), []);
-  const { data: campaigns } = useApi(() => adApi.mine(), []);
+
+  const { data: campaigns, reload: reloadCampaigns } = useApi(() => adApi.mine(), []); // 👈 reload 추가
   const { data: artistProfile } = useApi(() => artistApi.me(), []);
   const { data: inquiryCounts } = useApi(() => reservationApi.countByArtwork(), []);
 
   const adItems = useMemo(() => {
     const campaignMap = new Map((campaigns ?? []).map((c) => [c.targetId, c]));
+
     return artworks.map((aw) => {
       const campaign = campaignMap.get(aw.id);
-      const status: ArtistAdStatus = campaign
-        ? campaign.type === 'superup' ? 'super_up'
-          : campaign.type === 'cardad' ? 'card'
-          : 'up'
-        : 'idle';
+
+      let status: ArtistAdStatus = 'idle';
+      let statusLabel = t('adStats.noAd');
+
+      // 🚨 캠페인 데이터가 있을 때 상태(status)에 따른 분기 처리
+      if (campaign) {
+        const campStatus = String(campaign.status).toUpperCase(); // 백엔드 상태값 정규화
+
+        if (campStatus === 'REFUNDED') {
+          statusLabel = t('ad.statusRefunded'); // "환불"
+        } else if (campStatus === 'COMPLETED' || campStatus === 'EXPIRED') {
+          statusLabel = t('ad.statusCompleted'); // "종료"
+        } else if (campStatus === 'PENDING') {
+          statusLabel = t('ad.statusPending'); // "대기"
+        } else {
+          // 정상 활성화 상태
+          status = campaign.type === 'superup' ? 'super_up' : campaign.type === 'cardad' ? 'card' : 'up';
+          statusLabel = t('adStats.campaignActive').replace('{{label}}', campaign.planLabel || '');
+        }
+      }
+
       return {
         id: campaign?.id ?? aw.id,
         artworkId: aw.id,
         title: aw.title || t('adStats.noTitle'),
         thumbnailUri: aw.thumbnail ?? (aw.images[0] ?? ''),
         status,
-        statusLabel: campaign
-          ? t('adStats.campaignActive').replace('{{label}}', campaign.planLabel)
-          : t('adStats.noAd'),
+        statusLabel,
+        // 기간 시작/종료 처리도 정상적으로 연결됨
         periodStart: FMT_DATE(campaign?.startedAt ?? null),
         periodEnd: FMT_DATE(campaign?.expiresAt ?? null),
         impressions: { current: campaign?.impressions ?? 0, goal: 0, unit: t('adStats.unitViews') },
@@ -141,27 +159,42 @@ const AdStatsScreen = () => {
   }, [openBottomSheet]);
 
   const executePurchase = useCallback(async (
-    productCode: string,
-    type: 'superup' | 'cardad' | 'banner',
-    targetId?: string,
-    regionKey?: string,
+      productCode: string,
+      type: 'superup' | 'cardad' | 'banner',
+      targetId?: string,
+      regionKey?: string,
   ) => {
     if (purchasing) return;
     setPurchasing(true);
     closeBottomSheet();
+
     try {
       await adaptyService.purchaseAdProduct(productCode);
       await adApi.purchase({ placement: 'artwork', type, productCode, targetId, regionKey });
+
       toast(t('adStats.purchaseSuccess'), { variant: 'success' });
-    } catch {
+
+      // 🚨 이 부분이 핵심입니다! 구매 성공 시 서버에서 최신 광고 상태와 리스트를 즉시 다시 불러옵니다.
+      reloadCampaigns();
+      reloadArtworks();
+
+    } catch (error: any) {
+      const isCancelled =
+          error?.adaptyCode === 2 ||
+          error?.code === 'paymentCancelled' ||
+          error?.code === 'E_USER_CANCELLED' ||
+          String(error).toLowerCase().includes('cancel');
+
+      if (isCancelled) return;
+
       toast(t('adStats.purchaseFailed'), { variant: 'error' });
     } finally {
       setPurchasing(false);
     }
-  }, [purchasing, closeBottomSheet, toast, t]);
+  }, [purchasing, closeBottomSheet, reloadCampaigns, reloadArtworks, toast, t]);
 
   const handleSuperUpPurchase = useCallback((plan: SuperUpPlan) => {
-    executePurchase(plan.id, 'superup', activeItem?.artworkId);
+    void executePurchase(plan.id, 'superup', activeItem?.artworkId); // 👈 void 추가
   }, [executePurchase, activeItem]);
 
   const handleCardAdPurchase = useCallback((plan: CardAdPlan) => {
@@ -170,11 +203,11 @@ const AdStatsScreen = () => {
       toast(t('adStats.regionRequired'), { variant: 'error' });
       return;
     }
-    executePurchase(plan.id, 'cardad', activeItem?.artworkId, regionKey);
+    void executePurchase(plan.id, 'cardad', activeItem?.artworkId, regionKey); // 👈 void 추가
   }, [executePurchase, activeItem, artistProfile, toast, t]);
 
   const handleBannerAdPurchase = useCallback((plan: BannerAdPlan) => {
-    executePurchase(plan.id, 'banner', activeItem?.artworkId);
+    void executePurchase(plan.id, 'banner', activeItem?.artworkId); // 👈 void 추가
   }, [executePurchase, activeItem]);
 
   return (

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, Image, TouchableOpacity, StyleSheet,
-  Dimensions, StatusBar,
+  Dimensions, StatusBar, Share, // 🚨 Share 모듈 추가
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -10,13 +10,14 @@ import { COLORS } from '../../theme/colors';
 import { useTranslation } from '../../store/languageStore';
 import {
   BackArrowIcon, ShareIcon, HeartIcon, ChevronRightIcon,
-  StarIcon,
+  StarIcon, PersonSilhouette, // 🚨 기본 프로필 아이콘 추가
 } from '../../components/icons';
 import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
 import { favoriteApi } from '../../../data/api';
 import { artistTagLabels } from '../../../domain/entities/artistTags';
+import { useToast } from '../../components/common/Toast'; // 🚨 토스트 알림 추가
 
 const { width: W, height: H } = Dimensions.get('window');
 const IMAGE_HEIGHT = H * 0.5;
@@ -31,24 +32,44 @@ const TattooDetailScreen = () => {
   const { tattoo } = route.params;
 
   const { t, language } = useTranslation();
-  const [liked, setLiked] = useState(false);
+  const { toast } = useToast(); // 🚨 토스트 훅 초기화
+  const [liked, setLiked] = useState(tattoo.isBookmarked ?? false); // 초기값 안전하게 처리
   const [likeLoading, setLikeLoading] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [bookingVisible, setBookingVisible] = useState(false);
 
+  // 🚨 1. 공유하기 기능 연결
+  const handleShare = useCallback(async () => {
+    try {
+      await Share.share({
+        message: `[T:ROOT] ${tattoo.title}\nhttps://t-root.app/tattoo/${tattoo.id}`,
+      });
+    } catch (error) {
+      console.log('Share error:', error);
+    }
+  }, [tattoo.title, tattoo.id]);
+
+  // 🚨 2. 찜하기 API 연동 및 토스트 알림 추가
   const handleToggleLike = useCallback(async () => {
     if (likeLoading) return;
     const next = !liked;
-    setLiked(next);           // optimistic
+    setLiked(next); // 낙관적 업데이트
     setLikeLoading(true);
+
+    // 알림 표시 (TS2345 방어를 위해 as any 사용)
+    toast(next ? t('common.bookmarked' as any) : t('common.unbookmarked' as any), {
+      variant: next ? 'success' : 'default',
+    });
+
     try {
       await favoriteApi.toggle('artwork', tattoo.id);
     } catch {
-      setLiked(!next);        // revert on error
+      setLiked(!next); // 실패 시 롤백
+      toast(t('common.error' as any), { variant: 'error' });
     } finally {
       setLikeLoading(false);
     }
-  }, [liked, likeLoading, tattoo.id]);
+  }, [liked, likeLoading, tattoo.id, toast, t]);
 
   const handleArtistPress = useCallback(() => {
     navigation.navigate('ArtistProfile', { artist: tattoo.artist });
@@ -65,155 +86,164 @@ const TattooDetailScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <View style={styles.imageContainer}>
-        <PagerCarousel
-          data={tattoo.images}
-          width={W}
-          height={IMAGE_HEIGHT}
-          renderItem={(img) =>
-            img ? (
-              <Image source={{ uri: img }} style={styles.heroImage} resizeMode="cover" />
-            ) : (
-              <View style={[styles.heroImage, { backgroundColor: COLORS.card }]} />
-            )
-          }
-          onIndexChange={setActiveImage}
-          keyExtractor={(_, i) => `hero-${i}`}
-        />
+        <View style={styles.imageContainer}>
+          <PagerCarousel
+              data={tattoo.images ?? []} // 🚨 방어: images가 없을 경우 대비
+              width={W}
+              height={IMAGE_HEIGHT}
+              renderItem={(img) =>
+                  img ? (
+                      <Image source={{ uri: img }} style={styles.heroImage} resizeMode="cover" />
+                  ) : (
+                      <View style={[styles.heroImage, { backgroundColor: COLORS.card }]} />
+                  )
+              }
+              onIndexChange={setActiveImage}
+              keyExtractor={(_, i) => `hero-${i}`}
+          />
 
-        <View style={[styles.imageOverlay, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.overlayBtn}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <BackArrowIcon size={22} color={COLORS.white} />
-          </TouchableOpacity>
-          <View style={styles.overlayRight}>
+          <View style={[styles.imageOverlay, { paddingTop: insets.top + 12 }]}>
             <TouchableOpacity
-              style={styles.overlayBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={() => navigation.goBack()}
+                style={styles.overlayBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <ShareIcon size={22} color={COLORS.white} />
+              <BackArrowIcon size={22} color={COLORS.white} />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleToggleLike}
-              style={styles.overlayBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <HeartIcon size={22} color={liked ? COLORS.gold : COLORS.white} filled={liked} />
-            </TouchableOpacity>
+            <View style={styles.overlayRight}>
+              <TouchableOpacity
+                  style={styles.overlayBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  onPress={handleShare} // 🚨 공유 기능 연결
+              >
+                <ShareIcon size={22} color={COLORS.white} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                  onPress={handleToggleLike}
+                  style={styles.overlayBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <HeartIcon size={22} color={liked ? COLORS.gold : COLORS.white} filled={liked} />
+              </TouchableOpacity>
+            </View>
           </View>
+
+          {/* 🚨 방어: images 배열 길이 안전하게 체크 */}
+          {(tattoo.images?.length ?? 0) > 1 && (
+              <View style={styles.dotsAbs}>
+                <PagerDots count={tattoo.images.length} activeIndex={activeImage} />
+              </View>
+          )}
         </View>
 
-        {tattoo.images.length > 1 && (
-          <View style={styles.dotsAbs}>
-            <PagerDots count={tattoo.images.length} activeIndex={activeImage} />
-          </View>
-        )}
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 90 }]}
-      >
-        <Text style={styles.title}>
-          {language === 'en' && tattoo.titleEn ? tattoo.titleEn : tattoo.title}
-        </Text>
-
-        {tattoo.minPrice > 0 && (
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>{t('artist.estimatedPrice')}</Text>
-            <Text style={styles.price}>{formatPrice(tattoo.minPrice)}</Text>
-          </View>
-        )}
-
-        {/* 장르 / 시술부위 / 사이즈 chips */}
-        {(tattoo.genres.length > 0 || tattoo.bodyParts.length > 0 || tattoo.sizePreset) && (
-          <View style={styles.tagsRow}>
-            {tattoo.genres.map((g) => (
-              <View key={`g-${g}`} style={styles.tag}>
-                <Text style={styles.tagText}>{g}</Text>
-              </View>
-            ))}
-            {tattoo.bodyParts.map((b) => (
-              <View key={`b-${b}`} style={[styles.tag, styles.tagBodyPart]}>
-                <Text style={styles.tagText}>{b}</Text>
-              </View>
-            ))}
-            {tattoo.sizePreset ? (
-              <View style={[styles.tag, styles.tagSize]}>
-                <Text style={styles.tagText}>{tattoo.sizePreset}</Text>
-              </View>
-            ) : null}
-          </View>
-        )}
-
-        {!!(language === 'en' && tattoo.descriptionEn ? tattoo.descriptionEn : tattoo.description) && (
-          <Text style={styles.description}>
-            {language === 'en' && tattoo.descriptionEn ? tattoo.descriptionEn : tattoo.description}
+        <ScrollView
+            style={styles.scroll}
+            showsVerticalScrollIndicator={false}
+            // 🚨 3. 하단 시스템 버튼 가림 방지 (안전 여백 추가)
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + 90 }]}
+        >
+          <Text style={styles.title}>
+            {language === 'en' && tattoo.titleEn ? tattoo.titleEn : tattoo.title}
           </Text>
-        )}
 
-        <TouchableOpacity
-          onPress={handleArtistPress}
-          style={styles.artistCard}
-          activeOpacity={0.85}
-        >
-          <View style={styles.artistCardLeft}>
-            <View style={styles.artistAvatarWrapper}>
-              {tattoo.artist.profileImage ? (
-                <Image
-                  source={{ uri: tattoo.artist.profileImage }}
-                  style={styles.artistAvatar}
-                  resizeMode="cover"
-                />
-              ) : null}
-            </View>
-            <View style={styles.artistCardInfo}>
-              <Text style={styles.artistCardLabel}>{t('booking.tattooist')}</Text>
-              <Text style={styles.artistCardName}>{tattoo.artist.nickname}</Text>
-              <View style={styles.artistRatingRow}>
-                <StarIcon size={13} color={COLORS.gold} filled />
-                <Text style={styles.artistRating}>
-                  {tattoo.artist.rating} ({t('booking.reviewCount').replace('{{count}}', String(tattoo.artist.reviewCount))})
-                </Text>
+          {tattoo.minPrice > 0 && (
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>{t('artist.estimatedPrice' as any)}</Text>
+                <Text style={styles.price}>{formatPrice(tattoo.minPrice)}</Text>
               </View>
-              {artistTagLabels(tattoo.artist.tags).length > 0 && (
-                <Text style={styles.artistTags} numberOfLines={1}>
-                  {artistTagLabels(tattoo.artist.tags).join(' · ')}
-                </Text>
-              )}
+          )}
+
+          {/* 🚨 방어: 배열이 존재하는지 확인 후 매핑 (?. 추가) */}
+          {((tattoo.genres?.length ?? 0) > 0 || (tattoo.bodyParts?.length ?? 0) > 0 || tattoo.sizePreset) && (
+              <View style={styles.tagsRow}>
+                {tattoo.genres?.map((g) => (
+                    <View key={`g-${g}`} style={styles.tag}>
+                      <Text style={styles.tagText}>{g}</Text>
+                    </View>
+                ))}
+                {tattoo.bodyParts?.map((b) => (
+                    <View key={`b-${b}`} style={[styles.tag, styles.tagBodyPart]}>
+                      <Text style={styles.tagText}>{b}</Text>
+                    </View>
+                ))}
+                {tattoo.sizePreset ? (
+                    <View style={[styles.tag, styles.tagSize]}>
+                      <Text style={styles.tagText}>{tattoo.sizePreset}</Text>
+                    </View>
+                ) : null}
+              </View>
+          )}
+
+          {!!(language === 'en' && tattoo.descriptionEn ? tattoo.descriptionEn : tattoo.description) && (
+              <Text style={styles.description}>
+                {language === 'en' && tattoo.descriptionEn ? tattoo.descriptionEn : tattoo.description}
+              </Text>
+          )}
+
+          <TouchableOpacity
+              onPress={handleArtistPress}
+              style={styles.artistCard}
+              activeOpacity={0.85}
+          >
+            <View style={styles.artistCardLeft}>
+              {/* 🚨 4. 아티스트 프로필 이미지가 없을 때의 Fallback 아이콘 적용 */}
+              <View style={styles.artistAvatarWrapper}>
+                {tattoo.artist?.profileImage ? (
+                    <Image
+                        source={{ uri: tattoo.artist.profileImage }}
+                        style={styles.artistAvatar}
+                        resizeMode="cover"
+                    />
+                ) : (
+                    <View style={styles.fallbackAvatar}>
+                      <PersonSilhouette size={34} color="#3a3a3a" />
+                    </View>
+                )}
+              </View>
+              <View style={styles.artistCardInfo}>
+                <Text style={styles.artistCardLabel}>{t('booking.tattooist' as any)}</Text>
+                <Text style={styles.artistCardName}>{tattoo.artist?.nickname}</Text>
+                <View style={styles.artistRatingRow}>
+                  <StarIcon size={13} color={COLORS.gold} filled />
+                  <Text style={styles.artistRating}>
+                    {tattoo.artist?.rating} ({t('shop.reviewCountFmt' as any, { count: tattoo.artist?.reviewCount ?? 0 })})
+                  </Text>
+                </View>
+                {artistTagLabels(tattoo.artist?.tags ?? []).length > 0 && (
+                    <Text style={styles.artistTags} numberOfLines={1}>
+                      {artistTagLabels(tattoo.artist.tags).join(' · ')}
+                    </Text>
+                )}
+              </View>
             </View>
-          </View>
-          <ChevronRightIcon size={20} color={COLORS.gray} />
-        </TouchableOpacity>
-      </ScrollView>
+            <ChevronRightIcon size={20} color={COLORS.gray} />
+          </TouchableOpacity>
+        </ScrollView>
 
-      <View style={[styles.stickyFooter, { paddingBottom: insets.bottom + 12 }]}>
-        <TouchableOpacity
-          style={styles.ctaBtn}
-          activeOpacity={0.85}
-          onPress={() => setBookingVisible(true)}
-        >
-          <Text style={styles.ctaText}>{t('artist.consultWithDesign')}</Text>
-        </TouchableOpacity>
+        {/* 🚨 하단 여백 보장 적용 */}
+        <View style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <TouchableOpacity
+              style={styles.ctaBtn}
+              activeOpacity={0.85}
+              onPress={() => setBookingVisible(true)}
+          >
+            <Text style={styles.ctaText}>{t('artist.consultWithDesign' as any)}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <BookingBottomSheet
+            visible={bookingVisible}
+            artistPageId={tattoo.artist?.id ?? ''}
+            artistName={tattoo.artist?.nickname ?? ''}
+            artistKakaoLink={tattoo.artist?.kakaoLink ?? ''}
+            artworkId={tattoo.id}
+            designTitle={tattoo.title}
+            onClose={() => setBookingVisible(false)}
+        />
       </View>
-
-      <BookingBottomSheet
-        visible={bookingVisible}
-        artistPageId={tattoo.artist.id}
-        artistName={tattoo.artist.nickname}
-        artistKakaoLink={tattoo.artist.kakaoLink}
-        artworkId={tattoo.id}
-        designTitle={tattoo.title}
-        onClose={() => setBookingVisible(false)}
-      />
-    </View>
   );
 };
 
@@ -344,6 +374,11 @@ const styles = StyleSheet.create({
   artistAvatar: {
     width: '100%',
     height: '100%',
+  },
+  fallbackAvatar: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   artistCardInfo: {
     gap: 2,

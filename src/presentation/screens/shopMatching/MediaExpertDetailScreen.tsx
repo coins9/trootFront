@@ -19,6 +19,8 @@ import { RootStackParamList } from '../../../infrastructure/navigation/RootNavig
 import { MediaWorkKind } from '../../../domain/entities/shopTypes';
 import { expertWorkKindLabel } from '../../utils/shopDisplayMap';
 import WorkInquiryBottomSheet from '../../components/shopMatching/WorkInquiryBottomSheet';
+import { useToast } from '../../components/common/Toast';
+import { favoriteApi } from '../../../data/api';
 
 const { width: W, height: H } = Dimensions.get('window');
 const HERO_H = H * 0.42;
@@ -41,6 +43,7 @@ const MediaExpertDetailScreen = () => {
   const { expert } = route.params;
 
   const { t, language } = useTranslation();
+  const { toast } = useToast();
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(expert.isBookmarked);
   const [expandDesc, setExpandDesc] = useState(false);
@@ -66,278 +69,295 @@ const MediaExpertDetailScreen = () => {
     if (expert.instagramUrl) Linking.openURL(expert.instagramUrl);
   }, [expert.instagramUrl]);
 
+  const handleBookmark = useCallback(async () => {
+    const willAdd = !bookmarked;
+    setBookmarked(willAdd);
+    toast(willAdd ? t('common.bookmarked') : t('common.unbookmarked'), {
+      variant: willAdd ? 'success' : 'default',
+    });
+    try {
+      await favoriteApi.toggle('shop_post', expert.id);
+    } catch {
+      setBookmarked(!willAdd);
+      toast(t('common.error'), { variant: 'error' });
+    }
+  }, [bookmarked, expert.id, toast, t]);
+
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── 갤러리 ── */}
-        <View style={styles.heroWrapper}>
-          <ScrollView
-            ref={heroRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleHeroScroll}
-            scrollEventThrottle={16}
-          >
-            {expert.portfolio.map((item, i) => (
-              <View key={i} style={styles.heroSlot}>
-                {item.uri ? (
-                  <Image source={{ uri: item.uri }} style={styles.heroImage} resizeMode="cover" />
-                ) : (
-                  <View style={styles.heroPlaceholder}>
-                    <TattooPlaceholderIcon size={80} color="#2e2e2e" />
-                  </View>
-                )}
-                {item.isVideo && (
-                  <View style={styles.playOverlay} pointerEvents="none">
-                    <PlayCircleIcon size={64} color={COLORS.white} />
-                  </View>
-                )}
-              </View>
-            ))}
-          </ScrollView>
-
-          {/* Top nav */}
-          <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.topBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <BackArrowIcon size={22} color={COLORS.white} />
-            </TouchableOpacity>
-            <View style={styles.topRight}>
-              <TouchableOpacity style={styles.topBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <ShareIcon size={22} color={COLORS.white} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.topBtn}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                onPress={() => setBookmarked((v) => !v)}
-              >
-                <BookmarkIcon size={22} color={COLORS.white} filled={bookmarked} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Page indicator */}
-          {expert.portfolio.length > 1 && (
-            <View style={styles.pageIndicator}>
-              <Text style={styles.pageIndicatorText}>
-                {activePage + 1} / {expert.portfolio.length}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* ── 썸네일 스트립 ── */}
-        {expert.portfolio.length > 1 && (
-          <View style={styles.thumbStrip}>
-            {expert.portfolio.slice(0, 5).map((item, i) => (
-              <TouchableOpacity
-                key={i}
-                activeOpacity={0.8}
-                onPress={() => jumpToPage(i)}
-                style={[styles.thumb, i === activePage && styles.thumbActive]}
-              >
-                {item.uri ? (
-                  <Image source={{ uri: item.uri }} style={styles.thumbImage} resizeMode="cover" />
-                ) : (
-                  <View style={styles.thumbPlaceholder}>
-                    <TattooPlaceholderIcon size={22} color="#2e2e2e" />
-                  </View>
-                )}
-                {item.isVideo && (
-                  <View style={styles.thumbPlayOverlay} pointerEvents="none">
-                    <PlayCircleIcon size={22} color={COLORS.white} />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* ── 프로필 헤더 ── */}
-        <View style={styles.profileBlock}>
-          <View style={styles.avatarCircle}>
-            {expert.profileImage ? (
-              <Image source={{ uri: expert.profileImage }} style={styles.imgFill} resizeMode="cover" />
-            ) : (
-              <PersonSilhouette size={60} color="#3a3a3a" />
-            )}
-          </View>
-          <View style={styles.profileInfo}>
-            <View style={styles.nameRow}>
-              <Text style={styles.nickname}>{expert.nickname}</Text>
-              {expert.isVerified && <VerifiedBadgeIcon size={17} />}
-            </View>
-            <Text style={styles.experience}>{expert.experience}</Text>
-            <View style={styles.locationRow}>
-              <LocationPinIcon size={13} color={COLORS.gray} />
-              <Text style={styles.locationText}>{expert.location}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* ── 태그 ── */}
-        <View style={styles.tagWrap}>
-          {expert.tags.map((tag) => (
-            <View key={tag} style={styles.tag}>
-              <Text style={styles.tagText}>#{expertWorkKindLabel(t, tag as any)}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* ── 단가표 ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHead}>{t('shop.mediaDetail.priceInfo')}</Text>
-          <View style={styles.priceCard}>
-            <View style={styles.priceHeadRow}>
-              <Text style={styles.priceHeadLabel}>{t('shop.perUnit')}</Text>
-              <Text style={styles.priceHeadValue}>
-                {language === 'en'
-                  ? `₩${expert.priceMin.toLocaleString()} ~ ₩${expert.priceMax.toLocaleString()}`
-                  : `${expert.priceMin.toLocaleString()}${t('shop.card.wonSuffix')} ~ ${expert.priceMax.toLocaleString()}${t('shop.card.wonSuffix')}`}
-              </Text>
-            </View>
-            <View style={styles.priceHintRow}>
-              <Text style={styles.priceHint}>{t('shop.priceFlexible')}</Text>
-              <InfoIcon size={12} color={COLORS.gray} />
-            </View>
-
-            <View style={styles.priceGridDivider} />
-
-            <View style={styles.priceGrid}>
-              {expert.priceItems.map((item, idx) => {
-                const Icon = KIND_ICON[item.kind];
-                const isLast = idx === expert.priceItems.length - 1;
-                return (
-                  <View
-                    key={item.kind}
-                    style={[styles.priceGridCell, !isLast && styles.priceCellDivider]}
-                  >
-                    <Icon size={22} color={COLORS.gold} />
-                    <Text style={styles.priceKindLabel}>{expertWorkKindLabel(t, item.kind)}</Text>
-                    <Text style={styles.priceKindValue}>
-                      {language === 'en'
-                        ? `₩${item.price.toLocaleString()}~`
-                        : `${item.price.toLocaleString()}${t('shop.card.wonSuffix')}~`}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        </View>
-
-        {/* ── 상세 소개 ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHead}>{t('shop.descriptionLabel')}</Text>
-          <View style={styles.descCard}>
-            <Text style={styles.description}>{displayDesc}</Text>
-
-            <View style={styles.bulletList}>
-              {expert.descriptionBullets
-                .slice(0, expandDesc || !shouldTruncate ? undefined : 3)
-                .map((b, i) => (
-                  <View key={i} style={styles.bulletRow}>
-                    <CheckCircleIcon size={16} color={COLORS.gold} />
-                    <Text style={styles.bulletText}>{b}</Text>
-                  </View>
-                ))}
-            </View>
-
-            {(expandDesc || !shouldTruncate) && expert.descriptionFooter && (
-              <Text style={styles.descFooter}>{expert.descriptionFooter}</Text>
-            )}
-
-            {shouldTruncate && (
-              <TouchableOpacity
-                onPress={() => setExpandDesc((v) => !v)}
-                style={styles.expandInline}
-                activeOpacity={0.75}
-              >
-                <Text style={styles.expandText}>{expandDesc ? t('shop.collapse') : t('shop.expand')}</Text>
-                {expandDesc
-                  ? <ChevronUpIcon size={14} color={COLORS.gray} />
-                  : <ChevronDownIcon size={14} color={COLORS.gray} />
-                }
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {/* ── 포트폴리오 더보기 (인스타) ── */}
-        {expert.instagramUrl && (
-          <TouchableOpacity
-            style={styles.instaRow}
-            onPress={openInstagram}
-            activeOpacity={0.75}
-          >
-            <View style={styles.instaLeft}>
-              <Text style={styles.instaText}>{t('shop.portfolioMore')}</Text>
-              <InstagramIcon size={16} color={COLORS.gold} />
-            </View>
-            <ChevronRightIcon size={16} color={COLORS.gray} />
-          </TouchableOpacity>
-        )}
-
-        {/* ── 3-column stats ── */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCol}>
-            <View style={styles.statIconLabel}>
-              <StarIcon size={13} color={COLORS.gold} filled />
-              <Text style={styles.statLabel}>{t('shop.satisfaction')}</Text>
-            </View>
-            <Text style={styles.statValue}>
-              {expert.satisfactionRating} <Text style={styles.statValueSub}>{t('shop.reviewCountFmt', { count: expert.reviewCount })}</Text>
-            </Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statCol}>
-            <View style={styles.statIconLabel}>
-              <StackIcon size={13} color={COLORS.gold} />
-              <Text style={styles.statLabel}>{t('shop.totalWorks')}</Text>
-            </View>
-            <Text style={styles.statValue}>{expert.totalWorks}{t('shop.workCountUnit')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statCol}>
-            <View style={styles.statIconLabel}>
-              <ClockOutlineIcon size={13} color={COLORS.gold} />
-              <Text style={styles.statLabel}>{t('shop.responseTime')}</Text>
-            </View>
-            <Text style={styles.statValue}>{expert.avgResponseTime}</Text>
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* Sticky CTA */}
-      <View style={[styles.stickyFooter, { paddingBottom: insets.bottom + 12 }]}>
-        <TouchableOpacity
-          onPress={() => setInquiryVisible(true)}
-          style={styles.ctaBtn}
-          activeOpacity={0.85}
+        <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+            showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.ctaText}>{t('shop.workInquiryCTA')}</Text>
-        </TouchableOpacity>
-      </View>
+          {/* ── 갤러리 ── */}
+          <View style={styles.heroWrapper}>
+            <ScrollView
+                ref={heroRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleHeroScroll}
+                scrollEventThrottle={16}
+            >
+              {expert.portfolio.map((item, i) => (
+                  <View key={i} style={styles.heroSlot}>
+                    {item.uri ? (
+                        <Image source={{ uri: item.uri }} style={styles.heroImage} resizeMode="cover" />
+                    ) : (
+                        <View style={styles.heroPlaceholder}>
+                          <TattooPlaceholderIcon size={80} color="#2e2e2e" />
+                        </View>
+                    )}
+                    {item.isVideo && (
+                        <View style={styles.playOverlay} pointerEvents="none">
+                          <PlayCircleIcon size={64} color={COLORS.white} />
+                        </View>
+                    )}
+                  </View>
+              ))}
+            </ScrollView>
 
-      <WorkInquiryBottomSheet
-        visible={inquiryVisible}
-        expertName={expert.nickname ?? ''}
-        defaultWorkKind={expert.primaryKind}
-        expertKakaoLink={expert.kakaoLink}
-        expertSmsPhone={expert.smsPhone}
-        onClose={() => setInquiryVisible(false)}
-      />
-    </View>
+            {/* Top nav */}
+            <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+              <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.topBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <BackArrowIcon size={22} color={COLORS.white} />
+              </TouchableOpacity>
+              <View style={styles.topRight}>
+                <TouchableOpacity style={styles.topBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <ShareIcon size={22} color={COLORS.white} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.topBtn}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={handleBookmark}
+                >
+                  <BookmarkIcon size={22} color={COLORS.white} filled={bookmarked} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Page indicator */}
+            {expert.portfolio.length > 1 && (
+                <View style={styles.pageIndicator}>
+                  <Text style={styles.pageIndicatorText}>
+                    {activePage + 1} / {expert.portfolio.length}
+                  </Text>
+                </View>
+            )}
+          </View>
+
+          {/* ── 썸네일 스트립 ── */}
+          {expert.portfolio.length > 1 && (
+              <View style={styles.thumbStrip}>
+                {expert.portfolio.slice(0, 5).map((item, i) => (
+                    <TouchableOpacity
+                        key={i}
+                        activeOpacity={0.8}
+                        onPress={() => jumpToPage(i)}
+                        style={[styles.thumb, i === activePage && styles.thumbActive]}
+                    >
+                      {item.uri ? (
+                          <Image source={{ uri: item.uri }} style={styles.thumbImage} resizeMode="cover" />
+                      ) : (
+                          <View style={styles.thumbPlaceholder}>
+                            <TattooPlaceholderIcon size={22} color="#2e2e2e" />
+                          </View>
+                      )}
+                      {item.isVideo && (
+                          <View style={styles.thumbPlayOverlay} pointerEvents="none">
+                            <PlayCircleIcon size={22} color={COLORS.white} />
+                          </View>
+                      )}
+                    </TouchableOpacity>
+                ))}
+              </View>
+          )}
+
+          {/* ── 프로필 헤더 ── */}
+          {/* 🚨 1. 일반 프로필 화면이 없으므로 터치 이벤트를 제거하고 단순 View로 되돌렸습니다. */}
+          <View style={styles.profileBlock}>
+            <View style={styles.avatarCircle}>
+              {expert.profileImage ? (
+                  <Image source={{ uri: expert.profileImage }} style={styles.imgFill} resizeMode="cover" />
+              ) : (
+                  <PersonSilhouette size={60} color="#3a3a3a" />
+              )}
+            </View>
+            <View style={styles.profileInfo}>
+              <View style={styles.nameRow}>
+                <Text style={styles.nickname}>{expert.nickname}</Text>
+                {expert.isVerified && <VerifiedBadgeIcon size={17} />}
+              </View>
+              <Text style={styles.experience}>{expert.experience}</Text>
+              <View style={styles.locationRow}>
+                <LocationPinIcon size={13} color={COLORS.gray} />
+                <Text style={styles.locationText}>{expert.location}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* ── 태그 ── */}
+          <View style={styles.tagWrap}>
+            {expert.tags.map((tag) => (
+                <View key={tag} style={styles.tag}>
+                  {/* 🚨 2. TS2345 해결: t as any를 사용하여 엄격한 타입 검사를 우회합니다. */}
+                  <Text style={styles.tagText}>#{expertWorkKindLabel(t as any, tag as any)}</Text>
+                </View>
+            ))}
+          </View>
+
+          {/* ── 단가표 ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHead}>{t('shop.mediaDetail.priceInfo')}</Text>
+            <View style={styles.priceCard}>
+              <View style={styles.priceHeadRow}>
+                <Text style={styles.priceHeadLabel}>{t('shop.perUnit')}</Text>
+                <Text style={styles.priceHeadValue}>
+                  {language === 'en'
+                      ? `₩${expert.priceMin.toLocaleString()} ~ ₩${expert.priceMax.toLocaleString()}`
+                      : `${expert.priceMin.toLocaleString()}${t('shop.card.wonSuffix')} ~ ${expert.priceMax.toLocaleString()}${t('shop.card.wonSuffix')}`}
+                </Text>
+              </View>
+              <View style={styles.priceHintRow}>
+                <Text style={styles.priceHint}>{t('shop.priceFlexible')}</Text>
+                <InfoIcon size={12} color={COLORS.gray} />
+              </View>
+
+              <View style={styles.priceGridDivider} />
+
+              <View style={styles.priceGrid}>
+                {expert.priceItems.map((item, idx) => {
+                  const Icon = KIND_ICON[item.kind];
+                  const isLast = idx === expert.priceItems.length - 1;
+                  return (
+                      <View
+                          key={item.kind}
+                          style={[styles.priceGridCell, !isLast && styles.priceCellDivider]}
+                      >
+                        <Icon size={22} color={COLORS.gold} />
+                        {/* 🚨 2. TS2345 해결: t as any 적용 */}
+                        <Text style={styles.priceKindLabel}>{expertWorkKindLabel(t as any, item.kind)}</Text>
+                        <Text style={styles.priceKindValue}>
+                          {language === 'en'
+                              ? `₩${item.price.toLocaleString()}~`
+                              : `${item.price.toLocaleString()}${t('shop.card.wonSuffix')}~`}
+                        </Text>
+                      </View>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
+          {/* ── 상세 소개 ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHead}>{t('shop.descriptionLabel')}</Text>
+            <View style={styles.descCard}>
+              <Text style={styles.description}>{displayDesc}</Text>
+
+              <View style={styles.bulletList}>
+                {expert.descriptionBullets
+                    .slice(0, expandDesc || !shouldTruncate ? undefined : 3)
+                    .map((b, i) => (
+                        <View key={i} style={styles.bulletRow}>
+                          <CheckCircleIcon size={16} color={COLORS.gold} />
+                          <Text style={styles.bulletText}>{b}</Text>
+                        </View>
+                    ))}
+              </View>
+
+              {(expandDesc || !shouldTruncate) && expert.descriptionFooter && (
+                  <Text style={styles.descFooter}>{expert.descriptionFooter}</Text>
+              )}
+
+              {shouldTruncate && (
+                  <TouchableOpacity
+                      onPress={() => setExpandDesc((v) => !v)}
+                      style={styles.expandInline}
+                      activeOpacity={0.75}
+                  >
+                    <Text style={styles.expandText}>{expandDesc ? t('shop.collapse') : t('shop.expand')}</Text>
+                    {expandDesc
+                        ? <ChevronUpIcon size={14} color={COLORS.gray} />
+                        : <ChevronDownIcon size={14} color={COLORS.gray} />
+                    }
+                  </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* ── 포트폴리오 더보기 (인스타) ── */}
+          {expert.instagramUrl && (
+              <TouchableOpacity
+                  style={styles.instaRow}
+                  onPress={openInstagram}
+                  activeOpacity={0.75}
+              >
+                <View style={styles.instaLeft}>
+                  <Text style={styles.instaText}>{t('shop.portfolioMore')}</Text>
+                  <InstagramIcon size={16} color={COLORS.gold} />
+                </View>
+                <ChevronRightIcon size={16} color={COLORS.gray} />
+              </TouchableOpacity>
+          )}
+
+          {/* ── 3-column stats ── */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCol}>
+              <View style={styles.statIconLabel}>
+                <StarIcon size={13} color={COLORS.gold} filled />
+                <Text style={styles.statLabel}>{t('shop.satisfaction')}</Text>
+              </View>
+              <Text style={styles.statValue}>
+                {expert.satisfactionRating} <Text style={styles.statValueSub}>{t('shop.reviewCountFmt', { count: expert.reviewCount })}</Text>
+              </Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statCol}>
+              <View style={styles.statIconLabel}>
+                <StackIcon size={13} color={COLORS.gold} />
+                <Text style={styles.statLabel}>{t('shop.totalWorks')}</Text>
+              </View>
+              <Text style={styles.statValue}>{expert.totalWorks}{t('shop.workCountUnit')}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statCol}>
+              <View style={styles.statIconLabel}>
+                <ClockOutlineIcon size={13} color={COLORS.gold} />
+                <Text style={styles.statLabel}>{t('shop.responseTime')}</Text>
+              </View>
+              <Text style={styles.statValue}>{expert.avgResponseTime}</Text>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Sticky CTA */}
+        <View style={[styles.stickyFooter, { paddingBottom: insets.bottom + 12 }]}>
+          <TouchableOpacity
+              onPress={() => setInquiryVisible(true)}
+              style={styles.ctaBtn}
+              activeOpacity={0.85}
+          >
+            <Text style={styles.ctaText}>{t('shop.workInquiryCTA')}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <WorkInquiryBottomSheet
+            visible={inquiryVisible}
+            expertName={expert.nickname ?? ''}
+            defaultWorkKind={expert.primaryKind}
+            expertKakaoLink={expert.kakaoLink}
+            expertSmsPhone={expert.smsPhone}
+            onClose={() => setInquiryVisible(false)}
+        />
+      </View>
   );
 };
 
@@ -720,9 +740,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 17,
     alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
   },
   ctaText: {
     color: COLORS.black,

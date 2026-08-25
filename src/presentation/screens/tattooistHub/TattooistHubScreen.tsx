@@ -1,9 +1,9 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
@@ -13,6 +13,8 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from '../../store/languageStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+// 🚨 1. 최신 유저 권한 확인을 위해 api 임포트 추가
+import { userApi } from '../../../data/api';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -24,24 +26,42 @@ interface MenuItemProps {
 }
 
 const MenuItem = ({ Icon, title, description, onPress }: MenuItemProps) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.75}>
-    <View style={styles.menuIcon}>
-      <Icon size={22} color={COLORS.gold} />
-    </View>
-    <View style={styles.menuText}>
-      <Text style={styles.menuTitle}>{title}</Text>
-      <Text style={styles.menuDesc}>{description}</Text>
-    </View>
-    <ChevronRightIcon size={16} color={COLORS.gray2} />
-  </TouchableOpacity>
+    <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.75}>
+      <View style={styles.menuIcon}>
+        <Icon size={22} color={COLORS.gold} />
+      </View>
+      <View style={styles.menuText}>
+        <Text style={styles.menuTitle}>{title}</Text>
+        <Text style={styles.menuDesc}>{description}</Text>
+      </View>
+      <ChevronRightIcon size={16} color={COLORS.gray2} />
+    </TouchableOpacity>
 );
 
 const TattooistHubScreen = () => {
+  const insets = useSafeAreaInsets(); // 🚨 2. 안전한 하단 여백 보장을 위해 추가
   const navigation = useNavigation<Nav>();
   const session = useAuthStore((s) => s.session);
   const { t } = useTranslation();
 
-  const isArtist = session?.user.roles?.includes('TATTOOIST') ?? false;
+  // 🚨 3. 세션 값과 최신 서버 Role을 동기화하기 위한 로컬 상태
+  const sessionIsArtist = session?.user.roles?.includes('TATTOOIST') ?? false;
+  const [isArtist, setIsArtist] = useState(sessionIsArtist);
+
+  useEffect(() => {
+    setIsArtist(sessionIsArtist);
+  }, [sessionIsArtist]);
+
+  // 🚨 4. 사용자가 타투이스트 등록 후 뒤로가기로 돌아왔을 때, 즉시 권한을 갱신하는 로직
+  useFocusEffect(
+      useCallback(() => {
+        userApi.me()
+            .then((data) => {
+              setIsArtist(data.roles.includes('TATTOOIST'));
+            })
+            .catch(() => {});
+      }, [])
+  );
 
   const goMyPage = useCallback(() => navigation.navigate('ArtistMyPage'), [navigation]);
   const goReservation = useCallback(() => navigation.navigate('ArtistReservation'), [navigation]);
@@ -50,94 +70,95 @@ const TattooistHubScreen = () => {
   const goRequests = useCallback(() => navigation.navigate('ArtistReservationRequests'), [navigation]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('tabs.artist')}</Text>
-      </View>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t('tabs.artist')}</Text>
+        </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {isArtist ? (
-          <>
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{t('tattooistHub.myStudio')}</Text>
-              <View style={styles.card}>
-                <MenuItem
-                  Icon={PaletteIcon}
-                  title={t('tattooistHub.myPage')}
-                  description={t('tattooistHub.myPageDesc')}
-                  onPress={goMyPage}
-                />
-                <View style={styles.divider} />
-                <MenuItem
-                  Icon={EditPenIcon}
-                  title={t('tattooistHub.portfolio')}
-                  description={t('tattooistHub.portfolioDesc')}
-                  onPress={goMyPage}
-                />
+        <ScrollView
+            style={styles.scroll}
+            // 🚨 5. 기기 하단 메뉴 영역에 가리지 않도록 동적 패딩 적용
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + 40 }]}
+            showsVerticalScrollIndicator={false}
+        >
+          {isArtist ? (
+              <>
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>{t('tattooistHub.myStudio')}</Text>
+                  <View style={styles.card}>
+                    <MenuItem
+                        Icon={PaletteIcon}
+                        title={t('tattooistHub.myPage')}
+                        description={t('tattooistHub.myPageDesc')}
+                        onPress={goMyPage}
+                    />
+                    <View style={styles.divider} />
+                    <MenuItem
+                        Icon={EditPenIcon}
+                        title={t('tattooistHub.portfolio')}
+                        description={t('tattooistHub.portfolioDesc')}
+                        onPress={goMyPage}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>{t('tattooistHub.reservations')}</Text>
+                  <View style={styles.card}>
+                    <MenuItem
+                        Icon={CalendarIcon}
+                        title={t('tattooistHub.reservationManage')}
+                        description={t('tattooistHub.reservationManageDesc')}
+                        onPress={goReservation}
+                    />
+                    <View style={styles.divider} />
+                    <MenuItem
+                        Icon={FolderIcon}
+                        title={t('tattooistHub.requests')}
+                        description={t('tattooistHub.requestsDesc')}
+                        onPress={goRequests}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>{t('tattooistHub.business')}</Text>
+                  <View style={styles.card}>
+                    <MenuItem
+                        Icon={StoreIcon}
+                        title={t('tattooistHub.deposit')}
+                        description={t('tattooistHub.depositDesc')}
+                        onPress={goDeposit}
+                    />
+                    <View style={styles.divider} />
+                    <MenuItem
+                        Icon={BarChartIcon}
+                        title={t('tattooistHub.adStats')}
+                        description={t('tattooistHub.adStatsDesc')}
+                        onPress={goAdStats}
+                    />
+                  </View>
+                </View>
+              </>
+          ) : (
+              <View style={styles.emptyWrap}>
+                <PaletteIcon size={52} color={COLORS.gray2} />
+                <Text style={styles.emptyTitle}>{t('tattooistHub.notArtistTitle')}</Text>
+                <Text style={styles.emptyDesc}>{t('tattooistHub.notArtistDesc')}</Text>
+                <TouchableOpacity
+                    style={styles.registerBtn}
+                    activeOpacity={0.85}
+                    onPress={goMyPage}
+                >
+                  <PlusIcon size={16} color={COLORS.black} />
+                  <Text style={styles.registerBtnText}>{t('tattooistHub.register')}</Text>
+                </TouchableOpacity>
               </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{t('tattooistHub.reservations')}</Text>
-              <View style={styles.card}>
-                <MenuItem
-                  Icon={CalendarIcon}
-                  title={t('tattooistHub.reservationManage')}
-                  description={t('tattooistHub.reservationManageDesc')}
-                  onPress={goReservation}
-                />
-                <View style={styles.divider} />
-                <MenuItem
-                  Icon={FolderIcon}
-                  title={t('tattooistHub.requests')}
-                  description={t('tattooistHub.requestsDesc')}
-                  onPress={goRequests}
-                />
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{t('tattooistHub.business')}</Text>
-              <View style={styles.card}>
-                <MenuItem
-                  Icon={StoreIcon}
-                  title={t('tattooistHub.deposit')}
-                  description={t('tattooistHub.depositDesc')}
-                  onPress={goDeposit}
-                />
-                <View style={styles.divider} />
-                <MenuItem
-                  Icon={BarChartIcon}
-                  title={t('tattooistHub.adStats')}
-                  description={t('tattooistHub.adStatsDesc')}
-                  onPress={goAdStats}
-                />
-              </View>
-            </View>
-          </>
-        ) : (
-          <View style={styles.emptyWrap}>
-            <PaletteIcon size={52} color={COLORS.gray2} />
-            <Text style={styles.emptyTitle}>{t('tattooistHub.notArtistTitle')}</Text>
-            <Text style={styles.emptyDesc}>{t('tattooistHub.notArtistDesc')}</Text>
-            <TouchableOpacity
-              style={styles.registerBtn}
-              activeOpacity={0.85}
-              onPress={goMyPage}
-            >
-              <PlusIcon size={16} color={COLORS.black} />
-              <Text style={styles.registerBtnText}>{t('tattooistHub.register')}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          )}
+        </ScrollView>
+      </SafeAreaView>
   );
 };
 
@@ -158,7 +179,7 @@ const styles = StyleSheet.create({
     lineHeight: 27,
   },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 40, gap: 24 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 20, gap: 24 }, // 하단 여백을 인라인 스타일로 이동
 
   section: { gap: 8 },
   sectionLabel: {

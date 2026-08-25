@@ -1,10 +1,12 @@
-import React, { useCallback, memo } from 'react';
+import React, { useCallback, memo, useRef } from 'react';
 import {
   View, Text, Image, TouchableOpacity, ScrollView, StyleSheet,
   Dimensions, StatusBar, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+// 🚨 1. 하단 안전 여백을 위한 훅 임포트 추가
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+// 🚨 2. 화면 복귀 시 갱신을 위한 useFocusEffect 추가
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
@@ -57,44 +59,59 @@ const toPickItem = (artist: Artist): PickItem => ({
 });
 
 const GridCard = memo(({ item, onPress }: { item: PickItem; onPress: () => void }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.gridCard}>
-    {item.coverImage ? (
-      <Image source={{ uri: item.coverImage }} style={styles.gridImage} resizeMode="cover" />
-    ) : (
-      <View style={styles.gridPlaceholder}>
-        <TattooPlaceholderIcon size={72} color="#2a2a2a" />
+    <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.gridCard}>
+      {item.coverImage ? (
+          <Image source={{ uri: item.coverImage }} style={styles.gridImage} resizeMode="cover" />
+      ) : (
+          <View style={styles.gridPlaceholder}>
+            <TattooPlaceholderIcon size={72} color="#2a2a2a" />
+          </View>
+      )}
+      <View style={styles.gridDarkOverlay} pointerEvents="none" />
+      <View style={styles.gridTopInfo} pointerEvents="none">
+        <Text style={styles.gridName}>{item.nickname}</Text>
+        <Text style={styles.gridMeta}>
+          {item.city} <Text style={styles.gridDot}>·</Text> {item.genre}
+        </Text>
       </View>
-    )}
-    <View style={styles.gridDarkOverlay} pointerEvents="none" />
-    <View style={styles.gridTopInfo} pointerEvents="none">
-      <Text style={styles.gridName}>{item.nickname}</Text>
-      <Text style={styles.gridMeta}>
-        {item.city} <Text style={styles.gridDot}>·</Text> {item.genre}
-      </Text>
-    </View>
-    <View style={styles.gridBottomAction} pointerEvents="none">
-      <Text style={styles.viewProfile}>VIEW PROFILE</Text>
-      <ArrowRightIcon size={14} color={COLORS.gold} />
-    </View>
-  </TouchableOpacity>
+      <View style={styles.gridBottomAction} pointerEvents="none">
+        <Text style={styles.viewProfile}>VIEW PROFILE</Text>
+        <ArrowRightIcon size={14} color={COLORS.gold} />
+      </View>
+    </TouchableOpacity>
 ));
 GridCard.displayName = 'GridCard';
 
 const RootsPickScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<RootsPickNavProp>();
+  const insets = useSafeAreaInsets(); // 🚨 안전 여백 훅 초기화
 
-  const { data, loading } = useApi(
-    async () => (await artistApi.selectedMasters()).map(toArtist).map(toPickItem),
-    [],
+  // 🚨 3. reload 함수 추출
+  const { data, loading, reload } = useApi(
+      async () => (await artistApi.selectedMasters()).map(toArtist).map(toPickItem),
+      [],
   );
+
+  // 🚨 4. 화면 복귀 시 조용한 갱신 (Silent Reload) 적용
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          return;
+        }
+        reload();
+      }, [reload])
+  );
+
   const items = data ?? [];
   const featured = items[0];
   const gridArtists = items.slice(1);
 
   const handleArtistPress = useCallback(
-    (item: PickItem) => navigation.navigate('ArtistProfile', { artist: item.artist }),
-    [navigation],
+      (item: PickItem) => navigation.navigate('ArtistProfile', { artist: item.artist }),
+      [navigation],
   );
 
   const pairs: PickItem[][] = [];
@@ -104,100 +121,107 @@ const RootsPickScreen = () => {
 
   if (!featured) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-        <LogoHeader showSearch={false} />
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyText}>
-            {loading ? t('common.loading') : t('rootsPick.empty')}
-          </Text>
-        </View>
-      </SafeAreaView>
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+          <LogoHeader showSearch={false} />
+          <View style={styles.emptyWrap}>
+            {/* 🚨 TS2345 방어 (as any) */}
+            <Text style={styles.emptyText}>
+              {loading ? t('common.loading' as any) : t('rootsPick.empty' as any)}
+            </Text>
+          </View>
+        </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader showSearch={false} />
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader showSearch={false} />
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} bounces>
-        {/* ── Hero: image + overlay text ── */}
-        <View style={styles.hero}>
-          {featured.coverImage ? (
-            <Image source={{ uri: featured.coverImage }} style={styles.heroImage} resizeMode="cover" />
-          ) : (
-            <View style={styles.heroPlaceholder}>
-              <TattooPlaceholderIcon size={120} color="#2a2a2a" />
+        <ScrollView
+            style={styles.scroll}
+            // 🚨 5. 마지막 카드가 기기 하단 홈 인디케이터에 가려지지 않도록 패딩 보장
+            contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
+            showsVerticalScrollIndicator={false}
+            bounces
+        >
+          {/* ── Hero: image + overlay text ── */}
+          <View style={styles.hero}>
+            {featured.coverImage ? (
+                <Image source={{ uri: featured.coverImage }} style={styles.heroImage} resizeMode="cover" />
+            ) : (
+                <View style={styles.heroPlaceholder}>
+                  <TattooPlaceholderIcon size={120} color="#2a2a2a" />
+                </View>
+            )}
+
+            {/* dark gradient overlay */}
+            <View style={styles.heroGradient} pointerEvents="none" />
+
+            {/* Top-left content: label + title + subtitle + view artists */}
+            <View style={styles.heroTopLeft} pointerEvents="box-none">
+              <View style={styles.labelBlock}>
+                <Text style={styles.labelSmall}>ROOT'S PICK</Text>
+                <View style={styles.labelUnderline} />
+              </View>
+              <Text
+                  style={styles.titleLarge}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
+              >
+                CURATED.
+              </Text>
+              <Text
+                  style={styles.titleLarge}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
+              >
+                TIMELESS.
+              </Text>
+              {/* 🚨 TS2345 방어 */}
+              <Text style={styles.subtitle}>
+                {t('rootsPick.headline' as any)}
+              </Text>
+
+              <View style={styles.viewArtistsDivider} />
+              <TouchableOpacity
+                  onPress={() => handleArtistPress(featured)}
+                  activeOpacity={0.75}
+                  style={styles.viewArtistsRow}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.viewArtistsText}>VIEW ARTISTS</Text>
+                <ArrowRightIcon size={20} color={COLORS.gold} strokeWidth={1.8} />
+              </TouchableOpacity>
             </View>
-          )}
 
-          {/* dark gradient overlay */}
-          <View style={styles.heroGradient} pointerEvents="none" />
-
-          {/* Top-left content: label + title + subtitle + view artists */}
-          <View style={styles.heroTopLeft} pointerEvents="box-none">
-            <View style={styles.labelBlock}>
-              <Text style={styles.labelSmall}>ROOT'S PICK</Text>
-              <View style={styles.labelUnderline} />
+            {/* Bottom-left: featured artist name */}
+            <View style={styles.heroBottomLeft} pointerEvents="box-none">
+              <Text style={styles.featuredName}>{featured.nickname}</Text>
+              <Text style={styles.featuredMeta}>
+                {featured.city}   <Text style={styles.featuredDot}>·</Text>   {featured.genre}
+              </Text>
             </View>
-            <Text
-              style={styles.titleLarge}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.6}
-            >
-              CURATED.
-            </Text>
-            <Text
-              style={styles.titleLarge}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.6}
-            >
-              TIMELESS.
-            </Text>
-            <Text style={styles.subtitle}>
-              {t('rootsPick.headline')}
-            </Text>
 
-            <View style={styles.viewArtistsDivider} />
-            <TouchableOpacity
-              onPress={() => handleArtistPress(featured)}
-              activeOpacity={0.75}
-              style={styles.viewArtistsRow}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.viewArtistsText}>VIEW ARTISTS</Text>
-              <ArrowRightIcon size={20} color={COLORS.gold} strokeWidth={1.8} />
-            </TouchableOpacity>
           </View>
 
-          {/* Bottom-left: featured artist name */}
-          <View style={styles.heroBottomLeft} pointerEvents="box-none">
-            <Text style={styles.featuredName}>{featured.nickname}</Text>
-            <Text style={styles.featuredMeta}>
-              {featured.city}   <Text style={styles.featuredDot}>·</Text>   {featured.genre}
-            </Text>
+          {/* ── 2-column grid ── */}
+          <View style={styles.grid}>
+            {pairs.map((pair, rowIdx) => (
+                <View key={rowIdx} style={styles.gridRow}>
+                  {pair.map((item) => (
+                      <GridCard key={item.id} item={item} onPress={() => handleArtistPress(item)} />
+                  ))}
+                  {pair.length === 1 && <View style={styles.gridCard} />}
+                </View>
+            ))}
           </View>
 
-        </View>
-
-        {/* ── 2-column grid ── */}
-        <View style={styles.grid}>
-          {pairs.map((pair, rowIdx) => (
-            <View key={rowIdx} style={styles.gridRow}>
-              {pair.map((item) => (
-                <GridCard key={item.id} item={item} onPress={() => handleArtistPress(item)} />
-              ))}
-              {pair.length === 1 && <View style={styles.gridCard} />}
-            </View>
-          ))}
-        </View>
-
-        <View style={{ height: 24 }} />
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
   );
 };
 

@@ -26,7 +26,9 @@ const formatCount = (n: number | string) => {
   return String(n);
 };
 
-const formatPrice = (price: number, language: string) => {
+// 🚨 1. 0원 및 undefined 방어 로직 추가
+const formatPrice = (price: number | undefined, language: string, t: any) => {
+  if (!price || price <= 0) return t('supplies.detail.priceInquiry'); // "가격 문의" 등으로 폴백
   if (language === 'ko') {
     if (price >= 10000) return `${Math.floor(price / 10000)}만원~`;
     return `${price.toLocaleString()}원~`;
@@ -36,86 +38,97 @@ const formatPrice = (price: number, language: string) => {
 
 const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooCardProps) => {
   const { t, language } = useTranslation();
-  const isMaster = !!tattoo.artist.isSelectedMaster;
+  const isMaster = !!tattoo.artist?.isSelectedMaster;
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
+      // 🚨 2. 카드 '전체'를 클릭할 수 있도록 최상단을 TouchableOpacity로 변경
+      <TouchableOpacity
+          style={styles.container}
+          onPress={onPress}
+          activeOpacity={0.9}
+      >
         <View style={styles.imageWrapper}>
-          {tattoo.images[0] ? (
-            <CachedImage uri={tattoo.images[0]} style={styles.image} resizeMode="cover" />
+          {/* 🚨 3. images 배열 자체가 없을 때를 대비한 옵셔널 체이닝(?.) 적용 */}
+          {tattoo.images?.[0] ? (
+              <CachedImage uri={tattoo.images[0]} style={styles.image} resizeMode="cover" />
           ) : (
-            <View style={styles.placeholder}>
-              <TattooPlaceholderIcon size={56} color="#2e2e2e" />
-            </View>
+              <View style={styles.placeholder}>
+                <TattooPlaceholderIcon size={56} color="#2e2e2e" />
+              </View>
           )}
           <TouchableOpacity
-            onPress={onBookmark}
-            style={styles.bookmarkBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={(e) => {
+                e.stopPropagation(); // 🚨 자식 버튼(북마크)을 눌렀을 때 부모(카드 전체) 클릭 방지
+                onBookmark();
+              }}
+              style={styles.bookmarkBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <BookmarkIcon size={18} color={COLORS.white} filled={tattoo.isBookmarked} />
           </TouchableOpacity>
+
           {tattoo.isPromoted && (
-            <View style={styles.adBadge}>
-              <Text style={styles.adText}>{t('home.sponsored')}</Text>
-            </View>
+              <View style={styles.adBadge}>
+                <Text style={styles.adText}>{t('home.sponsored')}</Text>
+              </View>
           )}
         </View>
-      </TouchableOpacity>
 
-      <View style={styles.body}>
-        {!!tattoo.title && (
-          <Text style={styles.artworkTitle} numberOfLines={1}>{tattoo.title}</Text>
-        )}
-        <TouchableOpacity
-          onPress={onArtistPress}
-          style={styles.artistRow}
-          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-        >
-          {/* 셀렉티드 마스터: 금색 테두리 + 왕관 뱃지 */}
-          <View style={[styles.avatarOuter, isMaster && styles.avatarOuterMaster]}>
-            <View style={styles.avatarWrapper}>
-              {tattoo.artist.profileImage ? (
-                <CachedImage uri={tattoo.artist.profileImage} style={styles.avatar} resizeMode="cover" />
-              ) : (
-                <PersonSilhouette size={24} color="#3a3a3a" />
+        <View style={styles.body}>
+          {!!tattoo.title && (
+              <Text style={styles.artworkTitle} numberOfLines={1}>{tattoo.title}</Text>
+          )}
+          <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation(); // 🚨 자식 버튼(아티스트 프로필) 눌렀을 때 방지
+                onArtistPress();
+              }}
+              style={styles.artistRow}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          >
+            {/* 셀렉티드 마스터: 금색 테두리 + 왕관 뱃지 */}
+            <View style={[styles.avatarOuter, isMaster && styles.avatarOuterMaster]}>
+              <View style={styles.avatarWrapper}>
+                {tattoo.artist?.profileImage ? (
+                    <CachedImage uri={tattoo.artist.profileImage} style={styles.avatar} resizeMode="cover" />
+                ) : (
+                    <PersonSilhouette size={24} color="#3a3a3a" />
+                )}
+              </View>
+              {isMaster && (
+                  <View style={styles.crownBadge}>
+                    <CrownIcon size={7} color={COLORS.black} />
+                  </View>
               )}
             </View>
-            {isMaster && (
-              <View style={styles.crownBadge}>
-                <CrownIcon size={7} color={COLORS.black} />
-              </View>
-            )}
-          </View>
-          <View style={styles.artistInfo}>
-            <Text style={styles.artistName} numberOfLines={1}>
-              {tattoo.artist.nickname}
-            </Text>
-            <Text style={styles.location} numberOfLines={1}>
-              {tattoo.artist.city} · {tattoo.artist.district}
-            </Text>
-          </View>
-        </TouchableOpacity>
+            <View style={styles.artistInfo}>
+              <Text style={styles.artistName} numberOfLines={1}>
+                {tattoo.artist?.nickname || t('artistProfile.anonymous')}
+              </Text>
+              <Text style={styles.location} numberOfLines={1}>
+                {tattoo.artist?.city || ''} {tattoo.artist?.district ? `· ${tattoo.artist.district}` : ''}
+              </Text>
+            </View>
+          </TouchableOpacity>
 
-        <Text style={styles.price}>{formatPrice(tattoo.minPrice, language)}</Text>
+          <Text style={styles.price}>{formatPrice(tattoo.minPrice, language, t)}</Text>
 
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <HeartIcon size={13} color="#B8A57E" />
-            <Text style={styles.statText}>{formatCount(tattoo.likeCount)}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <CommentIcon size={13} color="#B8A57E" />
-            <Text style={styles.statText}>{formatCount(tattoo.commentCount)}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <EyeIcon size={13} color="#B8A57E" />
-            <Text style={styles.statText}>{tattoo.viewCount}</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <HeartIcon size={13} color="#B8A57E" />
+              <Text style={styles.statText}>{formatCount(tattoo.likeCount)}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <CommentIcon size={13} color="#B8A57E" />
+              <Text style={styles.statText}>{formatCount(tattoo.commentCount)}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <EyeIcon size={13} color="#B8A57E" />
+              <Text style={styles.statText}>{tattoo.viewCount}</Text>
+            </View>
           </View>
         </View>
-      </View>
-    </View>
+      </TouchableOpacity>
   );
 });
 

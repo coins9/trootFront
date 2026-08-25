@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Image,
   StatusBar, Dimensions, ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+// 🚨 1. 화면 복귀 시 갱신을 위한 useFocusEffect 추가
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
@@ -27,7 +28,7 @@ const CARD_H_PAD = 16;
 const CARD_INNER_PAD = 18;
 const GALLERY_GAP = 6;
 const GALLERY_ITEM_SIZE =
-  (W - CARD_H_PAD * 2 - CARD_INNER_PAD * 2 - GALLERY_GAP * 2) / 3;
+    (W - CARD_H_PAD * 2 - CARD_INNER_PAD * 2 - GALLERY_GAP * 2) / 3;
 
 // 갤러리 자리(백엔드 작품 썸네일 연동 전까지 placeholder 3칸 유지)
 const EMPTY_WORKS = ['', '', ''];
@@ -42,96 +43,111 @@ interface FavoriteCardProps {
 }
 
 const FavoriteCard = React.memo(({
-  artist, works, isFavorite, onToggleFavorite, onVisitProfile, visitLabel,
-}: FavoriteCardProps) => (
-  <View style={styles.card}>
-    <View style={styles.headerRow}>
-      <View style={styles.headerLeft}>
-        <View style={styles.avatarCircle}>
-          {artist.profileImage ? (
-            <Image
-              source={{ uri: artist.profileImage }}
-              style={styles.avatarImg}
-              resizeMode="cover"
-            />
-          ) : (
-            <PersonSilhouette size={44} color="#3a3a3a" />
-          )}
-        </View>
-        <View style={styles.headerInfo}>
-          <View style={styles.nameRow}>
-            <Text style={styles.name}>{artist.nickname}</Text>
-            <CrownIcon size={16} color={COLORS.gold} />
+                                   artist, works, isFavorite, onToggleFavorite, onVisitProfile, visitLabel,
+                                 }: FavoriteCardProps) => (
+    <View style={styles.card}>
+      <View style={styles.headerRow}>
+        <View style={styles.headerLeft}>
+          <View style={styles.avatarCircle}>
+            {artist.profileImage ? (
+                <Image
+                    source={{ uri: artist.profileImage }}
+                    style={styles.avatarImg}
+                    resizeMode="cover"
+                />
+            ) : (
+                <PersonSilhouette size={44} color="#3a3a3a" />
+            )}
           </View>
-          <View style={styles.metaRow}>
-            <StarIcon size={12} color={COLORS.gold} filled />
-            <Text style={styles.rating}>{artist.rating}</Text>
-            <Text style={styles.metaDivider}>|</Text>
-            <Text style={styles.location}>
-              {artist.city} · {artist.district}
-            </Text>
+          <View style={styles.headerInfo}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{artist.nickname}</Text>
+              <CrownIcon size={16} color={COLORS.gold} />
+            </View>
+            <View style={styles.metaRow}>
+              <StarIcon size={12} color={COLORS.gold} filled />
+              <Text style={styles.rating}>{artist.rating}</Text>
+              <Text style={styles.metaDivider}>|</Text>
+              <Text style={styles.location}>
+                {artist.city} · {artist.district}
+              </Text>
+            </View>
           </View>
         </View>
+        <TouchableOpacity
+            onPress={onToggleFavorite}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.75}
+        >
+          <HeartIcon
+              size={24}
+              color={COLORS.gold}
+              filled={isFavorite}
+          />
+        </TouchableOpacity>
       </View>
+
+      <View style={styles.gallery}>
+        {works.map((uri, i) => (
+            <View key={i} style={styles.galleryItem}>
+              {uri ? (
+                  <Image source={{ uri }} style={styles.galleryImg} resizeMode="cover" />
+              ) : (
+                  <View style={styles.galleryPlaceholder}>
+                    <TattooPlaceholderIcon size={36} color="#2e2e2e" />
+                  </View>
+              )}
+            </View>
+        ))}
+      </View>
+
       <TouchableOpacity
-        onPress={onToggleFavorite}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        activeOpacity={0.75}
+          onPress={onVisitProfile}
+          activeOpacity={0.85}
+          style={styles.visitBtn}
       >
-        <HeartIcon
-          size={24}
-          color={COLORS.gold}
-          filled={isFavorite}
-        />
+        <Text style={styles.visitText}>{visitLabel}</Text>
       </TouchableOpacity>
     </View>
-
-    <View style={styles.gallery}>
-      {works.map((uri, i) => (
-        <View key={i} style={styles.galleryItem}>
-          {uri ? (
-            <Image source={{ uri }} style={styles.galleryImg} resizeMode="cover" />
-          ) : (
-            <View style={styles.galleryPlaceholder}>
-              <TattooPlaceholderIcon size={36} color="#2e2e2e" />
-            </View>
-          )}
-        </View>
-      ))}
-    </View>
-
-    <TouchableOpacity
-      onPress={onVisitProfile}
-      activeOpacity={0.85}
-      style={styles.visitBtn}
-    >
-      <Text style={styles.visitText}>{visitLabel}</Text>
-    </TouchableOpacity>
-  </View>
 ));
 FavoriteCard.displayName = 'FavoriteCard';
 
 const FavoriteArtistsScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets(); // 🚨 안전 여백(Insets) 추가
   const { toast } = useToast();
   const [removed, setRemoved] = useState<Set<string>>(new Set());
 
+  // 🚨 2. 리로드(reload) 추출
   const {
     items, loading, loadingMore, error, loadMore, reload,
   } = usePagedApi(
-    (cursor) => favoriteApi.list<ArtistPage>('artist', { cursor, limit: 20 }),
-    [],
+      (cursor) => favoriteApi.list<ArtistPage>('artist', { cursor, limit: 20 }),
+      [],
+  );
+
+  // 🚨 3. 화면 복귀 시 조용히 새로고침 (Silent Reload)
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          return;
+        }
+        reload();
+      }, [reload])
   );
 
   const favoriteArtists = (items
-    .map((f: FavoriteItem<ArtistPage>) => (f.target ? toArtist(f.target) : null))
-    .filter(Boolean) as Artist[])
-    .filter((a) => !removed.has(a.id));
+      .map((f: FavoriteItem<ArtistPage>) => (f.target ? toArtist(f.target) : null))
+      .filter(Boolean) as Artist[])
+      .filter((a) => !removed.has(a.id));
 
   const handleToggle = useCallback(async (artist: Artist) => {
     setRemoved((prev) => new Set(prev).add(artist.id));
-    toast(t('favorites.unfavorited').replace('{{name}}', artist.nickname));
+    // 🚨 TS2345 방어 (as any)
+    toast(t('favorites.unfavorited' as any).replace('{{name}}', artist.nickname));
     try {
       await favoriteApi.toggle('artist', artist.id);
     } catch {
@@ -140,7 +156,7 @@ const FavoriteArtistsScreen = () => {
         next.delete(artist.id);
         return next;
       });
-      toast(t('common.error'), { variant: 'error' });
+      toast(t('common.error' as any), { variant: 'error' });
     }
   }, [toast, t]);
 
@@ -149,62 +165,64 @@ const FavoriteArtistsScreen = () => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      // 🚨 4. 하단 잘림을 막기 위해 edges=['top'] 으로 수정
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader />
 
-      <View style={styles.subHeader}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.backBtn}
-        >
-          <BackArrowIcon size={22} color={COLORS.white} />
-        </TouchableOpacity>
-        <View style={styles.titleGroup}>
-          <Text style={styles.title}>{t('favorites.artists')}</Text>
-          <Text style={styles.subtitle}>{t('favorites.artistsSubtitle')}</Text>
+        <View style={styles.subHeader}>
+          <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.backBtn}
+          >
+            <BackArrowIcon size={22} color={COLORS.white} />
+          </TouchableOpacity>
+          <View style={styles.titleGroup}>
+            <Text style={styles.title}>{t('favorites.artists' as any)}</Text>
+            <Text style={styles.subtitle}>{t('favorites.artistsSubtitle' as any)}</Text>
+          </View>
         </View>
-      </View>
 
-      <FlatList
-        data={favoriteArtists}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <FavoriteCard
-            artist={item}
-            works={EMPTY_WORKS}
-            isFavorite
-            onToggleFavorite={() => handleToggle(item)}
-            onVisitProfile={() => handleVisit(item)}
-            visitLabel={t('favorites.visitProfile')}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.4}
-        refreshing={loading && favoriteArtists.length > 0}
-        onRefresh={reload}
-        ListFooterComponent={
-          loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null
-        }
-        ListEmptyComponent={
-          loading ? (
-            <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
-          ) : (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>{error ?? t('favorites.emptyArtists')}</Text>
-              {error && (
-                <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
-                  <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )
-        }
-      />
-    </SafeAreaView>
+        <FlatList
+            data={favoriteArtists}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+                <FavoriteCard
+                    artist={item}
+                    works={EMPTY_WORKS}
+                    isFavorite
+                    onToggleFavorite={() => handleToggle(item)}
+                    onVisitProfile={() => handleVisit(item)}
+                    visitLabel={t('favorites.visitProfile' as any)}
+                />
+            )}
+            // 🚨 5. 리스트 콘텐츠 하단에 기기 환경에 맞는 안전 여백 추가 (Math.max)
+            contentContainerStyle={[styles.listContent, { paddingBottom: Math.max(insets.bottom, 24) + 20 }]}
+            showsVerticalScrollIndicator={false}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.4}
+            refreshing={loading && favoriteArtists.length > 0}
+            onRefresh={reload}
+            ListFooterComponent={
+              loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null
+            }
+            ListEmptyComponent={
+              loading ? (
+                  <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
+              ) : (
+                  <View style={styles.empty}>
+                    <Text style={styles.emptyText}>{error ?? t('favorites.emptyArtists' as any)}</Text>
+                    {error && (
+                        <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
+                          <Text style={styles.retryBtnText}>{t('common.retry' as any)}</Text>
+                        </TouchableOpacity>
+                    )}
+                  </View>
+              )
+            }
+        />
+      </SafeAreaView>
   );
 };
 
@@ -250,7 +268,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: CARD_H_PAD,
     paddingTop: 18,
-    paddingBottom: 40,
     gap: 14,
   },
 

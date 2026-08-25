@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, StatusBar, TouchableOpacity, FlatList,
   ActivityIndicator, Image, ScrollView, Modal, Dimensions,
@@ -22,7 +22,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
-const formatSchedule = (iso: string, language: string, t: (key: string) => string) => {
+// 🚨 에러 원인이었던 t 함수 제거: 대신 amLabel, pmLabel 문자열을 직접 받도록 수정
+const formatSchedule = (iso: string, language: string, amLabel: string, pmLabel: string) => {
   const d = new Date(iso);
   if (language === 'ko') {
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -30,7 +31,7 @@ const formatSchedule = (iso: string, language: string, t: (key: string) => strin
     const dow = WEEKDAY_KO[d.getDay()];
     const hh = d.getHours();
     const min = String(d.getMinutes()).padStart(2, '0');
-    const ampm = hh < 12 ? t('reservation.am') : t('reservation.pm');
+    const ampm = hh < 12 ? amLabel : pmLabel;
     const h12 = hh % 12 === 0 ? 12 : hh % 12;
     return `${d.getFullYear()}.${mm}.${dd} (${dow}) ${ampm} ${h12}:${min}`;
   }
@@ -61,21 +62,33 @@ const ArtistReservationRequestsScreen = () => {
 
   const closeViewer = useCallback(() => setViewerImages(null), []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // 🚨 깜빡임 방지용 isSilent 파라미터 추가
+  const load = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     setError('');
     try {
       const res = await reservationApi.forArtist({ status: 'requested', limit: 30 });
       setItems(res.items);
     } catch (e) {
       setError(e instanceof ApiError ? e.userMessage : t('common.error'));
-      setItems([]);
+      if (!isSilent) setItems([]);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   }, [t]);
 
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  // 🚨 화면에 돌아올 때마다 백그라운드에서 자동 갱신되도록 수정
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          void load(false); // 처음 렌더링 시 스피너 표시
+        } else {
+          void load(true); // 뒤로가기로 돌아왔을 때는 데이터만 갱신 (스피너 없음)
+        }
+      }, [load])
+  );
 
   const doConfirm = useCallback(async (r: ArtistReservationView) => {
     setBusyId(r.id);
@@ -104,7 +117,7 @@ const ArtistReservationRequestsScreen = () => {
         try {
           await reservationApi.rejectByArtist(r.id, 'artist_rejected');
           setItems((prev) => prev.filter((it) => it.id !== r.id));
-          toast(t('reservationRequests.rejectSuccess'), { variant: 'error' });
+          toast(t('reservationRequests.rejectSuccess'), { variant: 'default' });
         } catch (e) {
           toast(e instanceof ApiError ? e.userMessage : t('reservationRequests.actionFailed'), { variant: 'error' });
         } finally {
@@ -115,149 +128,140 @@ const ArtistReservationRequestsScreen = () => {
   }, [toast, t]);
 
   const renderItem = useCallback(({ item }: { item: ArtistReservationView }) => (
-    <View style={s.card}>
-      <View style={s.cardHead}>
-        <Text style={s.customer}>{item.customer?.nickname ?? t('reservationRequests.customerFallback')}</Text>
-        <View style={s.pendingBadge}>
-          <Text style={s.pendingText}>{t('reservationRequests.requestBadge')}</Text>
+      <View style={s.card}>
+        <View style={s.cardHead}>
+          <Text style={s.customer}>{item.customer?.nickname ?? t('reservationRequests.customerFallback')}</Text>
+          <View style={s.pendingBadge}>
+            <Text style={s.pendingText}>{t('reservationRequests.requestBadge')}</Text>
+          </View>
+        </View>
+        {/* 🚨 TS2345 해결: 번역된 스트링을 직접 전달 */}
+        <Text style={s.schedule}>
+          {formatSchedule(item.scheduledAt, language, t('reservation.am'), t('reservation.pm'))}
+        </Text>
+        {!!item.artworkTitle && (
+            <Text style={s.artworkTitle} numberOfLines={1}>🖼 {item.artworkTitle}</Text>
+        )}
+        <View style={s.metaRow}>
+          {!!item.bodyPart && <Text style={s.metaChip}>{item.bodyPart}</Text>}
+          {!!item.sizePreset && <Text style={s.metaChip}>{item.sizePreset}</Text>}
+        </View>
+        {item.referenceImages.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.refRow}>
+              {item.referenceImages.map((uri, idx) => (
+                  <TouchableOpacity key={`${uri}-${idx}`} activeOpacity={0.85} onPress={() => openViewer(item.referenceImages, idx)}>
+                    <Image source={{ uri }} style={s.refThumb} resizeMode="cover" />
+                  </TouchableOpacity>
+              ))}
+            </ScrollView>
+        )}
+        {!!item.memo && <Text style={s.memo} numberOfLines={3}>{item.memo}</Text>}
+
+        <View style={s.actions}>
+          <TouchableOpacity
+              style={[s.rejectBtn, !!busyId && s.btnBusy]}
+              activeOpacity={0.8}
+              disabled={!!busyId}
+              onPress={() => doReject(item)}
+          >
+            <XIcon size={15} color={COLORS.gray} strokeWidth={2} />
+            <Text style={s.rejectText}>{t('reservationRequests.rejectLabel')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+              style={[s.confirmBtn, !!busyId && s.btnBusy]}
+              activeOpacity={0.85}
+              disabled={!!busyId}
+              onPress={() => doConfirm(item)}
+          >
+            {busyId === item.id ? (
+                <ActivityIndicator size="small" color={COLORS.black} />
+            ) : (
+                <>
+                  <CheckCircleIcon size={16} color={COLORS.black} />
+                  <Text style={s.confirmText}>{t('reservationRequests.confirmBtn')}</Text>
+                </>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
-      <Text style={s.schedule}>{formatSchedule(item.scheduledAt, language, t)}</Text>
-      {!!item.artworkTitle && (
-        <Text style={s.artworkTitle} numberOfLines={1}>🖼 {item.artworkTitle}</Text>
-      )}
-      <View style={s.metaRow}>
-        {!!item.bodyPart && <Text style={s.metaChip}>{item.bodyPart}</Text>}
-        {!!item.sizePreset && <Text style={s.metaChip}>{item.sizePreset}</Text>}
-      </View>
-      {item.referenceImages.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.refRow}
-        >
-          {item.referenceImages.map((uri, idx) => (
-            <TouchableOpacity
-              key={`${uri}-${idx}`}
-              activeOpacity={0.85}
-              onPress={() => openViewer(item.referenceImages, idx)}
-            >
-              <Image
-                source={{ uri }}
-                style={s.refThumb}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
-      {!!item.memo && <Text style={s.memo} numberOfLines={3}>{item.memo}</Text>}
-
-      <View style={s.actions}>
-        <TouchableOpacity
-          style={[s.rejectBtn, busyId === item.id && s.btnBusy]}
-          activeOpacity={0.8}
-          disabled={busyId === item.id}
-          onPress={() => doReject(item)}
-        >
-          <XIcon size={15} color={COLORS.gray} strokeWidth={2} />
-          <Text style={s.rejectText}>{t('reservationRequests.rejectLabel')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.confirmBtn, busyId === item.id && s.btnBusy]}
-          activeOpacity={0.85}
-          disabled={busyId === item.id}
-          onPress={() => doConfirm(item)}
-        >
-          {busyId === item.id ? (
-            <ActivityIndicator size="small" color={COLORS.black} />
-          ) : (
-            <>
-              <CheckCircleIcon size={16} color={COLORS.black} />
-              <Text style={s.confirmText}>{t('reservationRequests.confirmBtn')}</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
   ), [busyId, doConfirm, doReject, openViewer, t, language]);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>{t('reservationRequests.title')}</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      {loading ? (
-        <View style={s.state}><ActivityIndicator color={COLORS.gold} /></View>
-      ) : error ? (
-        <View style={s.state}>
-          <Text style={s.stateText}>{error}</Text>
-          <TouchableOpacity onPress={load} style={s.retry}>
-            <Text style={s.retryText}>{t('common.retry')}</Text>
+      <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <View style={s.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
           </TouchableOpacity>
+          <Text style={s.headerTitle}>{t('reservationRequests.title')}</Text>
+          <View style={{ width: 24 }} />
         </View>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(it) => it.id}
-          renderItem={renderItem}
-          contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 24 }]}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
+
+        {loading ? (
+            <View style={s.state}><ActivityIndicator color={COLORS.gold} /></View>
+        ) : error ? (
             <View style={s.state}>
-              <Text style={s.emptyTitle}>{t('reservationRequests.emptyTitle')}</Text>
-              <Text style={s.stateText}>{t('reservationRequests.emptySubtitle')}</Text>
+              <Text style={s.stateText}>{error}</Text>
+              <TouchableOpacity onPress={() => load(false)} style={s.retry}>
+                <Text style={s.retryText}>{t('common.retry')}</Text>
+              </TouchableOpacity>
             </View>
-          }
-        />
-      )}
+        ) : (
+            <FlatList
+                data={items}
+                keyExtractor={(it) => it.id}
+                renderItem={renderItem}
+                contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 24 }]}
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                  <View style={s.state}>
+                    <Text style={s.emptyTitle}>{t('reservationRequests.emptyTitle')}</Text>
+                    <Text style={s.stateText}>{t('reservationRequests.emptySubtitle')}</Text>
+                  </View>
+                }
+            />
+        )}
 
-      <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
+        <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
 
-      <Modal
-        visible={viewerImages !== null}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={closeViewer}
-      >
-        <View style={s.viewerBackdrop}>
-          <TouchableOpacity
-            style={s.viewerClose}
-            onPress={closeViewer}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <XIcon size={22} color={COLORS.white} strokeWidth={2} />
-          </TouchableOpacity>
-          {viewerImages && (
-            <>
-              <PagerCarousel
-                data={viewerImages}
-                width={SCREEN_WIDTH}
-                height={SCREEN_HEIGHT}
-                initialIndex={viewerIndex}
-                onIndexChange={setViewerIndex}
-                keyExtractor={(uri, idx) => `${uri}-${idx}`}
-                renderItem={(uri) => (
-                  <Image source={{ uri }} style={s.viewerImage} resizeMode="contain" />
-                )}
-              />
-              {viewerImages.length > 1 && (
-                <View style={s.viewerDots}>
-                  <PagerDots count={viewerImages.length} activeIndex={viewerIndex} />
-                </View>
-              )}
-            </>
-          )}
-        </View>
-      </Modal>
-    </SafeAreaView>
+        <Modal
+            visible={viewerImages !== null}
+            transparent
+            animationType="fade"
+            statusBarTranslucent
+            onRequestClose={closeViewer}
+        >
+          <View style={s.viewerBackdrop}>
+            <TouchableOpacity
+                style={s.viewerClose}
+                onPress={closeViewer}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <XIcon size={22} color={COLORS.white} strokeWidth={2} />
+            </TouchableOpacity>
+            {viewerImages && (
+                <>
+                  <PagerCarousel
+                      data={viewerImages}
+                      width={SCREEN_WIDTH}
+                      height={SCREEN_HEIGHT}
+                      initialIndex={viewerIndex}
+                      onIndexChange={setViewerIndex}
+                      keyExtractor={(uri, idx) => `${uri}-${idx}`}
+                      renderItem={(uri) => (
+                          <Image source={{ uri }} style={s.viewerImage} resizeMode="contain" />
+                      )}
+                  />
+                  {viewerImages.length > 1 && (
+                      <View style={s.viewerDots}>
+                        <PagerDots count={viewerImages.length} activeIndex={viewerIndex} />
+                      </View>
+                  )}
+                </>
+            )}
+          </View>
+        </Modal>
+      </SafeAreaView>
   );
 };
 

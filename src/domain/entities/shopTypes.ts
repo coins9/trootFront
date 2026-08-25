@@ -9,12 +9,23 @@ export interface ShopHost {
   smsPhone?: string;
 }
 
+// 🚨 추가됨: 쉐어 가격 타입 (일일 / 월세) 및 스텐실 종류
+export type SharePriceType = 'daily' | 'monthly';
+export type ShareStencil = '열 스텐실 전사기' | '프린터 전사기' | '둘 다 구비' | '없음';
+
 export interface TattooShareShop {
   id: string;
   isNew: boolean;
   title: string;
   titleEn: string | null;
-  pricePerDay: number;
+
+  // 🚨 추가됨: 가격 방식 및 스텐실/촬영존 정보
+  priceType?: SharePriceType;
+  price?: number;
+  stencilType?: ShareStencil;
+  hasPhotoZone?: boolean;
+
+  pricePerDay: number; // (기존 컴포넌트 호환성을 위해 당분간 유지)
   address: string;
   district: string;
   areaPyeong: number;
@@ -40,22 +51,22 @@ export interface TattooShareShop {
  * ───────────────────────────────────────────────────── */
 
 export type ShareRegion =
-  | '전체'
-  | '서울 · 강남/서초'
-  | '서울 · 홍대/합정/망원'
-  | '서울 · 이태원/용산'
-  | '서울 · 건대/성수'
-  | '서울 · 기타'
-  | '경기/인천'
-  | '부산/경상'
-  | '그 외 지역';
+    | '전체'
+    | '서울 · 강남/서초'
+    | '서울 · 홍대/합정/망원'
+    | '서울 · 이태원/용산'
+    | '서울 · 건대/성수'
+    | '서울 · 기타'
+    | '경기/인천'
+    | '부산/경상'
+    | '그 외 지역';
 
 export type ShareLighting =
-  | '전체'
-  | 'LED (백색광)'
-  | '자연광'
-  | '조도 조절 (디밍)'
-  | '촬영용 조명 구비';
+    | '전체'
+    | 'LED (백색광)'
+    | '자연광'
+    | '조도 조절 (디밍)'
+    | '촬영용 조명 구비';
 
 export type ShareBedCount = '전체' | '1대' | '2대' | '3대' | '4대 이상';
 
@@ -134,7 +145,7 @@ export const matchRegion = (address: string, region: ShareRegion): boolean => {
     if (!/서울/.test(address)) return false;
     // 세부 지역에 이미 포함되면 '기타' 아님
     return !(
-      /강남|서초|홍대|마포|합정|망원|서교|이태원|용산|건대|성수|광진|화양/.test(address)
+        /강남|서초|홍대|마포|합정|망원|서교|이태원|용산|건대|성수|광진|화양/.test(address)
     );
   }
   const re = REGION_KEYWORDS[region];
@@ -166,8 +177,8 @@ export const matchLighting = (lighting: string, filter: ShareLighting): boolean 
 };
 
 export const applyShareSort = <T extends TattooShareShop>(
-  list: T[],
-  sort: ShareSort,
+    list: T[],
+    sort: ShareSort,
 ): T[] => {
   const copy = list.slice();
   switch (sort) {
@@ -199,7 +210,7 @@ export const INITIAL_SHARE_BOOKING_FORM: ShareBookingForm = {
 };
 
 export const isShareBookingFormValid = (form: ShareBookingForm): boolean =>
-  !!(form.purpose && form.scheduleText.trim() && form.bedRequest);
+    !!(form.purpose && form.scheduleText.trim() && form.bedRequest);
 
 /* ─────────────────────────────────────────────────────
  * 타투 모델 구인 (비기너)
@@ -256,9 +267,9 @@ export const isModelApplicationValid = (f: ModelApplicationForm): boolean => {
 };
 
 export const formatModelApplicationMessage = (
-  postTitle: string,
-  artistName: string,
-  form: ModelApplicationForm,
+    postTitle: string,
+    artistName: string,
+    form: ModelApplicationForm,
 ): string => {
   const lines = [
     '[T:ROOT 타투 모델 지원]',
@@ -342,11 +353,11 @@ export const INITIAL_WORK_INQUIRY_FORM: WorkInquiryForm = {
 };
 
 export const isWorkInquiryValid = (f: WorkInquiryForm): boolean =>
-  !!(f.workKind && f.desiredDate.trim() && f.workVolume.trim());
+    !!(f.workKind && f.desiredDate.trim() && f.workVolume.trim());
 
 export const formatWorkInquiryMessage = (
-  expertName: string,
-  form: WorkInquiryForm,
+    expertName: string,
+    form: WorkInquiryForm,
 ): string => {
   const lines = [
     '[T:ROOT 작업 문의]',
@@ -464,9 +475,9 @@ export const applyExpertSort = (list: MediaExpert[], sort: ExpertSort): MediaExp
  * ───────────────────────────────────────────────────── */
 
 export const formatShareBookingMessage = (
-  shopTitle: string,
-  hostName: string,
-  form: ShareBookingForm,
+    shopTitle: string,
+    hostName: string,
+    form: ShareBookingForm,
 ): string => {
   const lines = [
     '[T:ROOT 부스 쉐어 문의]',

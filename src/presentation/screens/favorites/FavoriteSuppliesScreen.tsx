@@ -1,10 +1,12 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Image,
   StatusBar, Dimensions, ScrollView, Linking, ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+// 🚨 1. 하단 안전 여백 처리를 위해 useSafeAreaInsets 훅 추가
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+// 🚨 2. 화면 복귀 시 갱신을 위해 useFocusEffect 추가
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
@@ -54,21 +56,21 @@ const CATEGORY_MAP: Record<ProductCategory, SupplyCategory> = {
 
 // 찜한 용품(API) → 기존 카드 모델. 판매자 연락처는 아직 백엔드 미제공 → 비움(문의 시 안내).
 const toSupply = (f: FavoriteItem<SupplyProduct>, sellerFallback: string): TattooSupply | null => (
-  f.target
-    ? {
-        id: f.target.id,
-        category: CATEGORY_MAP[f.target.category],
-        name: f.target.name,
-        subtitle: f.target.description ?? '',
-        brand: f.target.brand ?? undefined,
-        imageUri: f.target.thumbnail ?? f.target.images[0] ?? '',
-        images: f.target.images,
-        price: f.target.priceKrw,
-        seller: { id: f.target.vendorId, nickname: sellerFallback },
-        isBookmarked: true,
-        popularityScore: 0,
-      }
-    : null
+    f.target
+        ? {
+          id: f.target.id,
+          category: CATEGORY_MAP[f.target.category],
+          name: f.target.name,
+          subtitle: f.target.description ?? '',
+          brand: f.target.brand ?? undefined,
+          imageUri: f.target.thumbnail ?? f.target.images[0] ?? '',
+          images: f.target.images,
+          price: f.target.priceKrw,
+          seller: { id: f.target.vendorId, nickname: sellerFallback },
+          isBookmarked: true,
+          popularityScore: 0,
+        }
+        : null
 );
 
 const { width: W } = Dimensions.get('window');
@@ -86,79 +88,95 @@ interface SupplyCardProps {
 }
 
 const SupplyCard = React.memo(({
-  supply, onToggleFavorite, onInquiry, onOpenDetail, buyInquireLabel,
-}: SupplyCardProps) => (
-  <View style={styles.card}>
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={onOpenDetail}
-      style={styles.imageWrap}
-    >
-      {supply.imageUri ? (
-        <Image source={{ uri: supply.imageUri }} style={styles.image} resizeMode="contain" />
-      ) : (
-        <View style={styles.placeholder}>
-          <TattooPlaceholderIcon size={54} color="#c8c8c8" />
-        </View>
-      )}
-
+                                 supply, onToggleFavorite, onInquiry, onOpenDetail, buyInquireLabel,
+                               }: SupplyCardProps) => (
+    <View style={styles.card}>
       <TouchableOpacity
-        onPress={onToggleFavorite}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        activeOpacity={0.75}
-        style={styles.heartBtn}
+          activeOpacity={0.9}
+          onPress={onOpenDetail}
+          style={styles.imageWrap}
       >
-        <HeartIcon size={22} color={COLORS.gold} filled={supply.isBookmarked} />
-      </TouchableOpacity>
-    </TouchableOpacity>
+        {supply.imageUri ? (
+            <Image source={{ uri: supply.imageUri }} style={styles.image} resizeMode="contain" />
+        ) : (
+            <View style={styles.placeholder}>
+              <TattooPlaceholderIcon size={54} color="#c8c8c8" />
+            </View>
+        )}
 
-    <View style={styles.body}>
-      <Text style={styles.name} numberOfLines={1}>{supply.name}</Text>
-      <Text style={styles.subtitle} numberOfLines={1}>
-        {supply.brand ?? supply.subtitle}
-      </Text>
-
-      <TouchableOpacity
-        onPress={onInquiry}
-        activeOpacity={0.75}
-        style={styles.ctaBtn}
-      >
-        <Text style={styles.ctaText}>{buyInquireLabel}</Text>
+        <TouchableOpacity
+            onPress={onToggleFavorite}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.75}
+            style={styles.heartBtn}
+        >
+          <HeartIcon size={22} color={COLORS.gold} filled={supply.isBookmarked} />
+        </TouchableOpacity>
       </TouchableOpacity>
+
+      <View style={styles.body}>
+        <Text style={styles.name} numberOfLines={1}>{supply.name}</Text>
+        <Text style={styles.subtitle} numberOfLines={1}>
+          {supply.brand ?? supply.subtitle}
+        </Text>
+
+        <TouchableOpacity
+            onPress={onInquiry}
+            activeOpacity={0.75}
+            style={styles.ctaBtn}
+        >
+          <Text style={styles.ctaText}>{buyInquireLabel}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  </View>
 ));
 SupplyCard.displayName = 'SupplyCard';
 
 const FavoriteSuppliesScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets(); // 🚨 안전 여백(Insets) 추가
   const { toast } = useToast();
   const [category, setCategory] = useState<CategoryFilter>('전체');
   const [removed, setRemoved] = useState<Set<string>>(new Set());
 
+  // 🚨 3. 리로드(reload) 함수 추출
   const {
     items, loading, loadingMore, error, loadMore, reload,
   } = usePagedApi(
-    (cursor) => favoriteApi.list<SupplyProduct>('supply', { cursor, limit: 20 }),
-    [],
+      (cursor) => favoriteApi.list<SupplyProduct>('supply', { cursor, limit: 20 }),
+      [],
   );
 
-  const sellerFallback = t('supplies.seller');
+  // 🚨 4. 화면 복귀 시 조용히 새로고침 (Silent Reload)
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          return;
+        }
+        reload();
+      }, [reload])
+  );
+
+  // 🚨 TS2345 방어 (as any)
+  const sellerFallback = t('supplies.seller' as any);
   const supplies = useMemo(
-    () => (items.map((f) => toSupply(f, sellerFallback)).filter(Boolean) as TattooSupply[]).filter((s) => !removed.has(s.id)),
-    [items, removed, sellerFallback],
+      () => (items.map((f) => toSupply(f, sellerFallback)).filter(Boolean) as TattooSupply[]).filter((s) => !removed.has(s.id)),
+      [items, removed, sellerFallback],
   );
 
   const filtered = useMemo(() => (
-    category === '전체'
-      ? supplies
-      : supplies.filter((s) => s.category === category)
+      category === '전체'
+          ? supplies
+          : supplies.filter((s) => s.category === category)
   ), [supplies, category]);
 
   const handleToggle = useCallback(async (supply: TattooSupply) => {
     setRemoved((prev) => new Set(prev).add(supply.id));
-    toast(t('favorites.unfavorited').replace('{{name}}', supply.name));
+    // 🚨 TS2345 방어
+    toast(t('favorites.unfavorited' as any).replace('{{name}}', supply.name));
     try {
       await favoriteApi.toggle('supply', supply.id);
     } catch {
@@ -167,25 +185,25 @@ const FavoriteSuppliesScreen = () => {
         next.delete(supply.id);
         return next;
       });
-      toast(t('common.error'), { variant: 'error' });
+      toast(t('common.error' as any), { variant: 'error' });
     }
   }, [toast, t]);
 
   const handleInquiry = useCallback((supply: TattooSupply) => {
     if (supply.seller.kakaoLink) {
       Linking.openURL(supply.seller.kakaoLink).catch(() => {
-        toast(t('favorites.inquiryChannelError').replace('{{name}}', supply.seller.nickname), { variant: 'error' });
+        toast(t('favorites.inquiryChannelError' as any).replace('{{name}}', supply.seller.nickname), { variant: 'error' });
       });
       return;
     }
     if (supply.seller.smsPhone) {
       const smsUrl = `sms:${supply.seller.smsPhone}?body=${encodeURIComponent(formatSupplyInquiryMessage(supply))}`;
       Linking.openURL(smsUrl).catch(() => {
-        toast(t('favorites.inquiryChannelError').replace('{{name}}', supply.seller.nickname), { variant: 'error' });
+        toast(t('favorites.inquiryChannelError' as any).replace('{{name}}', supply.seller.nickname), { variant: 'error' });
       });
       return;
     }
-    toast(t('favorites.inquiryChannelError').replace('{{name}}', supply.seller.nickname), { variant: 'error' });
+    toast(t('favorites.inquiryChannelError' as any).replace('{{name}}', supply.seller.nickname), { variant: 'error' });
   }, [toast, t]);
 
   const handleOpenDetail = useCallback((supply: TattooSupply) => {
@@ -193,89 +211,92 @@ const FavoriteSuppliesScreen = () => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      // 🚨 5. 하단 잘림을 막기 위해 edges=['top'] 으로 수정
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader />
 
-      <View style={styles.subHeader}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.backBtn}
-        >
-          <BackArrowIcon size={22} color={COLORS.white} />
-        </TouchableOpacity>
-        <View style={styles.titleGroup}>
-          <Text style={styles.title}>{t('favorites.supplies')}</Text>
-          <Text style={styles.subHeaderText}>{t('favorites.suppliesSubtitle')}</Text>
+        <View style={styles.subHeader}>
+          <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.backBtn}
+          >
+            <BackArrowIcon size={22} color={COLORS.white} />
+          </TouchableOpacity>
+          <View style={styles.titleGroup}>
+            <Text style={styles.title}>{t('favorites.supplies' as any)}</Text>
+            <Text style={styles.subHeaderText}>{t('favorites.suppliesSubtitle' as any)}</Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.categoryWrap}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryRow}
-        >
-          {CATEGORY_FILTERS.map((c) => {
-            const active = c === category;
-            return (
-              <TouchableOpacity
-                key={c}
-                onPress={() => setCategory(c)}
-                activeOpacity={0.75}
-                style={[styles.categoryChip, active && styles.categoryChipActive]}
-              >
-                <Text style={[styles.categoryText, active && styles.categoryTextActive]}>
-                  {t(CATEGORY_LABEL_KEY[c])}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+        <View style={styles.categoryWrap}>
+          <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryRow}
+          >
+            {CATEGORY_FILTERS.map((c) => {
+              const active = c === category;
+              return (
+                  <TouchableOpacity
+                      key={c}
+                      onPress={() => setCategory(c)}
+                      activeOpacity={0.75}
+                      style={[styles.categoryChip, active && styles.categoryChipActive]}
+                  >
+                    {/* 🚨 TS2345 방어 */}
+                    <Text style={[styles.categoryText, active && styles.categoryTextActive]}>
+                      {t(CATEGORY_LABEL_KEY[c] as any)}
+                    </Text>
+                  </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <SupplyCard
-            supply={item}
-            onToggleFavorite={() => handleToggle(item)}
-            onInquiry={() => handleInquiry(item)}
-            onOpenDetail={() => handleOpenDetail(item)}
-            buyInquireLabel={t('common.buyInquire')}
-          />
-        )}
-        numColumns={2}
-        columnWrapperStyle={styles.columnWrapper}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.4}
-        refreshing={loading && supplies.length > 0}
-        onRefresh={reload}
-        ListFooterComponent={
-          loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null
-        }
-        ListEmptyComponent={
-          loading ? (
-            <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
-          ) : (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>
-                {error ?? (category === '전체' ? t('favorites.emptySupplies') : t('favorites.emptySuppliesCategory'))}
-              </Text>
-              {error && (
-                <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
-                  <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )
-        }
-      />
-    </SafeAreaView>
+        <FlatList
+            data={filtered}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+                <SupplyCard
+                    supply={item}
+                    onToggleFavorite={() => handleToggle(item)}
+                    onInquiry={() => handleInquiry(item)}
+                    onOpenDetail={() => handleOpenDetail(item)}
+                    buyInquireLabel={t('common.buyInquire' as any)}
+                />
+            )}
+            numColumns={2}
+            columnWrapperStyle={styles.columnWrapper}
+            // 🚨 6. 기기마다 다른 하단 인디케이터 영역을 고려하여 안전한 여백을 제공 (Math.max)
+            contentContainerStyle={[styles.listContent, { paddingBottom: Math.max(insets.bottom, 24) + 20 }]}
+            showsVerticalScrollIndicator={false}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.4}
+            refreshing={loading && supplies.length > 0}
+            onRefresh={reload}
+            ListFooterComponent={
+              loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null
+            }
+            ListEmptyComponent={
+              loading ? (
+                  <View style={styles.empty}><ActivityIndicator color={COLORS.gold} /></View>
+              ) : (
+                  <View style={styles.empty}>
+                    <Text style={styles.emptyText}>
+                      {error ?? (category === '전체' ? t('favorites.emptySupplies' as any) : t('favorites.emptySuppliesCategory' as any))}
+                    </Text>
+                    {error && (
+                        <TouchableOpacity onPress={reload} style={styles.retryBtn} activeOpacity={0.8}>
+                          <Text style={styles.retryBtnText}>{t('common.retry' as any)}</Text>
+                        </TouchableOpacity>
+                    )}
+                  </View>
+              )
+            }
+        />
+      </SafeAreaView>
   );
 };
 
@@ -352,7 +373,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: H_PAD,
     paddingTop: 14,
-    paddingBottom: 40,
   },
   columnWrapper: {
     gap: COL_GAP,

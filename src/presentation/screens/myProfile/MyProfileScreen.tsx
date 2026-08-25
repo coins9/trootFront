@@ -61,6 +61,10 @@ const MyProfileScreen = () => {
   const [avatarUri, setAvatarUri] = useState<string | null>(session?.user.profileImage ?? null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
+  useEffect(() => {
+    setAvatarUri(session?.user.profileImage ?? null);
+  }, [session?.user.profileImage]);
+
   // Restore persisted mode on mount
   useEffect(() => {
     AsyncStorage.getItem(MODE_KEY)
@@ -152,9 +156,9 @@ const MyProfileScreen = () => {
     { Icon: FolderIcon, label: t('profile.favSupplies'), onPress: goTo('FavoriteSupplies') },
   ], [t, goTo]);
 
-  const userPostItems: MenuItem[] = [
+  const userPostItems: MenuItem[] = useMemo(() => [
     { Icon: ListIcon, label: t('profile.tattooReview'), onPress: goTo('TattooReview') },
-  ];
+  ], [t, goTo]);
 
   const openLink = useCallback((url?: string | null) => {
     if (!url) {
@@ -164,7 +168,7 @@ const MyProfileScreen = () => {
     Linking.openURL(url).catch(() => toast(t('common.linkError'), { variant: 'error' }));
   }, [t, toast]);
 
-  const shopBoothItems: MenuItem[] = [
+  const shopBoothItems: MenuItem[] = useMemo(() => [
     {
       Icon: HandshakeIcon,
       label: t('profile.myPosts'),
@@ -175,8 +179,9 @@ const MyProfileScreen = () => {
       label: t('profile.applicationStatus'),
       onPress: () => navigation.navigate('ShopApplications', { category: '부스 쉐어' }),
     },
-  ];
-  const shopModelItems: MenuItem[] = [
+  ], [t, navigation]);
+
+  const shopModelItems: MenuItem[] = useMemo(() => [
     {
       Icon: UserOutlineIcon,
       label: t('profile.myPosts'),
@@ -187,8 +192,9 @@ const MyProfileScreen = () => {
       label: t('profile.applicationStatus'),
       onPress: () => navigation.navigate('ShopApplications', { category: '타투 모델 구인 (비기너)' }),
     },
-  ];
-  const shopMediaItems: MenuItem[] = [
+  ], [t, navigation]);
+
+  const shopMediaItems: MenuItem[] = useMemo(() => [
     {
       Icon: PaletteIcon,
       label: t('profile.myPosts'),
@@ -199,23 +205,25 @@ const MyProfileScreen = () => {
       label: t('profile.applicationStatus'),
       onPress: () => navigation.navigate('ShopApplications', { category: '사진/영상 편집자' }),
     },
-  ];
-  const shopAdItems: MenuItem[] = [
+  ], [t, navigation]);
+
+  const shopAdItems: MenuItem[] = useMemo(() => [
     {
       Icon: BarChartIcon,
       label: t('profile.adInquiry'),
       onPress: () => openLink(siteSettings.adInquiryUrl),
     },
-  ];
-  const userSettingItems: MenuItem[] = [
+  ], [t, openLink, siteSettings.adInquiryUrl]);
+
+  const userSettingItems: MenuItem[] = useMemo(() => [
     { Icon: UserOutlineIcon, label: t('settings.accountInfo'), onPress: goTo('AccountInfo') },
     { Icon: BellIcon, label: t('settings.notification'), onPress: goTo('NotificationSettings') },
     { Icon: LockIcon, label: t('settings.privacySecurity'), onPress: goTo('PrivacySecurity') },
     { Icon: GlobeIcon, label: t('settings.language'), onPress: goTo('Language') },
     { Icon: ChatBubbleIcon, label: t('profile.support'), onPress: goTo('Support') },
-  ];
+  ], [t, goTo]);
 
-  const artistMenuItems: (MenuItem & { description: string })[] = [
+  const artistMenuItems: (MenuItem & { description: string })[] = useMemo(() => [
     {
       Icon: EditPenIcon,
       label: t('profile.portfolioReview'),
@@ -240,9 +248,9 @@ const MyProfileScreen = () => {
       description: t('profile.artistDescAdStats'),
       onPress: goTo('ArtistAdStats'),
     },
-  ];
+  ], [t, goTo]);
 
-  const vendorMenuItems: (MenuItem & { description: string })[] = [
+  const vendorMenuItems: (MenuItem & { description: string })[] = useMemo(() => [
     {
       Icon: FolderIcon,
       label: t('profile.addProduct'),
@@ -267,7 +275,7 @@ const MyProfileScreen = () => {
       description: t('profile.vendorAdInquiryDesc'),
       onPress: () => openLink(siteSettings.adInquiryUrl),
     },
-  ];
+  ], [t, goTo, openLink, siteSettings.adInquiryUrl]);
 
   /* ── Render helpers ── */
   const renderCompactMenuItem = (item: MenuItem, isLast: boolean) => (
@@ -323,9 +331,10 @@ const MyProfileScreen = () => {
             disabled={avatarUploading}
           >
             {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
+                // 👇 2. resizeMode="cover" 를 추가해 주세요.
+                <Image source={{ uri: avatarUri }} style={styles.avatarImg} resizeMode="cover" />
             ) : (
-              <PersonSilhouette size={72} color="#3a3a3a" />
+                <PersonSilhouette size={72} color="#3a3a3a" />
             )}
             {avatarUploading && (
               <View style={styles.avatarOverlay}>

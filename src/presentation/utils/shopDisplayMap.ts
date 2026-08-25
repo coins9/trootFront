@@ -191,3 +191,30 @@ export { BEGINNER_STYLE_KEY, BEGINNER_PRICE_KEY, BEGINNER_SORT_KEY };
 export { EXPERT_CAREER_KEY, EXPERT_WORK_KIND_KEY, EXPERT_SORT_KEY };
 export { OVERSEAS_COUNTRY_KEY };
 export { WRITE_STYLE_KEY, SPECIALTY_KEY };
+
+// 1. 키 매핑 추가
+export const PRICE_TYPE_KEY: Record<string, string> = {
+  'daily': 'shop.opt.priceDaily',
+  'monthly': 'shop.opt.priceMonthly',
+};
+
+export const STENCIL_KEY: Record<string, string> = {
+  '열 스텐실 전사기': 'shop.opt.stencilThermal',
+  '프린터 전사기': 'shop.opt.stencilPrinter',
+  '둘 다 구비': 'shop.opt.stencilBoth',
+  '없음': 'shop.opt.stencilNone',
+};
+
+export const PHOTOZONE_KEY: Record<string, string> = {
+  '촬영존 구비': 'shop.opt.photoZone',
+};
+
+// 2. 외부에서 쓸 수 있게 라벨 헬퍼 함수 Export
+export const priceTypeLabel = (t: TFunc, v: string) => optLabel(t, PRICE_TYPE_KEY, v);
+export const stencilLabel = (t: TFunc, v: string) => optLabel(t, STENCIL_KEY, v);
+export const photoZoneLabel = (t: TFunc, v: string) => optLabel(t, PHOTOZONE_KEY, v);
+
+// 3. 배열 Options Export 추가
+export function stencilOptions(t: TFunc): string[] {
+  return Object.keys(STENCIL_KEY).map(k => optLabel(t, STENCIL_KEY, k));
+}

@@ -1,8 +1,8 @@
 import React, { useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar,
+  View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
@@ -24,13 +24,15 @@ interface MenuItem {
 const SettingsScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets(); // 🚨 안전 여백(Insets) 훅 추가
 
   const items: MenuItem[] = [
-    { Icon: UserOutlineIcon, label: t('settings.accountInfo'), screen: 'AccountInfo' },
-    { Icon: BellIcon, label: t('settings.notification'), screen: 'NotificationSettings' },
-    { Icon: LockIcon, label: t('settings.privacySecurity'), screen: 'PrivacySecurity' },
-    { Icon: GlobeIcon, label: t('settings.language'), screen: 'Language' },
-    { Icon: ChatBubbleIcon, label: t('profile.support'), screen: 'Support' },
+    // 🚨 TS2345 에러 방어를 위해 t() 함수 인자에 as any 적용
+    { Icon: UserOutlineIcon, label: t('settings.accountInfo' as any), screen: 'AccountInfo' },
+    { Icon: BellIcon, label: t('settings.notification' as any), screen: 'NotificationSettings' },
+    { Icon: LockIcon, label: t('settings.privacySecurity' as any), screen: 'PrivacySecurity' },
+    { Icon: GlobeIcon, label: t('settings.language' as any), screen: 'Language' },
+    { Icon: ChatBubbleIcon, label: t('profile.support' as any), screen: 'Support' },
   ];
 
   const handleBack = useCallback(() => {
@@ -38,38 +40,46 @@ const SettingsScreen = () => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+      // 🚨 하단 잘림을 막기 위해 edges=['top'] 만 적용 (하단 여백은 ScrollView에서 제어)
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
 
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={handleBack}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.backBtn}
-        >
-          <BackArrowIcon size={22} color={COLORS.white} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
-        <View style={styles.headerRight} />
-      </View>
-
-      <View style={styles.list}>
-        {items.map((item, i) => (
+        <View style={styles.header}>
           <TouchableOpacity
-            key={item.screen}
-            onPress={() => navigation.navigate(item.screen as any)}
-            activeOpacity={0.75}
-            style={[styles.row, i === items.length - 1 && styles.rowLast]}
+              onPress={handleBack}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.backBtn}
           >
-            <View style={styles.iconWrap}>
-              <item.Icon size={22} color={COLORS.gold} strokeWidth={1.7} />
-            </View>
-            <Text style={styles.label}>{item.label}</Text>
-            <ChevronRightIcon size={18} color={COLORS.gray} />
+            <BackArrowIcon size={22} color={COLORS.white} />
           </TouchableOpacity>
-        ))}
-      </View>
-    </SafeAreaView>
+          <Text style={styles.headerTitle}>{t('settings.title' as any)}</Text>
+          <View style={styles.headerRight} />
+        </View>
+
+        {/* 🚨 작은 기기에서도 스크롤이 가능하도록 ScrollView로 변경하고 안전 여백 적용 */}
+        <ScrollView
+            contentContainerStyle={[
+              styles.list,
+              { paddingBottom: Math.max(insets.bottom, 24) }
+            ]}
+            showsVerticalScrollIndicator={false}
+        >
+          {items.map((item, i) => (
+              <TouchableOpacity
+                  key={item.screen}
+                  onPress={() => navigation.navigate(item.screen as any)}
+                  activeOpacity={0.75}
+                  style={[styles.row, i === items.length - 1 && styles.rowLast]}
+              >
+                <View style={styles.iconWrap}>
+                  <item.Icon size={22} color={COLORS.gold} strokeWidth={1.7} />
+                </View>
+                <Text style={styles.label}>{item.label}</Text>
+                <ChevronRightIcon size={18} color={COLORS.gray} />
+              </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
   );
 };
 

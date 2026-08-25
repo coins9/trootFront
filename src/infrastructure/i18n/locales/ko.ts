@@ -159,7 +159,7 @@ export const ko = {
   },
 
   tabs: {
-    home: '일반고객',
+    home: 'HOME',
     rootsPick: "Root's Pick",
     artist: '타투이스트',
     shopMatching: '샵&매칭',

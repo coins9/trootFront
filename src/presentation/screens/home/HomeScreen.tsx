@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, StatusBar, ActivityIndicator, TouchableOpacity, ScrollView,
+  View, Text, FlatList, StyleSheet, StatusBar, ActivityIndicator, TouchableOpacity, ScrollView, ViewToken,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import { useTranslation } from '../../store/languageStore';
@@ -48,43 +48,56 @@ const HomeScreen = () => {
   const {
     items: artworks, loading, loadingMore, error, loadMore, reload,
   } = usePagedApi(
-    (cursor) => artistApi.feed({
-      cursor,
-      limit: PAGE_SIZE,
-      keyword: debouncedKeyword || undefined,
-      countryCode: regionMode === 'overseas' ? (overseasCountryCode ?? undefined) : undefined,
-      regionSido: regionMode === 'domestic' ? (region.city ?? undefined) : undefined,
-      regionSigungu: regionMode === 'domestic' ? (region.district ?? undefined) : undefined,
-      genre: genres.length > 0 ? genres.join(',') : undefined,
-      bodyPart: bodyParts.length > 0 ? bodyParts.join(',') : undefined,
-      priceMin: budgetMin > 0 ? budgetMin : undefined,
-    }),
-    [debouncedKeyword, regionMode, overseasCountryCode, region.city, region.district,
-      genres, bodyParts, budgetMin, budgetMax],
+      (cursor) => artistApi.feed({
+        cursor,
+        limit: PAGE_SIZE,
+        keyword: debouncedKeyword || undefined,
+        countryCode: regionMode === 'overseas' ? (overseasCountryCode ?? undefined) : undefined,
+        regionSido: regionMode === 'domestic' ? (region.city ?? undefined) : undefined,
+        regionSigungu: regionMode === 'domestic' ? (region.district ?? undefined) : undefined,
+        genre: genres.length > 0 ? genres.join(',') : undefined,
+        bodyPart: bodyParts.length > 0 ? bodyParts.join(',') : undefined,
+        priceMin: budgetMin > 0 ? budgetMin : undefined,
+      }),
+      [debouncedKeyword, regionMode, overseasCountryCode, region.city, region.district,
+        genres, bodyParts, budgetMin, budgetMax],
   );
 
-  // 결제된 카드광고/슈퍼UP 캠페인 — 대상 작품 정보 포함
-  const { data: adArtworks } = useApi(
-    () => adApi.servingArtworks(
-      regionMode === 'domestic' ? (region.city ?? undefined) : undefined,
-      genres[0],
-    ),
-    [regionMode, region.city, genres],
+  // 🚨 1. 화면(탭)에 다시 돌아올 때마다 피드와 광고 데이터를 최신으로 갱신
+  const hasFocused = useRef(false);
+  const { data: adArtworks, reload: reloadAds } = useApi(
+      () => adApi.servingArtworks(
+          regionMode === 'domestic' ? (region.city ?? undefined) : undefined,
+          genres[0],
+      ),
+      [regionMode, region.city, genres],
   );
 
-  // 카드광고 = 피드 상단 고정 슬롯. 슈퍼UP은 랭킹 부스트라 별도 슬롯 없이 클릭만 추적한다.
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          return;
+        }
+        reload();
+        reloadAds();
+      }, [reload, reloadAds])
+  );
+
   const cardAds = useMemo(
-    () => (adArtworks ?? []).filter((a) => a.type === 'cardad'),
-    [adArtworks],
+      () => (adArtworks ?? []).filter((a) => a.type === 'cardad'),
+      [adArtworks],
   );
+
   const campaignByArtworkId = useMemo(() => {
     const m = new Map<string, string>();
     (adArtworks ?? []).forEach((a) => m.set(a.artwork.id, a.campaignId));
     return m;
   }, [adArtworks]);
 
-  // 노출수는 세션당 캠페인 1회만 기록 (같은 화면에서 재조회돼도 중복 카운트하지 않는다)
+  // 🚨 2. 광고 노출(Impression) 추적: 상단 고정 광고 및 피드 내 광고 모두 지원
   const trackedImpressions = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     cardAds.forEach(({ campaignId }) => {
       if (!trackedImpressions.current.has(campaignId)) {
@@ -93,6 +106,34 @@ const HomeScreen = () => {
       }
     });
   }, [cardAds]);
+
+  // 🚨 3. FlatList 스크롤 시 피드 내에 보이는 광고들의 노출(impression) 통계를 서버로 쏴줌
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+    minimumViewTime: 500,
+  }).current;
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    viewableItems.forEach((viewable) => {
+      const item = viewable.item as FeedRow;
+      if (viewable.isViewable) {
+        // 왼쪽 카드 광고 체크
+        const leftCampaignId = campaignByArtworkId.get(item.left.id);
+        if (leftCampaignId && !trackedImpressions.current.has(leftCampaignId)) {
+          trackedImpressions.current.add(leftCampaignId);
+          adApi.impression(leftCampaignId).catch(() => {});
+        }
+        // 오른쪽 카드 광고 체크
+        if (item.right) {
+          const rightCampaignId = campaignByArtworkId.get(item.right.id);
+          if (rightCampaignId && !trackedImpressions.current.has(rightCampaignId)) {
+            trackedImpressions.current.add(rightCampaignId);
+            adApi.impression(rightCampaignId).catch(() => {});
+          }
+        }
+      }
+    });
+  }).current;
 
   const handleSearchPress = useCallback(() => {
     setSearchVisible(true);
@@ -103,15 +144,12 @@ const HomeScreen = () => {
     setKeyword('');
   }, []);
 
-  // 찜 여부는 목록 렌더링 후 한 번에 조회해 카드마다 요청하지 않는다
   const syncFavorites = useCallback(async (ids: string[]) => {
     if (ids.length === 0) return;
     try {
       const result = await favoriteApi.check('artwork', ids);
       setFavorites((prev) => ({ ...prev, ...result }));
-    } catch {
-      // 찜 표시는 부가 정보이므로 실패해도 피드는 그대로 노출한다
-    }
+    } catch {}
   }, []);
 
   const feed = useMemo<FeedRow[]>(() => {
@@ -129,18 +167,20 @@ const HomeScreen = () => {
   }, []);
 
   const handleArtistPress = useCallback(
-    (artist: Artist) => navigation.navigate('ArtistProfile', { artist }),
-    [navigation],
+      (artist: Artist) => navigation.navigate('ArtistProfile', { artist }),
+      [navigation],
   );
 
+  // 🚨 4. 작품 클릭 시 캠페인(광고) 아이디가 있다면 서버로 클릭(click) 통계 전송
   const handleTattooPress = useCallback((tattoo: Tattoo) => {
     const campaignId = campaignByArtworkId.get(tattoo.id);
-    if (campaignId) adApi.click(campaignId).catch(() => {});
+    if (campaignId) {
+      adApi.click(campaignId).catch(() => {});
+    }
     navigation.navigate('TattooDetail', { tattoo });
   }, [navigation, campaignByArtworkId]);
 
   const handleBookmark = useCallback(async (tattoo: Tattoo) => {
-    // 응답을 기다리지 않고 먼저 반영해 체감 반응 속도를 높인다
     setFavorites((prev) => ({ ...prev, [tattoo.id]: !prev[tattoo.id] }));
     try {
       const { favorited } = await favoriteApi.toggle('artwork', tattoo.id);
@@ -151,134 +191,137 @@ const HomeScreen = () => {
   }, []);
 
   const renderItem = useCallback(({ item }: { item: FeedRow }) => (
-    <View style={styles.rowWrap}>
-      <View style={[styles.cell, { marginRight: COLUMN_GAP / 2 }]}>
-        <TattooCard
-          tattoo={item.left}
-          onPress={() => handleTattooPress(item.left)}
-          onArtistPress={() => handleArtistPress(item.left.artist)}
-          onBookmark={() => handleBookmark(item.left)}
-        />
-      </View>
-      <View style={[styles.cell, { marginLeft: COLUMN_GAP / 2 }]}>
-        {item.right ? (
+      <View style={styles.rowWrap}>
+        <View style={[styles.cell, { marginRight: COLUMN_GAP / 2 }]}>
           <TattooCard
-            tattoo={item.right}
-            onPress={() => handleTattooPress(item.right!)}
-            onArtistPress={() => handleArtistPress(item.right!.artist)}
-            onBookmark={() => handleBookmark(item.right!)}
+              tattoo={item.left}
+              onPress={() => handleTattooPress(item.left)}
+              onArtistPress={() => handleArtistPress(item.left.artist)}
+              onBookmark={() => handleBookmark(item.left)}
           />
-        ) : (
-          <View />
-        )}
+        </View>
+        <View style={[styles.cell, { marginLeft: COLUMN_GAP / 2 }]}>
+          {item.right ? (
+              <TattooCard
+                  tattoo={item.right}
+                  onPress={() => handleTattooPress(item.right!)}
+                  onArtistPress={() => handleArtistPress(item.right!.artist)}
+                  onBookmark={() => handleBookmark(item.right!)}
+              />
+          ) : (
+              <View />
+          )}
+        </View>
       </View>
-    </View>
   ), [handleTattooPress, handleArtistPress, handleBookmark]);
 
   const sponsoredTattoos = useMemo(
-    () => cardAds.map((a) => toTattoo(a.artwork, favorites[a.artwork.id] ?? false)),
-    [cardAds, favorites],
+      () => cardAds.map((a) => toTattoo(a.artwork, favorites[a.artwork.id] ?? false)),
+      [cardAds, favorites],
   );
 
   const listHeader = useMemo(() => (
-    <View>
-      <HomeArtistHeader onArtistPress={handleArtistPress} onBannerPress={() => {}} />
-      <FilterBar onFilterPress={openFilter} />
-      <ActiveFilterRow onAddPress={() => openFilter('full')} />
-      {sponsoredTattoos.length > 0 && (
-        <View style={styles.sponsoredSection}>
-          <Text style={styles.sponsoredTitle}>{t('home.sponsored')}</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.sponsoredRow}
-          >
-            {sponsoredTattoos.map((tattoo) => (
-              <TattooCard
-                key={tattoo.id}
-                tattoo={tattoo}
-                onPress={() => handleTattooPress(tattoo)}
-                onArtistPress={() => handleArtistPress(tattoo.artist)}
-                onBookmark={() => handleBookmark(tattoo)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      )}
-    </View>
+      <View>
+        <HomeArtistHeader onArtistPress={handleArtistPress} onBannerPress={() => {}} />
+        <FilterBar onFilterPress={openFilter} />
+        <ActiveFilterRow onAddPress={() => openFilter('full')} />
+        {sponsoredTattoos.length > 0 && (
+            <View style={styles.sponsoredSection}>
+              <Text style={styles.sponsoredTitle}>{t('home.sponsored')}</Text>
+              <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.sponsoredRow}
+              >
+                {sponsoredTattoos.map((tattoo) => (
+                    <TattooCard
+                        key={tattoo.id}
+                        tattoo={tattoo}
+                        onPress={() => handleTattooPress(tattoo)}
+                        onArtistPress={() => handleArtistPress(tattoo.artist)}
+                        onBookmark={() => handleBookmark(tattoo)}
+                    />
+                ))}
+              </ScrollView>
+            </View>
+        )}
+      </View>
   ), [handleArtistPress, openFilter, sponsoredTattoos, handleTattooPress, handleBookmark, t]);
 
   const listEmpty = useMemo(() => {
     if (loading) {
       return (
-        <View style={styles.state}>
-          <ActivityIndicator color={COLORS.gold} />
-        </View>
+          <View style={styles.state}>
+            <ActivityIndicator color={COLORS.gold} />
+          </View>
       );
     }
     return (
-      <View style={styles.state}>
-        <Text style={styles.stateText}>{error ?? t('home.empty')}</Text>
-        {error && (
-          <TouchableOpacity onPress={reload} style={styles.retry} activeOpacity={0.8}>
-            <Text style={styles.retryText}>{t('common.retry')}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+        <View style={styles.state}>
+          <Text style={styles.stateText}>{error ?? t('home.empty')}</Text>
+          {error && (
+              <TouchableOpacity onPress={reload} style={styles.retry} activeOpacity={0.8}>
+                <Text style={styles.retryText}>{t('common.retry')}</Text>
+              </TouchableOpacity>
+          )}
+        </View>
     );
   }, [loading, error, reload, t]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader showSearch onSearchPress={handleSearchPress} />
-      {!!settings.noticeBanner && !noticeDismissed && (
-        <View style={styles.noticeBanner}>
-          <Text style={styles.noticeText} numberOfLines={2}>{settings.noticeBanner}</Text>
-          <TouchableOpacity
-            onPress={() => setNoticeDismissed(true)}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={styles.noticeDismiss}
-          >
-            <Text style={styles.noticeDismissText}>×</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {searchVisible && (
-        <SearchBar
-          value={keyword}
-          onChangeText={setKeyword}
-          onCancel={handleSearchCancel}
-          placeholder={t('home.searchPlaceholder')}
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader showSearch onSearchPress={handleSearchPress} />
+        {!!settings.noticeBanner && !noticeDismissed && (
+            <View style={styles.noticeBanner}>
+              <Text style={styles.noticeText} numberOfLines={2}>{settings.noticeBanner}</Text>
+              <TouchableOpacity
+                  onPress={() => setNoticeDismissed(true)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.noticeDismiss}
+              >
+                <Text style={styles.noticeDismissText}>×</Text>
+              </TouchableOpacity>
+            </View>
+        )}
+        {searchVisible && (
+            <SearchBar
+                value={keyword}
+                onChangeText={setKeyword}
+                onCancel={handleSearchCancel}
+                placeholder={t('home.searchPlaceholder')}
+            />
+        )}
+        <FlatList
+            data={feed}
+            keyExtractor={(item) => item.key}
+            renderItem={renderItem}
+            ListHeaderComponent={listHeader}
+            ListEmptyComponent={listEmpty}
+            ListFooterComponent={
+              loadingMore ? <ActivityIndicator color={COLORS.gold} style={styles.footer} /> : null
+            }
+            contentContainerStyle={styles.feedContent}
+            showsVerticalScrollIndicator={false}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.4}
+            onMomentumScrollEnd={() => syncFavorites(artworks.map((a) => a.id))}
+            removeClippedSubviews
+            windowSize={5}
+            refreshing={loading && feed.length > 0}
+            onRefresh={() => { reload(); reloadAds(); }}
+            // 🚨 5. FlatList에 노출 감지 속성 연결 (스크롤 시 광고 노출 통계가 위로 전송됨)
+            viewabilityConfig={viewabilityConfig}
+            onViewableItemsChanged={onViewableItemsChanged}
         />
-      )}
-      <FlatList
-        data={feed}
-        keyExtractor={(item) => item.key}
-        renderItem={renderItem}
-        ListHeaderComponent={listHeader}
-        ListEmptyComponent={listEmpty}
-        ListFooterComponent={
-          loadingMore ? <ActivityIndicator color={COLORS.gold} style={styles.footer} /> : null
-        }
-        contentContainerStyle={styles.feedContent}
-        showsVerticalScrollIndicator={false}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.4}
-        onMomentumScrollEnd={() => syncFavorites(artworks.map((a) => a.id))}
-        removeClippedSubviews
-        windowSize={5}
-        refreshing={loading && feed.length > 0}
-        onRefresh={reload}
-      />
 
-      <FilterBottomSheet
-        visible={bottomSheetType !== null}
-        filterType={bottomSheetType}
-        onClose={() => setBottomSheetType(null)}
-      />
-      <FullFilterModal visible={fullFilterVisible} onClose={() => setFullFilterVisible(false)} />
-    </SafeAreaView>
+        <FilterBottomSheet
+            visible={bottomSheetType !== null}
+            filterType={bottomSheetType}
+            onClose={() => setBottomSheetType(null)}
+        />
+        <FullFilterModal visible={fullFilterVisible} onClose={() => setFullFilterVisible(false)} />
+      </SafeAreaView>
   );
 };
 

@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+// 🚨 1. 화면 포커스 감지를 위한 useFocusEffect 추가
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import { BackArrowIcon, CommentIcon } from '../../components/icons';
@@ -47,19 +48,41 @@ const ShopApplicationsScreen = () => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [loadingApplicants, setLoadingApplicants] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    const apiCategories = CATEGORY_TO_API[category];
-    shopApi.mine().then((page) => {
+  // 🚨 2. 데이터 불러오기 함수 분리 (isSilent 옵션으로 뒤로가기 시 깜빡임 방지)
+  const load = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    try {
+      const apiCategories = CATEGORY_TO_API[category];
+      const page = await shopApi.mine();
       const filtered = page.items.filter((p) =>
-        apiCategories.includes(p.category as ShopCategory),
+          apiCategories.includes(p.category as ShopCategory),
       );
       setPosts(filtered);
-    }).catch(() => {}).finally(() => setLoading(false));
+    } catch {
+      if (!isSilent) setPosts([]);
+    } finally {
+      if (!isSilent) setLoading(false);
+    }
   }, [category]);
+
+  // 🚨 3. 화면에 진입/복귀할 때마다 최신 데이터로 갱신
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          void load(false); // 처음 렌더링 시에는 로딩 스피너 표시
+        } else {
+          void load(true); // 돌아왔을 때는 데이터만 갱신 (스피너 없음)
+        }
+      }, [load])
+  );
 
   const handleToggle = useCallback(async (postId: string) => {
     const next = !expanded[postId];
     setExpanded((prev) => ({ ...prev, [postId]: next }));
+
+    // 열릴 때 캐시된 지원자 정보가 없다면 서버에서 불러오기
     if (next && !applicants[postId]) {
       setLoadingApplicants((prev) => ({ ...prev, [postId]: true }));
       try {
@@ -74,15 +97,15 @@ const ShopApplicationsScreen = () => {
   }, [expanded, applicants]);
 
   const renderApplicant = useCallback(({ item }: { item: Applicant }) => (
-    <View style={s.applicantRow}>
-      <Text style={s.applicantName}>{item.name ?? item.id}</Text>
-      {!!item.message && (
-        <Text style={s.applicantMsg} numberOfLines={2}>{item.message}</Text>
-      )}
-      {!!item.appliedAt && (
-        <Text style={s.applicantDate}>{String(item.appliedAt).slice(0, 10)}</Text>
-      )}
-    </View>
+      <View style={s.applicantRow}>
+        <Text style={s.applicantName}>{item.name ?? item.id}</Text>
+        {!!item.message && (
+            <Text style={s.applicantMsg} numberOfLines={2}>{item.message}</Text>
+        )}
+        {!!item.appliedAt && (
+            <Text style={s.applicantDate}>{String(item.appliedAt).slice(0, 10)}</Text>
+        )}
+      </View>
   ), []);
 
   const renderPost = useCallback(({ item }: { item: ShopPost }) => {
@@ -91,73 +114,76 @@ const ShopApplicationsScreen = () => {
     const isLoading = loadingApplicants[item.id];
 
     return (
-      <View style={s.postCard}>
-        <TouchableOpacity
-          onPress={() => handleToggle(item.id)}
-          activeOpacity={0.8}
-          style={s.postHeader}
-        >
-          <View style={s.postInfo}>
-            <Text style={s.postTitle} numberOfLines={2}>{item.title}</Text>
-            <Text style={s.postDate}>{item.createdAt?.slice(0, 10) ?? ''}</Text>
-          </View>
-          <View style={s.postMeta}>
-            <CommentIcon size={14} color={COLORS.gold} />
-            <Text style={s.postCount}>{item.applicationCount}</Text>
-          </View>
-        </TouchableOpacity>
+        <View style={s.postCard}>
+          <TouchableOpacity
+              onPress={() => handleToggle(item.id)}
+              activeOpacity={0.8}
+              style={s.postHeader}
+          >
+            <View style={s.postInfo}>
+              <Text style={s.postTitle} numberOfLines={2}>{item.title}</Text>
+              <Text style={s.postDate}>{item.createdAt?.slice(0, 10) ?? ''}</Text>
+            </View>
+            <View style={s.postMeta}>
+              <CommentIcon size={14} color={COLORS.gold} />
+              <Text style={s.postCount}>{item.applicationCount}</Text>
+            </View>
+          </TouchableOpacity>
 
-        {isOpen && (
-          <View style={s.applicantsWrap}>
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.gold} style={{ padding: 16 }} />
-            ) : list.length === 0 ? (
-              <Text style={s.emptyText}>{t('shop.appStatus.noApplicants')}</Text>
-            ) : (
-              <FlatList
-                data={list}
-                keyExtractor={(a) => a.id}
-                renderItem={renderApplicant}
-                scrollEnabled={false}
-              />
-            )}
-          </View>
-        )}
-      </View>
+          {isOpen && (
+              <View style={s.applicantsWrap}>
+                {isLoading ? (
+                    <ActivityIndicator size="small" color={COLORS.gold} style={{ padding: 16 }} />
+                ) : list.length === 0 ? (
+                    <Text style={s.emptyText}>{t('shop.appStatus.noApplicants')}</Text>
+                ) : (
+                    <FlatList
+                        data={list}
+                        keyExtractor={(a) => a.id}
+                        renderItem={renderApplicant}
+                        scrollEnabled={false} // 중첩 스크롤 에러 방지
+                    />
+                )}
+              </View>
+          )}
+        </View>
     );
-  }, [expanded, applicants, loadingApplicants, handleToggle, renderApplicant]);
+  }, [expanded, applicants, loadingApplicants, handleToggle, renderApplicant, t]);
 
   return (
-    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+      <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
 
-      <View style={s.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>{t('shop.appStatus.statusTitle', { label: t(CATEGORY_LABEL_KEY[category] as any) })}</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      {loading ? (
-        <ActivityIndicator size="large" color={COLORS.gold} style={{ flex: 1 }} />
-      ) : posts.length === 0 ? (
-        <View style={s.emptyWrap}>
-          <Text style={s.emptyText}>{t('shop.appStatus.emptyPosts')}</Text>
+        <View style={s.header}>
+          <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
+          </TouchableOpacity>
+          {/* TS2345 방어를 위한 as any 처리 */}
+          <Text style={s.headerTitle}>
+            {t('shop.appStatus.statusTitle', { label: t(CATEGORY_LABEL_KEY[category] as any) })}
+          </Text>
+          <View style={{ width: 24 }} />
         </View>
-      ) : (
-        <FlatList
-          data={posts}
-          keyExtractor={(p) => p.id}
-          renderItem={renderPost}
-          contentContainerStyle={s.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-    </SafeAreaView>
+
+        {loading ? (
+            <ActivityIndicator size="large" color={COLORS.gold} style={{ flex: 1 }} />
+        ) : posts.length === 0 ? (
+            <View style={s.emptyWrap}>
+              <Text style={s.emptyText}>{t('shop.appStatus.emptyPosts')}</Text>
+            </View>
+        ) : (
+            <FlatList
+                data={posts}
+                keyExtractor={(p) => p.id}
+                renderItem={renderPost}
+                contentContainerStyle={s.list}
+                showsVerticalScrollIndicator={false}
+            />
+        )}
+      </SafeAreaView>
   );
 };
 

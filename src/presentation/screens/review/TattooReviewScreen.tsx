@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, ScrollView, FlatList, StyleSheet, TouchableOpacity,
   Image, StatusBar, Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+// 🚨 1. 화면 복귀 시 갱신을 위한 useFocusEffect 추가
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
@@ -83,16 +84,16 @@ const GALLERY_H = Math.round(GALLERY_W * 0.72);
 
 /* ------------- Rating stars ------------- */
 const RatingStars = React.memo(({ value }: { value: number }) => (
-  <View style={styles.starsRow}>
-    {[1, 2, 3, 4, 5].map((n) => (
-      <StarIcon
-        key={n}
-        size={16}
-        color={COLORS.gold}
-        filled={n <= value}
-      />
-    ))}
-  </View>
+    <View style={styles.starsRow}>
+      {[1, 2, 3, 4, 5].map((n) => (
+          <StarIcon
+              key={n}
+              size={16}
+              color={COLORS.gold}
+              filled={n <= value}
+          />
+      ))}
+    </View>
 ));
 RatingStars.displayName = 'RatingStars';
 
@@ -104,58 +105,58 @@ interface WritableCardProps {
 const WritableCard = React.memo(({ review, onWrite }: WritableCardProps) => {
   const { t } = useTranslation();
   return (
-  <View style={styles.card}>
-    <View style={styles.writableHeader}>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{t('review.badge')}</Text>
-      </View>
-      <Text style={styles.dLeft}>D-{review.daysLeft}</Text>
-    </View>
-
-    <View style={styles.artistRow}>
-      <View style={styles.avatar}>
-        {review.artist.avatarUri ? (
-          <Image source={{ uri: review.artist.avatarUri }} style={styles.avatarImg} />
-        ) : (
-          <PersonSilhouette size={54} color="#3a3a3a" />
-        )}
-      </View>
-      <View style={styles.artistInfo}>
-        <Text style={styles.artistName} numberOfLines={1}>{review.artist.nickname}</Text>
-        <Text style={styles.artistHandle} numberOfLines={1}>{review.artist.handle}</Text>
-        <View style={styles.locRow}>
-          <LocationPinIcon size={13} color={COLORS.gray} />
-          <Text style={styles.locText} numberOfLines={1}>{review.artist.location}</Text>
+      <View style={styles.card}>
+        <View style={styles.writableHeader}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{t('review.badge' as any)}</Text>
+          </View>
+          <Text style={styles.dLeft}>D-{review.daysLeft}</Text>
         </View>
+
+        <View style={styles.artistRow}>
+          <View style={styles.avatar}>
+            {review.artist.avatarUri ? (
+                <Image source={{ uri: review.artist.avatarUri }} style={styles.avatarImg} />
+            ) : (
+                <PersonSilhouette size={54} color="#3a3a3a" />
+            )}
+          </View>
+          <View style={styles.artistInfo}>
+            <Text style={styles.artistName} numberOfLines={1}>{review.artist.nickname}</Text>
+            <Text style={styles.artistHandle} numberOfLines={1}>{review.artist.handle}</Text>
+            <View style={styles.locRow}>
+              <LocationPinIcon size={13} color={COLORS.gray} />
+              <Text style={styles.locText} numberOfLines={1}>{review.artist.location}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.metaRow}>
+          <CalendarIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
+          <Text style={styles.metaLabel}>{t('review.procedureDate' as any)}</Text>
+          <Text style={styles.metaValue} numberOfLines={1}>
+            {review.procedureDate}  {review.procedureTime}
+          </Text>
+        </View>
+        <View style={styles.metaRow}>
+          <PaletteIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
+          <Text style={styles.metaLabel}>{t('review.bodyPart' as any)}</Text>
+          <Text style={styles.metaValue} numberOfLines={1}>
+            {review.bodyPart} · {review.style}
+          </Text>
+        </View>
+
+
+        <TouchableOpacity
+            onPress={onWrite}
+            activeOpacity={0.85}
+            style={styles.writeBtn}
+        >
+          <Text style={styles.writeBtnText}>{t('review.writeBtn' as any)}</Text>
+        </TouchableOpacity>
       </View>
-    </View>
-
-    <View style={styles.divider} />
-
-    <View style={styles.metaRow}>
-      <CalendarIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
-      <Text style={styles.metaLabel}>{t('review.procedureDate')}</Text>
-      <Text style={styles.metaValue} numberOfLines={1}>
-        {review.procedureDate}  {review.procedureTime}
-      </Text>
-    </View>
-    <View style={styles.metaRow}>
-      <PaletteIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
-      <Text style={styles.metaLabel}>{t('review.bodyPart')}</Text>
-      <Text style={styles.metaValue} numberOfLines={1}>
-        {review.bodyPart} · {review.style}
-      </Text>
-    </View>
-
-
-    <TouchableOpacity
-      onPress={onWrite}
-      activeOpacity={0.85}
-      style={styles.writeBtn}
-    >
-      <Text style={styles.writeBtnText}>{t('review.writeBtn')}</Text>
-    </TouchableOpacity>
-  </View>
   );
 });
 WritableCard.displayName = 'WritableCard';
@@ -168,68 +169,68 @@ interface WrittenCardProps {
 const WrittenCard = React.memo(({ review, onAddHealed }: WrittenCardProps) => {
   const { t } = useTranslation();
   return (
-  <View style={styles.card}>
-    <View style={styles.writtenHeader}>
-      <View style={styles.avatar}>
-        {review.artist.avatarUri ? (
-          <Image source={{ uri: review.artist.avatarUri }} style={styles.avatarImg} />
-        ) : (
-          <PersonSilhouette size={54} color="#3a3a3a" />
+      <View style={styles.card}>
+        <View style={styles.writtenHeader}>
+          <View style={styles.avatar}>
+            {review.artist.avatarUri ? (
+                <Image source={{ uri: review.artist.avatarUri }} style={styles.avatarImg} />
+            ) : (
+                <PersonSilhouette size={54} color="#3a3a3a" />
+            )}
+          </View>
+          <View style={styles.writtenHeaderText}>
+            <Text style={styles.artistName}>{review.artist.nickname}</Text>
+            <Text style={styles.writtenDate}>{review.writtenDate}</Text>
+          </View>
+        </View>
+
+        <FlatList
+            data={review.photos}
+            keyExtractor={(_, i) => `${review.id}-p${i}`}
+            renderItem={({ item }) => (
+                <View style={styles.galleryItem}>
+                  {item ? (
+                      <Image source={{ uri: item }} style={styles.galleryImg} resizeMode="cover" />
+                  ) : (
+                      <View style={styles.galleryPlaceholder}>
+                        <TattooPlaceholderIcon size={72} color="#2e2e2e" />
+                      </View>
+                  )}
+                </View>
+            )}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={GALLERY_W}
+            decelerationRate="fast"
+            style={styles.galleryList}
+        />
+
+        <View style={styles.ratingsBlock}>
+          {RATING_LABELS.map((r, i) => (
+              <View
+                  key={r.key}
+                  style={[styles.ratingRow, i === RATING_LABELS.length - 1 && styles.ratingRowLast]}
+              >
+                <Text style={styles.ratingLabel}>{r.label}</Text>
+                <RatingStars value={review.ratings[r.key]} />
+              </View>
+          ))}
+        </View>
+
+        <Text style={styles.reviewText}>{review.text}</Text>
+
+        {review.canAddHealedPhoto && (
+            <TouchableOpacity
+                onPress={onAddHealed}
+                activeOpacity={0.85}
+                style={styles.healedBtn}
+            >
+              <CameraSolidIcon size={18} color={COLORS.black} strokeWidth={1.7} />
+              <Text style={styles.healedText}>{t('review.healedBtn' as any)}</Text>
+            </TouchableOpacity>
         )}
       </View>
-      <View style={styles.writtenHeaderText}>
-        <Text style={styles.artistName}>{review.artist.nickname}</Text>
-        <Text style={styles.writtenDate}>{review.writtenDate}</Text>
-      </View>
-    </View>
-
-    <FlatList
-      data={review.photos}
-      keyExtractor={(_, i) => `${review.id}-p${i}`}
-      renderItem={({ item }) => (
-        <View style={styles.galleryItem}>
-          {item ? (
-            <Image source={{ uri: item }} style={styles.galleryImg} resizeMode="cover" />
-          ) : (
-            <View style={styles.galleryPlaceholder}>
-              <TattooPlaceholderIcon size={72} color="#2e2e2e" />
-            </View>
-          )}
-        </View>
-      )}
-      horizontal
-      pagingEnabled
-      showsHorizontalScrollIndicator={false}
-      snapToInterval={GALLERY_W}
-      decelerationRate="fast"
-      style={styles.galleryList}
-    />
-
-    <View style={styles.ratingsBlock}>
-      {RATING_LABELS.map((r, i) => (
-        <View
-          key={r.key}
-          style={[styles.ratingRow, i === RATING_LABELS.length - 1 && styles.ratingRowLast]}
-        >
-          <Text style={styles.ratingLabel}>{r.label}</Text>
-          <RatingStars value={review.ratings[r.key]} />
-        </View>
-      ))}
-    </View>
-
-    <Text style={styles.reviewText}>{review.text}</Text>
-
-    {review.canAddHealedPhoto && (
-      <TouchableOpacity
-        onPress={onAddHealed}
-        activeOpacity={0.85}
-        style={styles.healedBtn}
-      >
-        <CameraSolidIcon size={18} color={COLORS.black} strokeWidth={1.7} />
-        <Text style={styles.healedText}>{t('review.healedBtn')}</Text>
-      </TouchableOpacity>
-    )}
-  </View>
   );
 });
 WrittenCard.displayName = 'WrittenCard';
@@ -239,18 +240,33 @@ const TattooReviewScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
+  const insets = useSafeAreaInsets(); // 🚨 안전 여백(Insets) 추가
   const [tab, setTab] = useState<TabKey>('writable');
 
-  const { data: writableRaw, loading: writableLoading } = useApi(() => reservationApi.reviewable(), []);
-  const { items: writtenRaw, loading: writtenLoading, loadingMore: writtenMore, loadMore: loadMoreWritten } =
-    usePagedApi((cursor) => reviewApi.mine({ cursor }), []);
+  // 🚨 2. 리로드(reload) 함수 추출
+  const { data: writableRaw, loading: writableLoading, reload: reloadWritable } = useApi(() => reservationApi.reviewable(), []);
+  const { items: writtenRaw, loading: writtenLoading, loadingMore: writtenMore, loadMore: loadMoreWritten, reload: reloadWritten } =
+      usePagedApi((cursor) => reviewApi.mine({ cursor }), []);
+
+  // 🚨 3. 화면 복귀 시 조용히 새로고침 (Silent Reload)
+  const hasFocused = useRef(false);
+  useFocusEffect(
+      useCallback(() => {
+        if (!hasFocused.current) {
+          hasFocused.current = true;
+          return;
+        }
+        reloadWritable();
+        reloadWritten();
+      }, [reloadWritable, reloadWritten])
+  );
 
   const writable = useMemo(() => {
-    const locationDefault = t('reservation.locationDefault');
+    const locationDefault = t('reservation.locationDefault' as any);
     return (writableRaw ?? []).map((item) => toWritable(item, locationDefault));
   }, [writableRaw, t]);
   const written = useMemo(() => {
-    const locationDefault = t('reservation.locationDefault');
+    const locationDefault = t('reservation.locationDefault' as any);
     return writtenRaw.map((r) => toWritten(r, locationDefault));
   }, [writtenRaw, t]);
 
@@ -260,122 +276,124 @@ const TattooReviewScreen = () => {
 
   const handleAddHealed = useCallback((review: WrittenReview) => {
     toast(
-      t('review.healedComingSoon').replace('{{name}}', review.artist.nickname),
-      { variant: 'success' },
+        t('review.healedComingSoon' as any).replace('{{name}}', review.artist.nickname),
+        { variant: 'success' },
     );
   }, [toast, t]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      // 🚨 4. 하단 잘림을 막기 위해 edges=['top'] 으로 수정
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader />
 
-      <View style={styles.subHeader}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.backBtn}
-        >
-          <BackArrowIcon size={22} color={COLORS.white} />
-        </TouchableOpacity>
-        <Text style={styles.title}>{t('review.title')}</Text>
-      </View>
+        <View style={styles.subHeader}>
+          <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.backBtn}
+          >
+            <BackArrowIcon size={22} color={COLORS.white} />
+          </TouchableOpacity>
+          <Text style={styles.title}>{t('review.title' as any)}</Text>
+        </View>
 
-      <View style={styles.tabRow}>
-        <TouchableOpacity
-          onPress={() => setTab('writable')}
-          activeOpacity={0.75}
-          style={styles.tabBtn}
-        >
-          <View style={styles.tabLabelWrap}>
-            <Text style={[styles.tabText, tab === 'writable' && styles.tabTextActive]}>
-              {t('review.tabWritable')}
-            </Text>
-            {writable.length > 0 && (
-              <View style={[styles.countBadge, tab === 'writable' && styles.countBadgeActive]}>
-                <Text style={[styles.countBadgeText, tab === 'writable' && styles.countBadgeTextActive]}>
-                  {writable.length}
-                </Text>
-              </View>
-            )}
-          </View>
-          {tab === 'writable' && <View style={styles.tabUnderline} />}
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setTab('written')}
-          activeOpacity={0.75}
-          style={styles.tabBtn}
-        >
-          <View style={styles.tabLabelWrap}>
-            <Text style={[styles.tabText, tab === 'written' && styles.tabTextActive]}>
-              {t('review.tabWritten')}
-            </Text>
-          </View>
-          {tab === 'written' && <View style={styles.tabUnderline} />}
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        onScroll={({ nativeEvent }) => {
-          if (tab !== 'written') return;
-          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-          if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 200) {
-            loadMoreWritten();
-          }
-        }}
-        scrollEventThrottle={400}
-      >
-        {tab === 'writable' ? (
-          <>
-            {writableLoading ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>{t('common.loading')}</Text>
-              </View>
-            ) : writable.length === 0 ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>{t('review.emptyWritable')}</Text>
-              </View>
-            ) : (
-              writable.map((r) => (
-                <WritableCard
-                  key={r.id}
-                  review={r}
-                  onWrite={() => handleWrite(r)}
-                />
-              ))
-            )}
-          </>
-        ) : (
-          writtenLoading ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>{t('common.loading')}</Text>
-            </View>
-          ) : written.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>{t('review.empty')}</Text>
-            </View>
-          ) : (
-            <>
-              {written.map((r) => (
-                <WrittenCard
-                  key={r.id}
-                  review={r}
-                  onAddHealed={() => handleAddHealed(r)}
-                />
-              ))}
-              {writtenMore && (
-                <View style={styles.empty}>
-                  <Text style={styles.emptyText}>{t('common.loading')}</Text>
-                </View>
+        <View style={styles.tabRow}>
+          <TouchableOpacity
+              onPress={() => setTab('writable')}
+              activeOpacity={0.75}
+              style={styles.tabBtn}
+          >
+            <View style={styles.tabLabelWrap}>
+              <Text style={[styles.tabText, tab === 'writable' && styles.tabTextActive]}>
+                {t('review.tabWritable' as any)}
+              </Text>
+              {writable.length > 0 && (
+                  <View style={[styles.countBadge, tab === 'writable' && styles.countBadgeActive]}>
+                    <Text style={[styles.countBadgeText, tab === 'writable' && styles.countBadgeTextActive]}>
+                      {writable.length}
+                    </Text>
+                  </View>
               )}
-            </>
-          )
-        )}
-      </ScrollView>
-    </SafeAreaView>
+            </View>
+            {tab === 'writable' && <View style={styles.tabUnderline} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+              onPress={() => setTab('written')}
+              activeOpacity={0.75}
+              style={styles.tabBtn}
+          >
+            <View style={styles.tabLabelWrap}>
+              <Text style={[styles.tabText, tab === 'written' && styles.tabTextActive]}>
+                {t('review.tabWritten' as any)}
+              </Text>
+            </View>
+            {tab === 'written' && <View style={styles.tabUnderline} />}
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+            style={styles.scroll}
+            // 🚨 5. 기기 하단 영역(홈 인디케이터 등)을 고려해 안전 여백을 동적으로 부여
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + 20 }]}
+            showsVerticalScrollIndicator={false}
+            onScroll={({ nativeEvent }) => {
+              if (tab !== 'written') return;
+              const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+              if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 200) {
+                loadMoreWritten();
+              }
+            }}
+            scrollEventThrottle={400}
+        >
+          {tab === 'writable' ? (
+              <>
+                {writableLoading ? (
+                    <View style={styles.empty}>
+                      <Text style={styles.emptyText}>{t('common.loading' as any)}</Text>
+                    </View>
+                ) : writable.length === 0 ? (
+                    <View style={styles.empty}>
+                      <Text style={styles.emptyText}>{t('review.emptyWritable' as any)}</Text>
+                    </View>
+                ) : (
+                    writable.map((r) => (
+                        <WritableCard
+                            key={r.id}
+                            review={r}
+                            onWrite={() => handleWrite(r)}
+                        />
+                    ))
+                )}
+              </>
+          ) : (
+              writtenLoading ? (
+                  <View style={styles.empty}>
+                    <Text style={styles.emptyText}>{t('common.loading' as any)}</Text>
+                  </View>
+              ) : written.length === 0 ? (
+                  <View style={styles.empty}>
+                    <Text style={styles.emptyText}>{t('review.empty' as any)}</Text>
+                  </View>
+              ) : (
+                  <>
+                    {written.map((r) => (
+                        <WrittenCard
+                            key={r.id}
+                            review={r}
+                            onAddHealed={() => handleAddHealed(r)}
+                        />
+                    ))}
+                    {writtenMore && (
+                        <View style={styles.empty}>
+                          <Text style={styles.emptyText}>{t('common.loading' as any)}</Text>
+                        </View>
+                    )}
+                  </>
+              )
+          )}
+        </ScrollView>
+      </SafeAreaView>
   );
 };
 

@@ -4,7 +4,8 @@ import {
   StatusBar, KeyboardAvoidingView, Platform, Keyboard, Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+// 🚨 1. 화면 복귀 시 갱신을 위한 useFocusEffect 추가
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { COLORS } from '../../theme/colors';
@@ -39,31 +40,31 @@ interface LinkRowProps {
 }
 
 const LinkRow = React.memo(({
-  Icon, label, value, valueColor, showCheck, showChevron, isLast, onPress,
-}: LinkRowProps) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={onPress ? 0.75 : 1}
-    disabled={!onPress}
-    style={[styles.linkRow, !isLast && styles.linkRowBorder]}
-  >
-    <View style={styles.linkIconWrap}>
-      <Icon size={20} color={COLORS.gold} strokeWidth={1.7} />
-    </View>
-    <Text style={styles.linkLabel}>{label}</Text>
-    <View style={styles.linkRight}>
-      {value ? (
-        <Text
-          style={[styles.linkValue, valueColor ? { color: valueColor } : null]}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-      ) : null}
-      {showCheck && <CheckIcon size={16} color={COLORS.gold} strokeWidth={2.2} />}
-      {showChevron && <ChevronRightIcon size={16} color={COLORS.gray} />}
-    </View>
-  </TouchableOpacity>
+                              Icon, label, value, valueColor, showCheck, showChevron, isLast, onPress,
+                            }: LinkRowProps) => (
+    <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={onPress ? 0.75 : 1}
+        disabled={!onPress}
+        style={[styles.linkRow, !isLast && styles.linkRowBorder]}
+    >
+      <View style={styles.linkIconWrap}>
+        <Icon size={20} color={COLORS.gold} strokeWidth={1.7} />
+      </View>
+      <Text style={styles.linkLabel}>{label}</Text>
+      <View style={styles.linkRight}>
+        {value ? (
+            <Text
+                style={[styles.linkValue, valueColor ? { color: valueColor } : null]}
+                numberOfLines={1}
+            >
+              {value}
+            </Text>
+        ) : null}
+        {showCheck && <CheckIcon size={16} color={COLORS.gold} strokeWidth={2.2} />}
+        {showChevron && <ChevronRightIcon size={16} color={COLORS.gray} />}
+      </View>
+    </TouchableOpacity>
 ));
 LinkRow.displayName = 'LinkRow';
 
@@ -76,6 +77,7 @@ const AccountInfoScreen = () => {
   const session = useAuthStore(s => s.session);
   const logout = useAuthStore(s => s.logout);
   const patchUser = useAuthStore(s => s.patchUser);
+  const refresh = useAuthStore(s => s.refresh); // 🚨 전역 세션 동기화를 위한 refresh 추출
   const user = session?.user;
 
   const [nickname, setNickname] = useState(user?.nickname ?? '');
@@ -85,12 +87,20 @@ const AccountInfoScreen = () => {
   const [nicknameFocused, setNicknameFocused] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
 
+  // 🚨 2. 화면에 돌아올 때마다 조용히 세션 갱신 (Silent Reload)
+  useFocusEffect(
+      useCallback(() => {
+        refresh().catch(() => {});
+      }, [refresh])
+  );
+
   const nicknameValid = useMemo(
-    () => nickname.trim().length >= NICKNAME_MIN,
-    [nickname],
+      () => nickname.trim().length >= NICKNAME_MIN,
+      [nickname],
   );
   const nicknameBorderColor = nicknameValid || nicknameFocused ? COLORS.gold : COLORS.border;
 
+  // 🚨 TS2345 방어
   const providerLabel = user?.provider ? t(PROVIDER_LABEL_KEY[user.provider] as any) : '';
 
   const handlePickAvatar = useCallback(async () => {
@@ -104,9 +114,9 @@ const AccountInfoScreen = () => {
       await userApi.updateProfileImage(publicUrl);
       await patchUser({ profileImage: publicUrl });
       setAvatarUri(publicUrl);
-      toast(t('account.saved'), { variant: 'success' });
+      toast(t('account.saved' as any), { variant: 'success' });
     } catch {
-      toast(t('common.error'), { variant: 'error' });
+      toast(t('common.error' as any), { variant: 'error' });
     } finally {
       setAvatarUploading(false);
     }
@@ -118,28 +128,30 @@ const AccountInfoScreen = () => {
 
   const handleSave = useCallback(async () => {
     if (!nicknameValid) {
-      toast(t('account.nicknameMin').replace('{{min}}', String(NICKNAME_MIN)), { variant: 'error' });
+      toast(t('account.nicknameMin' as any).replace('{{min}}', String(NICKNAME_MIN)), { variant: 'error' });
       return;
     }
     Keyboard.dismiss();
     setSaving(true);
     try {
       await userApi.updateNickname(nickname.trim());
-      toast(t('account.saved'), { variant: 'success' });
+      // 저장 후 스토어 데이터 갱신
+      await patchUser({ nickname: nickname.trim() });
+      toast(t('account.saved' as any), { variant: 'success' });
       setTimeout(() => navigation.goBack(), 100);
     } catch {
-      toast(t('common.error'), { variant: 'error' });
+      toast(t('common.error' as any), { variant: 'error' });
     } finally {
       setSaving(false);
     }
-  }, [nicknameValid, nickname, t, toast, navigation]);
+  }, [nicknameValid, nickname, patchUser, t, toast, navigation]);
 
   const handleLogout = useCallback(() => {
     setConfirm({
-      title: t('auth.logout'),
-      message: t('auth.logoutConfirm'),
-      cancelLabel: t('common.cancel'),
-      confirmLabel: t('auth.logout'),
+      title: t('auth.logout' as any),
+      message: t('auth.logoutConfirm' as any),
+      cancelLabel: t('common.cancel' as any),
+      confirmLabel: t('auth.logout' as any),
       variant: 'danger',
       onConfirm: async () => {
         await logout();
@@ -157,141 +169,143 @@ const AccountInfoScreen = () => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
-      <LogoHeader />
+      // 🚨 3. 하단 잘림을 막기 위해 edges=['top'] 으로 설정
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+        <LogoHeader />
 
-      <View style={styles.subHeader}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.backBtn}
-        >
-          <BackArrowIcon size={22} color={COLORS.white} />
-        </TouchableOpacity>
-        <Text style={styles.title}>{t('account.title')}</Text>
-      </View>
-
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
-      >
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Avatar */}
-          <View style={styles.avatarBlock}>
-            <TouchableOpacity
-              style={styles.avatarWrap}
-              onPress={handlePickAvatar}
-              activeOpacity={0.85}
-              disabled={avatarUploading}
-            >
-              <View style={styles.avatarCircle}>
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
-                ) : (
-                  <PersonSilhouette size={110} color="#3a3a3a" />
-                )}
-                {avatarUploading && (
-                  <View style={styles.avatarOverlay}>
-                    <ActivityIndicator color={COLORS.gold} />
-                  </View>
-                )}
-              </View>
-              <View style={styles.avatarBadge} pointerEvents="none">
-                <CameraSolidIcon size={18} color={COLORS.black} strokeWidth={1.9} />
-              </View>
-            </TouchableOpacity>
-            <Text style={styles.avatarHelper}>{t('account.profilePhotoHint')}</Text>
-          </View>
-
-          {/* 닉네임 */}
-          <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>{t('account.nicknameLabel')}</Text>
-            <View style={[styles.inputRow, { borderColor: nicknameBorderColor }]}>
-              <TextInput
-                value={nickname}
-                onChangeText={handleNicknameChange}
-                onFocus={() => setNicknameFocused(true)}
-                onBlur={() => setNicknameFocused(false)}
-                placeholder={t('account.nicknamePlaceholder')}
-                placeholderTextColor={COLORS.gray}
-                style={styles.textInput}
-                maxLength={NICKNAME_MAX}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="done"
-              />
-              {nicknameValid && (
-                <CheckCircleIcon size={22} color={COLORS.gold} />
-              )}
-            </View>
-          </View>
-
-          {/* 소셜 연동 정보 */}
-          <View style={styles.card}>
-            <LinkRow
-              Icon={ShieldCheckIcon}
-              label={t('account.socialConnected').replace('{{provider}}', providerLabel)}
-              showCheck
-              isLast={!user?.email}
-            />
-            {user?.email ? (
-              <LinkRow
-                Icon={BellIcon}
-                label={t('account.emailLabel')}
-                value={user.email}
-                isLast
-              />
-            ) : null}
-          </View>
-
-          {/* 기타 설정 */}
-          <Text style={styles.sectionTitle}>{t('account.sectionSettings')}</Text>
-          <View style={styles.card}>
-            <LinkRow
-              Icon={BellIcon}
-              label={t('notification.title')}
-              showChevron
-              onPress={handleNotifSettings}
-            />
-            <LinkRow
-              Icon={ShieldCheckIcon}
-              label={t('privacy.title')}
-              showChevron
-              isLast
-              onPress={handlePrivacy}
-            />
-          </View>
-
+        <View style={styles.subHeader}>
           <TouchableOpacity
-            onPress={handleLogout}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 20, right: 20 }}
-            style={styles.logoutBtn}
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.backBtn}
           >
-            <Text style={styles.logoutText}>{t('auth.logout')}</Text>
+            <BackArrowIcon size={22} color={COLORS.white} />
           </TouchableOpacity>
-        </ScrollView>
-
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
-          <TouchableOpacity
-            onPress={handleSave}
-            activeOpacity={0.85}
-            style={[styles.submitBtn, (!nicknameValid || saving) && styles.submitBtnDisabled]}
-            disabled={!nicknameValid || saving}
-          >
-            <Text style={styles.submitText}>{t('account.saveBtn')}</Text>
-          </TouchableOpacity>
+          <Text style={styles.title}>{t('account.title' as any)}</Text>
         </View>
-      </KeyboardAvoidingView>
-      <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
-    </SafeAreaView>
+
+        <KeyboardAvoidingView
+            style={styles.flex}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+        >
+          <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+          >
+            {/* Avatar */}
+            <View style={styles.avatarBlock}>
+              <TouchableOpacity
+                  style={styles.avatarWrap}
+                  onPress={handlePickAvatar}
+                  activeOpacity={0.85}
+                  disabled={avatarUploading}
+              >
+                <View style={styles.avatarCircle}>
+                  {avatarUri ? (
+                      <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
+                  ) : (
+                      <PersonSilhouette size={110} color="#3a3a3a" />
+                  )}
+                  {avatarUploading && (
+                      <View style={styles.avatarOverlay}>
+                        <ActivityIndicator color={COLORS.gold} />
+                      </View>
+                  )}
+                </View>
+                <View style={styles.avatarBadge} pointerEvents="none">
+                  <CameraSolidIcon size={18} color={COLORS.black} strokeWidth={1.9} />
+                </View>
+              </TouchableOpacity>
+              <Text style={styles.avatarHelper}>{t('account.profilePhotoHint' as any)}</Text>
+            </View>
+
+            {/* 닉네임 */}
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>{t('account.nicknameLabel' as any)}</Text>
+              <View style={[styles.inputRow, { borderColor: nicknameBorderColor }]}>
+                <TextInput
+                    value={nickname}
+                    onChangeText={handleNicknameChange}
+                    onFocus={() => setNicknameFocused(true)}
+                    onBlur={() => setNicknameFocused(false)}
+                    placeholder={t('account.nicknamePlaceholder' as any)}
+                    placeholderTextColor={COLORS.gray}
+                    style={styles.textInput}
+                    maxLength={NICKNAME_MAX}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="done"
+                />
+                {nicknameValid && (
+                    <CheckCircleIcon size={22} color={COLORS.gold} />
+                )}
+              </View>
+            </View>
+
+            {/* 소셜 연동 정보 */}
+            <View style={styles.card}>
+              <LinkRow
+                  Icon={ShieldCheckIcon}
+                  label={t('account.socialConnected' as any).replace('{{provider}}', providerLabel)}
+                  showCheck
+                  isLast={!user?.email}
+              />
+              {user?.email ? (
+                  <LinkRow
+                      Icon={BellIcon}
+                      label={t('account.emailLabel' as any)}
+                      value={user.email}
+                      isLast
+                  />
+              ) : null}
+            </View>
+
+            {/* 기타 설정 */}
+            <Text style={styles.sectionTitle}>{t('account.sectionSettings' as any)}</Text>
+            <View style={styles.card}>
+              <LinkRow
+                  Icon={BellIcon}
+                  label={t('notification.title' as any)}
+                  showChevron
+                  onPress={handleNotifSettings}
+              />
+              <LinkRow
+                  Icon={ShieldCheckIcon}
+                  label={t('privacy.title' as any)}
+                  showChevron
+                  isLast
+                  onPress={handlePrivacy}
+              />
+            </View>
+
+            <TouchableOpacity
+                onPress={handleLogout}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 20, right: 20 }}
+                style={styles.logoutBtn}
+            >
+              <Text style={styles.logoutText}>{t('auth.logout' as any)}</Text>
+            </TouchableOpacity>
+          </ScrollView>
+
+          {/* 🚨 4. 하단 시스템 영역 가림 방지 */}
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) + 12 }]}>
+            <TouchableOpacity
+                onPress={handleSave}
+                activeOpacity={0.85}
+                style={[styles.submitBtn, (!nicknameValid || saving) && styles.submitBtnDisabled]}
+                disabled={!nicknameValid || saving}
+            >
+              <Text style={styles.submitText}>{t('account.saveBtn' as any)}</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+        <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
+      </SafeAreaView>
   );
 };
 

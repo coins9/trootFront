@@ -42,6 +42,8 @@ import ArtistReservationRequestsScreen from '../../presentation/screens/artistRe
 import NotificationListScreen from '../../presentation/screens/notificationList/NotificationListScreen';
 import RootsPickScreen from '../../presentation/screens/rootsPick/RootsPickScreen';
 import SettingsScreen from '../../presentation/screens/settings/SettingsScreen';
+// 🚨 1. UserProfileScreen 임포트 추가
+import UserProfileScreen from '../../presentation/screens/profile/UserProfileScreen';
 import { useAuthStore } from '../../presentation/store/authStore';
 
 export type AdManageParams = {
@@ -88,6 +90,8 @@ export type RootStackParamList = {
   NotificationList: undefined;
   RootsPick: undefined;
   Settings: undefined;
+  // 🚨 2. UserProfile 화면 파라미터 타입 정의 추가
+  UserProfile: { userId: string; nickname?: string | null; profileImage?: string | null };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -97,192 +101,198 @@ const RootNavigator = () => {
 
   // 세션 없음 → 로그인, 온보딩 미완료 → 온보딩, 그 외 → 메인
   const initialRouteName: keyof RootStackParamList = !session
-    ? 'Login'
-    : !session.user.onboarded
-      ? 'Onboarding'
-      : 'Main';
+      ? 'Login'
+      : !session.user.onboarded
+          ? 'Onboarding'
+          : 'Main';
 
   return (
-  <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Login" component={LoginScreen} />
-    <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-    <Stack.Screen
-      name="Language"
-      component={LanguageScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="Support"
-      component={SupportScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="MyProducts"
-      component={MyProductsScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="VendorApply"
-      component={VendorApplyScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="ProductForm"
-      component={ProductFormScreen}
-      options={{ animation: 'slide_from_bottom' }}
-    />
-    <Stack.Screen
-      name="SellerInfo"
-      component={SellerInfoScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen name="Main" component={BottomTabNavigator} />
-    <Stack.Screen
-      name="TattooDetail"
-      component={TattooDetailScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="ArtistProfile"
-      component={ArtistProfileScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="TattooShareDetail"
-      component={TattooShareDetailScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="BeginnerModelDetail"
-      component={BeginnerModelDetailScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="MediaExpertDetail"
-      component={MediaExpertDetailScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="TattooSupplyDetail"
-      component={TattooSupplyDetailScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="ReservationManage"
-      component={ReservationManageScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="FavoriteArtists"
-      component={FavoriteArtistsScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="FavoriteWorks"
-      component={FavoriteWorksScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="FavoritePhotoShops"
-      component={FavoritePhotoShopsScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="FavoriteSupplies"
-      component={FavoriteSuppliesScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="TattooReview"
-      component={TattooReviewScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="AccountInfo"
-      component={AccountInfoScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="NotificationSettings"
-      component={NotificationSettingsScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="PrivacySecurity"
-      component={PrivacySecurityScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="ArtistReservation"
-      component={ArtistReservationScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="DepositManagement"
-      component={DepositManagementScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="ArtistAdStats"
-      component={AdStatsScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="ArtistMyPage"
-      component={ArtistMyPageScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="ShopWrite"
-      component={ShopWriteScreen}
-      options={{ animation: 'slide_from_bottom' }}
-    />
-    <Stack.Screen
-      name="MyShopPosts"
-      component={MyShopPostsScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="ShopApplications"
-      component={ShopApplicationsScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="SafetyPolicy"
-      component={SafetyPolicyScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="ReviewWrite"
-      component={ReviewWriteScreen}
-      options={{ animation: 'slide_from_bottom' }}
-    />
-    <Stack.Screen
-      name="AdManage"
-      component={AdManageScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="ArtistReservationRequests"
-      component={ArtistReservationRequestsScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="NotificationList"
-      component={NotificationListScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="RootsPick"
-      component={RootsPickScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-    <Stack.Screen
-      name="Settings"
-      component={SettingsScreen}
-      options={{ animation: 'slide_from_right' }}
-    />
-  </Stack.Navigator>
+      <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        <Stack.Screen
+            name="Language"
+            component={LanguageScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="Support"
+            component={SupportScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="MyProducts"
+            component={MyProductsScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="VendorApply"
+            component={VendorApplyScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="ProductForm"
+            component={ProductFormScreen}
+            options={{ animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+            name="SellerInfo"
+            component={SellerInfoScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen name="Main" component={BottomTabNavigator} />
+        <Stack.Screen
+            name="TattooDetail"
+            component={TattooDetailScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="ArtistProfile"
+            component={ArtistProfileScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="TattooShareDetail"
+            component={TattooShareDetailScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="BeginnerModelDetail"
+            component={BeginnerModelDetailScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="MediaExpertDetail"
+            component={MediaExpertDetailScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="TattooSupplyDetail"
+            component={TattooSupplyDetailScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="ReservationManage"
+            component={ReservationManageScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="FavoriteArtists"
+            component={FavoriteArtistsScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="FavoriteWorks"
+            component={FavoriteWorksScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="FavoritePhotoShops"
+            component={FavoritePhotoShopsScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="FavoriteSupplies"
+            component={FavoriteSuppliesScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="TattooReview"
+            component={TattooReviewScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="AccountInfo"
+            component={AccountInfoScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="NotificationSettings"
+            component={NotificationSettingsScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="PrivacySecurity"
+            component={PrivacySecurityScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="ArtistReservation"
+            component={ArtistReservationScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="DepositManagement"
+            component={DepositManagementScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="ArtistAdStats"
+            component={AdStatsScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="ArtistMyPage"
+            component={ArtistMyPageScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="ShopWrite"
+            component={ShopWriteScreen}
+            options={{ animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+            name="MyShopPosts"
+            component={MyShopPostsScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="ShopApplications"
+            component={ShopApplicationsScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="SafetyPolicy"
+            component={SafetyPolicyScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="ReviewWrite"
+            component={ReviewWriteScreen}
+            options={{ animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+            name="AdManage"
+            component={AdManageScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="ArtistReservationRequests"
+            component={ArtistReservationRequestsScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="NotificationList"
+            component={NotificationListScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="RootsPick"
+            component={RootsPickScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+        {/* 🚨 3. Stack 화면 등록 추가 */}
+        <Stack.Screen
+            name="UserProfile"
+            component={UserProfileScreen}
+            options={{ animation: 'slide_from_right' }}
+        />
+      </Stack.Navigator>
   );
 };
 
