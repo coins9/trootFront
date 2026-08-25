@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar, Linking,
   Image, ActivityIndicator,
@@ -58,18 +58,19 @@ const MyProfileScreen = () => {
   const [artistInfo, setArtistInfo] = useState<ArtistPage | null>(null);
   const [vendorInfo, setVendorInfo] = useState<MyVendor | null>(null);
   const siteSettings = usePublicSettings();
-  const [avatarUri, setAvatarUri] = useState<string | null>(session?.user.profileImage ?? null);
+
+  // 🚨 수정 포인트: session?.user?.profileImage 로 모두 안전장치 추가
+  const [avatarUri, setAvatarUri] = useState<string | null>(session?.user?.profileImage ?? null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   useEffect(() => {
-    setAvatarUri(session?.user.profileImage ?? null);
-  }, [session?.user.profileImage]);
+    setAvatarUri(session?.user?.profileImage ?? null);
+  }, [session?.user?.profileImage]);
 
   // Restore persisted mode on mount
   useEffect(() => {
     AsyncStorage.getItem(MODE_KEY)
         .then((val) => {
-          // shopMatching 조건을 추가해야 정상적으로 복구됩니다.
           if (val === 'artist' || val === 'vendor' || val === 'user' || val === 'shopMatching') {
             setMode(val as ProfileMode);
           }
@@ -117,9 +118,10 @@ const MyProfileScreen = () => {
     if (next === mode) return;
 
     if (next === 'artist') {
+      // 🚨 수정 포인트: session?.user?.role 로 체이닝 변경
       const isTattooist =
-          session?.user.role === 'TATTOOIST' ||
-          session?.user.roles?.includes('TATTOOIST');
+          session?.user?.role === 'TATTOOIST' ||
+          session?.user?.roles?.includes('TATTOOIST');
       if (!isTattooist || !artistInfo) {
         navigation.navigate('ArtistMyPage');
         return;
@@ -144,7 +146,8 @@ const MyProfileScreen = () => {
   const displayName = (() => {
     if (mode === 'artist' && artistInfo) return artistInfo.pageName;
     if (mode === 'vendor' && vendorInfo) return vendorInfo.name;
-    return session?.user.nickname ?? 'root_user';
+    // 🚨 수정 포인트: session?.user?.nickname
+    return session?.user?.nickname ?? 'root_user';
   })();
 
   /* ── Menu items ── */
@@ -211,9 +214,9 @@ const MyProfileScreen = () => {
     {
       Icon: BarChartIcon,
       label: t('profile.adInquiry'),
-      onPress: () => openLink(siteSettings.adInquiryUrl),
+      onPress: () => openLink(siteSettings?.adInquiryUrl), // 🚨 수정 포인트
     },
-  ], [t, openLink, siteSettings.adInquiryUrl]);
+  ], [t, openLink, siteSettings?.adInquiryUrl]);
 
   const userSettingItems: MenuItem[] = useMemo(() => [
     { Icon: UserOutlineIcon, label: t('settings.accountInfo'), onPress: goTo('AccountInfo') },
@@ -273,9 +276,9 @@ const MyProfileScreen = () => {
       Icon: BarChartIcon,
       label: t('profile.vendorAdInquiry'),
       description: t('profile.vendorAdInquiryDesc'),
-      onPress: () => openLink(siteSettings.adInquiryUrl),
+      onPress: () => openLink(siteSettings?.adInquiryUrl), // 🚨 수정 포인트
     },
-  ], [t, goTo, openLink, siteSettings.adInquiryUrl]);
+  ], [t, goTo, openLink, siteSettings?.adInquiryUrl]);
 
   /* ── Render helpers ── */
   const renderCompactMenuItem = (item: MenuItem, isLast: boolean) => (
@@ -313,33 +316,31 @@ const MyProfileScreen = () => {
       </View>
   );
 
-
   return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
         <LogoHeader
-          showGear={mode === 'user'}
-          onGearPress={() => navigation.navigate('Settings')}
+            showGear={mode === 'user'}
+            onGearPress={() => navigation.navigate('Settings')}
         />
 
-        {/* Profile card — outside ScrollView so tab bar stays sticky */}
+        {/* Profile card */}
         <View style={styles.profileBlock}>
           <TouchableOpacity
-            style={styles.avatarCircle}
-            onPress={handlePickAvatar}
-            activeOpacity={0.85}
-            disabled={avatarUploading}
+              style={styles.avatarCircle}
+              onPress={handlePickAvatar}
+              activeOpacity={0.85}
+              disabled={avatarUploading}
           >
             {avatarUri ? (
-                // 👇 2. resizeMode="cover" 를 추가해 주세요.
                 <Image source={{ uri: avatarUri }} style={styles.avatarImg} resizeMode="cover" />
             ) : (
                 <PersonSilhouette size={72} color="#3a3a3a" />
             )}
             {avatarUploading && (
-              <View style={styles.avatarOverlay}>
-                <ActivityIndicator color={COLORS.gold} size="small" />
-              </View>
+                <View style={styles.avatarOverlay}>
+                  <ActivityIndicator color={COLORS.gold} size="small" />
+                </View>
             )}
           </TouchableOpacity>
           <View style={styles.profileInfo}>
@@ -354,7 +355,7 @@ const MyProfileScreen = () => {
                   </View>
                   <View style={styles.artistRatingRow}>
                     <StarIcon size={14} color={COLORS.gold} filled />
-                    <Text style={styles.artistRatingValue}>{Number(artistInfo.rating).toFixed(1)}</Text>
+                    <Text style={styles.artistRatingValue}>{Number(artistInfo?.rating || 0).toFixed(1)}</Text>
                     <Text style={styles.artistRatingCount}>({artistInfo.reviewCount})</Text>
                   </View>
                 </>
@@ -366,12 +367,13 @@ const MyProfileScreen = () => {
                               t('profile.vendorSuspended')}
                 </Text>
             ) : (
-                <Text style={styles.bio}>{session?.user.email ?? ''}</Text>
+                // 🚨 수정 포인트: session?.user?.email
+                <Text style={styles.bio}>{session?.user?.email ?? ''}</Text>
             )}
           </View>
         </View>
 
-        {/* Mode selector — underline tab bar matching customer view */}
+        {/* Mode selector */}
         <View style={styles.modeTabs}>
           {MODE_TAB_KEYS.map((tab) => {
             const active = mode === tab.key;
@@ -412,7 +414,6 @@ const MyProfileScreen = () => {
               <>
                 {renderCompactSection(t('profile.myReservations'), userReservationItems)}
                 {renderCompactSection(t('profile.myPosts'), userPostItems)}
-                {/* 👇 이 부분이 누락되어 있었습니다! 추가해 주세요. */}
                 {renderCompactSection(t('settings.title') || '설정', userSettingItems)}
               </>
           )}
@@ -636,5 +637,4 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: COLORS.gold,
   },
-
 });
