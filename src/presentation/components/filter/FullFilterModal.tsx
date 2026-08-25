@@ -46,9 +46,9 @@ const FullFilterModal = memo(({ visible, onClose }: FullFilterModalProps) => {
     Icon: React.FC<{ size?: number; color?: string }>;
   }[] = [
     { key: 'region', title: t('filter.region'), Icon: RegionIcon },
-    { key: 'genre', title: t('filter.genre'), hint: t('filter.multiSelect'), Icon: GenreIcon },
-    { key: 'bodyPart', title: t('filter.bodyPart'), hint: t('filter.multiSelect'), Icon: BodyPartIconSvg },
-    { key: 'subject', title: t('filter.subject'), hint: t('filter.multiSelect'), Icon: SubjectIcon },
+    { key: 'genre', title: (t as any)('filter.genre.label'), hint: t('filter.multiSelect'), Icon: GenreIcon },
+    { key: 'bodyPart', title: (t as any)('filter.bodyPart.label'), hint: t('filter.multiSelect'), Icon: BodyPartIconSvg },
+    { key: 'subject', title: (t as any)('filter.subject.label'), hint: t('filter.multiSelect'), Icon: SubjectIcon },
     { key: 'budget', title: t('filter.budget'), Icon: WonIcon },
   ];
 

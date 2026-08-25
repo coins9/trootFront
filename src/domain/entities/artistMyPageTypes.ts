@@ -10,6 +10,7 @@ export interface ArtistSelfProfile {
   regionSido?: string | null;
   regionSigungu?: string | null;
   intro: string;
+  introEn?: string | null;
   avatarUri: string;
   rating: number;
   reviewCount: number;

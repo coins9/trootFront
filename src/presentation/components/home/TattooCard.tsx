@@ -75,8 +75,10 @@ const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooC
         </View>
 
         <View style={styles.body}>
-          {!!tattoo.title && (
-              <Text style={styles.artworkTitle} numberOfLines={1}>{tattoo.title}</Text>
+          {!!(tattoo.title || tattoo.titleEn) && (
+              <Text style={styles.artworkTitle} numberOfLines={1}>
+                {language === 'en' ? (tattoo.titleEn || tattoo.title) : tattoo.title}
+              </Text>
           )}
           <TouchableOpacity
               onPress={(e) => {

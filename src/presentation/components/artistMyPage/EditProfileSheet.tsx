@@ -37,6 +37,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   const [regionSigungu, setRegionSigungu] = useState<string | null>(profile.regionSigungu ?? null);
   const [detailAddress, setDetailAddress] = useState((profile as any).detailAddress ?? '');
   const [intro, setIntro] = useState(profile.intro);
+  const [introEn, setIntroEn] = useState((profile as any).introEn ?? '');
   const [tags, setTags] = useState<string[]>(profile.tags ?? []);
   const [openChatUrl, setOpenChatUrl] = useState(profile.openChatUrl ?? '');
   const [availableHours, setAvailableHours] = useState(profile.availableHours ?? '');
@@ -81,6 +82,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       setRegionSigungu(profile.regionSigungu ?? null);
       setDetailAddress((profile as any).detailAddress ?? '');
       setIntro(profile.intro);
+      setIntroEn((profile as any).introEn ?? '');
       setTags(profile.tags ?? []);
       setOpenChatUrl(profile.openChatUrl ?? '');
       setAvailableHours(profile.availableHours ?? '');
@@ -101,6 +103,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       ...(avatarImage !== null ? { avatarImage } : {}),
       location,
       intro: intro.trim() || profile.intro,
+      introEn: introEn.trim() || null,
       tags,
       openChatUrl: openChatUrl.trim() || null,
       availableHours: availableHours.trim() || null,
@@ -255,7 +258,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                 </View>
               </View>
 
-              {/* Intro */}
+              {/* Intro (Korean) */}
               <View style={styles.field}>
                 <Text style={styles.label}>{t('artistMyPage.editBio')}</Text>
                 <View style={styles.introWrap}>
@@ -270,6 +273,26 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                     textAlignVertical="top"
                   />
                   <Text style={styles.counter}>{intro.length}/{INTRO_MAX}</Text>
+                </View>
+              </View>
+
+              {/* Intro (English) */}
+              <View style={styles.field}>
+                <Text style={styles.label}>Bio (English)</Text>
+                <View style={styles.introWrap}>
+                  <TextInput
+                    value={introEn}
+                    onChangeText={(v) => v.length <= INTRO_MAX && setIntroEn(v)}
+                    placeholder="Short intro in English (optional)"
+                    placeholderTextColor={COLORS.gray2}
+                    multiline
+                    maxLength={INTRO_MAX}
+                    style={styles.introInput}
+                    textAlignVertical="top"
+                    autoCapitalize="sentences"
+                    autoCorrect={false}
+                  />
+                  <Text style={styles.counter}>{introEn.length}/{INTRO_MAX}</Text>
                 </View>
               </View>
 

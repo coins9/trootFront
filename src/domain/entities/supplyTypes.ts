@@ -31,10 +31,14 @@ export interface TattooSupply {
     kakaoLink?: string;
     smsPhone?: string;
   };
+  nameEn?: string | null;
+  descriptionEn?: string | null;
+  openChatUrl?: string | null;
+  storeUrl?: string | null;
   isNew?: boolean;
   isBookmarked: boolean;
   popularityScore: number;
-  externalUrl?: string; // 🚨 이거 한 줄 추가!
+  externalUrl?: string;
 }
 
 export const SUPPLY_CATEGORIES: SupplyCategory[] = [

@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, StyleSheet,
-  Dimensions, StatusBar, Linking // 🚨 Linking 추가
+  Dimensions, StatusBar, Linking, Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -72,9 +72,15 @@ const TattooSupplyDetailScreen = () => {
     });
   }, [toast, t]);
 
-  const handleShare = useCallback(() => {
-    toast(t('supplies.detail.linkCopied'), { variant: 'success' });
-  }, [toast, t]);
+  const handleShare = useCallback(async () => {
+    try {
+      await Share.share({
+        message: `[${supply.name}] T:ROOT에서 확인하기\nhttps://tattooroot.com/supply/${supply.id}`,
+      });
+    } catch {
+      toast(t('common.error'), { variant: 'error' });
+    }
+  }, [supply.id, supply.name, toast, t]);
 
   const handleOptionSelect = useCallback((groupLabel: string, value: string) => {
     setSelectedOptions((prev) => ({ ...prev, [groupLabel]: value }));
@@ -170,25 +176,36 @@ const TattooSupplyDetailScreen = () => {
           </View>
         </ScrollView>
 
-        {/* 🚨 Sticky CTA: 외부 링크 유무에 따라 버튼 1~2개 동적 분할 */}
+        {/* Sticky CTA: 1:1문의 / 구매하러가기 분리 */}
         <View style={[styles.stickyFooter, { paddingBottom: insets.bottom + 12 }]}>
+          {/* 1:1 문의 — openChatUrl 있으면 외부링크, 없으면 인앱 바텀시트 */}
           <TouchableOpacity
-              onPress={() => setInquiryVisible(true)}
-              style={[styles.ctaBtn, supply.externalUrl ? styles.ctaBtnSecondary : {}]}
+              onPress={() => {
+                const chatUrl = supply.openChatUrl;
+                if (chatUrl) {
+                  Linking.openURL(chatUrl).catch(() => toast(t('common.linkError'), { variant: 'error' }));
+                } else {
+                  setInquiryVisible(true);
+                }
+              }}
+              style={[styles.ctaBtn, (supply.storeUrl || supply.externalUrl) ? styles.ctaBtnSecondary : {}]}
               activeOpacity={0.85}
           >
-            <Text style={[styles.ctaText, supply.externalUrl ? styles.ctaTextSecondary : {}]}>
+            <Text style={[styles.ctaText, (supply.storeUrl || supply.externalUrl) ? styles.ctaTextSecondary : {}]}>
               {t('supplies.detail.contact')}
             </Text>
           </TouchableOpacity>
 
-          {supply.externalUrl ? (
+          {(supply.storeUrl || supply.externalUrl) ? (
               <TouchableOpacity
-                  onPress={() => Linking.openURL(supply.externalUrl!).catch(() => toast('링크를 열 수 없습니다.', { variant: 'error' }))}
+                  onPress={() => {
+                    const url = supply.storeUrl || supply.externalUrl!;
+                    Linking.openURL(url).catch(() => toast(t('common.linkError'), { variant: 'error' }));
+                  }}
                   style={styles.ctaBtn}
                   activeOpacity={0.85}
               >
-                <Text style={styles.ctaText}>구매하러 가기</Text>
+                <Text style={styles.ctaText}>{t('supplies.detail.buyNow')}</Text>
               </TouchableOpacity>
           ) : null}
         </View>

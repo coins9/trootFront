@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import { GENRES } from '../../../data/mock/mockData';
+import { useTranslation } from '../../store/languageStore';
 
 interface GenreFilterProps {
   selected: string[];
@@ -10,6 +11,8 @@ interface GenreFilterProps {
 }
 
 const GenreFilter = memo(({ selected, onToggle, variant = 'sheet' }: GenreFilterProps) => {
+  const { t } = useTranslation();
+
   if (variant === 'compact') {
     return (
       <View style={styles.compactGrid}>
@@ -23,7 +26,7 @@ const GenreFilter = memo(({ selected, onToggle, variant = 'sheet' }: GenreFilter
               style={[styles.compactChip, isSelected && styles.compactChipActive]}
             >
               <Text style={[styles.compactText, isSelected && styles.compactTextActive]}>
-                {genre}
+                {(t as any)(`filter.genre.${genre}`) || genre}
               </Text>
             </TouchableOpacity>
           );
@@ -51,7 +54,7 @@ const GenreFilter = memo(({ selected, onToggle, variant = 'sheet' }: GenreFilter
                 style={[styles.btn, isSelected && styles.btnActive]}
               >
                 <Text style={[styles.btnText, isSelected && styles.btnTextActive]}>
-                  {genre}
+                  {(t as any)(`filter.genre.${genre}`) || genre}
                 </Text>
               </TouchableOpacity>
             );

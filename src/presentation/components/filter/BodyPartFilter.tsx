@@ -83,7 +83,7 @@ const BodyPartFilter = memo(({ selected, onToggle }: BodyPartFilterProps) => {
                       style={[styles.partChip, isSelected && styles.partChipActive]}
                     >
                       <Text style={[styles.partText, isSelected && styles.partTextActive]}>
-                        {part}
+                        {(t as any)(`filter.bodyPart.${part}`) || part}
                       </Text>
                     </TouchableOpacity>
                   );

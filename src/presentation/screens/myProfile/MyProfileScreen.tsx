@@ -67,6 +67,10 @@ const MyProfileScreen = () => {
     setAvatarUri(session?.user?.profileImage ?? null);
   }, [session?.user?.profileImage]);
 
+  // 모드별 아바타: 아티스트 모드이면 아티스트 페이지 프로필 이미지 우선
+  const currentAvatar =
+    mode === 'artist' ? (artistInfo?.profileImage ?? avatarUri) : avatarUri;
+
   // Restore persisted mode on mount
   useEffect(() => {
     AsyncStorage.getItem(MODE_KEY)
@@ -332,8 +336,8 @@ const MyProfileScreen = () => {
               activeOpacity={0.85}
               disabled={avatarUploading}
           >
-            {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.avatarImg} resizeMode="cover" />
+            {currentAvatar ? (
+                <Image source={{ uri: currentAvatar }} style={styles.avatarImg} resizeMode="cover" />
             ) : (
                 <PersonSilhouette size={72} color="#3a3a3a" />
             )}
@@ -414,9 +418,10 @@ const MyProfileScreen = () => {
               <>
                 {renderCompactSection(t('profile.myReservations'), userReservationItems)}
                 {renderCompactSection(t('profile.myPosts'), userPostItems)}
-                {renderCompactSection(t('settings.title') || '설정', userSettingItems)}
               </>
           )}
+
+          {renderCompactSection(t('settings.title') || '설정', userSettingItems)}
 
           {mode === 'shopMatching' && (
               <>

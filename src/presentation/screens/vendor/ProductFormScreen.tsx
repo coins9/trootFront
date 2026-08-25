@@ -41,7 +41,10 @@ const ProductFormScreen = () => {
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
   const [description, setDescription] = useState('');
-  const [externalUrl, setExternalUrl] = useState('');
+  const [nameEn, setNameEn] = useState('');
+  const [descriptionEn, setDescriptionEn] = useState('');
+  const [openChatUrl, setOpenChatUrl] = useState('');
+  const [storeUrl, setStoreUrl] = useState('');
   const [images, setImages] = useState<string[]>([]);
 
   useEffect(() => {
@@ -69,7 +72,10 @@ const ProductFormScreen = () => {
         setPrice(String(found.priceKrw ?? ''));
         setStock(String(found.stock ?? 0));
         setDescription(found.description ?? '');
-        setExternalUrl(found.externalUrl ?? '');
+        setNameEn((found as any).nameEn ?? '');
+        setDescriptionEn((found as any).descriptionEn ?? '');
+        setOpenChatUrl((found as any).openChatUrl ?? '');
+        setStoreUrl((found as any).storeUrl ?? (found.externalUrl ?? ''));
         setImages(found.images ?? (found.thumbnail ? [found.thumbnail] : []));
       } catch (e) {
         if (alive) {
@@ -104,15 +110,18 @@ const ProductFormScreen = () => {
     Keyboard.dismiss();
     setSubmitting(true);
 
-    const payload: ProductPayload & { subtitle?: string } = {
+    const payload: ProductPayload & { subtitle?: string; nameEn?: string; descriptionEn?: string; openChatUrl?: string; storeUrl?: string } = {
       name: name.trim(),
-      subtitle: subtitle.trim(), // 🚨 백엔드 Payload에 subtitle 전송
+      subtitle: subtitle.trim(),
+      nameEn: nameEn.trim() || undefined,
+      descriptionEn: descriptionEn.trim() || undefined,
       category: category as any,
       priceKrw: priceNum,
       stock: stock ? Number(stock) : 0,
       brand: brand.trim() || undefined,
       description: description.trim() || undefined,
-      externalUrl: externalUrl.trim() || undefined,
+      openChatUrl: openChatUrl.trim() || undefined,
+      storeUrl: storeUrl.trim() || undefined,
       images,
       thumbnail: images[0],
     };
@@ -129,8 +138,9 @@ const ProductFormScreen = () => {
       setSubmitting(false);
     }
   }, [
-    canSubmit, submitting, name, subtitle, category, priceNum, stock, brand,
-    description, externalUrl, images, isEdit, productId, toast, navigation, t,
+    canSubmit, submitting, name, subtitle, nameEn, descriptionEn, category,
+    priceNum, stock, brand, description, openChatUrl, storeUrl,
+    images, isEdit, productId, toast, navigation, t,
   ]);
 
   return (
@@ -177,7 +187,9 @@ const ProductFormScreen = () => {
                 <Text style={s.label}>{t('vendor.fieldName')} <Text style={s.req}>*</Text></Text>
                 <TextInput style={s.input} placeholder={t('vendor.fieldNamePlaceholder')} placeholderTextColor={COLORS.gray2} value={name} onChangeText={setName} />
 
-                {/* 🚨 부제목 입력칸 새로 추가 */}
+                <Text style={s.label}>영문 상품명 (English Name)</Text>
+                <TextInput style={s.input} placeholder="e.g. Beginner Tattoo Machine Kit" placeholderTextColor={COLORS.gray2} value={nameEn} onChangeText={setNameEn} autoCapitalize="none" />
+
                 <Text style={s.label}>한 줄 설명 (부제목) <Text style={s.req}>*</Text></Text>
                 <TextInput
                     style={s.input}
@@ -216,6 +228,15 @@ const ProductFormScreen = () => {
 
                 <Text style={s.label}>{t('vendor.fieldDescription')}</Text>
                 <TextInput style={[s.input, s.textarea]} placeholder={t('vendor.descPlaceholder')} placeholderTextColor={COLORS.gray2} value={description} onChangeText={setDescription} multiline textAlignVertical="top" />
+
+                <Text style={s.label}>영문 설명 (English Description)</Text>
+                <TextInput style={[s.input, s.textarea]} placeholder="Enter product description in English" placeholderTextColor={COLORS.gray2} value={descriptionEn} onChangeText={setDescriptionEn} multiline textAlignVertical="top" autoCapitalize="none" />
+
+                <Text style={s.label}>1:1 문의 링크 (오픈채팅)</Text>
+                <TextInput style={s.input} placeholder="https://open.kakao.com/..." placeholderTextColor={COLORS.gray2} value={openChatUrl} onChangeText={setOpenChatUrl} autoCapitalize="none" keyboardType="url" />
+
+                <Text style={s.label}>구매 링크 (외부 스토어)</Text>
+                <TextInput style={s.input} placeholder="https://smartstore.naver.com/..." placeholderTextColor={COLORS.gray2} value={storeUrl} onChangeText={setStoreUrl} autoCapitalize="none" keyboardType="url" />
 
                 <View style={{ height: 24 }} />
               </ScrollView>

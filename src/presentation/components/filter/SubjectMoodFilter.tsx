@@ -38,7 +38,7 @@ const SubjectMoodFilter = memo(({
           {SUBJECTS.map((item) => (
             <Chip
               key={item}
-              label={item}
+              label={(t as any)(`filter.subject.${item}`) || item}
               selected={selectedSubjects.includes(item)}
               onPress={() => onToggleSubject(item)}
             />
@@ -54,7 +54,7 @@ const SubjectMoodFilter = memo(({
           {MOODS.map((item) => (
             <Chip
               key={item}
-              label={item}
+              label={(t as any)(`filter.mood.${item}`) || item}
               selected={selectedMoods.includes(item)}
               onPress={() => onToggleMood(item)}
             />

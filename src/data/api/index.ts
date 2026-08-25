@@ -533,6 +533,9 @@ export const userApi = {
     onboarded: boolean; language: string; status: string;
   }>('/app/users/me'),
 
+  publicProfile: (userId: string) =>
+    api.get<{ id: string; nickname: string | null; profileImage: string | null }>(`/app/users/${userId}/public`),
+
   nicknameAvailable: (nickname: string) =>
     api.get<{ available: boolean }>(`/app/users/nickname/available${qs({ nickname })}`),
 
