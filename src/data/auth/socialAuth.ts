@@ -27,12 +27,17 @@ export const initSocialAuth = (config: {
 
 const isCancelled = (e: unknown): boolean => {
   const msg = String((e as Error)?.message ?? '').toLowerCase();
-  const code = String((e as { code?: string })?.code ?? '').toLowerCase();
+  const code = String((e as { code?: string | number })?.code ?? '');
+  const codeLower = code.toLowerCase();
   return (
     msg.includes('cancel') ||
-    code.includes('cancel') ||
+    msg.includes('user_cancel') ||
+    codeLower.includes('cancel') ||
+    // iOS KakaoSDK 취소 코드
     code === '-5' ||
-    code === '1001'
+    code === '1001' ||
+    // Android KakaoSDK 취소 코드
+    code === 'E_KAKAO_AUTH' && msg.includes('cancel')
   );
 };
 

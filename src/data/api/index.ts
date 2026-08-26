@@ -435,6 +435,7 @@ export interface AdCampaign {
   expiresAt: string | null;
   impressions: number;
   clicks: number;
+  inquiries: number;
 }
 
 export interface AdProduct {
@@ -458,7 +459,7 @@ export const adApi = {
   products: () => api.get<Record<AdType, AdProduct[]>>('/app/ads/products'),
   mine: () => api.get<AdCampaign[]>('/app/ads/me'),
   stats: () =>
-    api.get<{ impressions: number; clicks: number; spend: number; activeCount: number; ctr: number }>(
+    api.get<{ impressions: number; clicks: number; inquiries: number; spend: number; activeCount: number; ctr: number }>(
       '/app/ads/me/stats',
     ),
   /** 세그먼트 잔여 슬롯 — 구매 화면 '매진' 표시 */
@@ -466,19 +467,26 @@ export const adApi = {
     api.get<{ used: number; total: number; available: number }>(
       `/app/ads/availability${qs({ placement, regionKey, genreKey })}`,
     ),
+  /** 광고 구매 신청 — PENDING 캠페인 반환. 이후 activate() 를 호출해야 광고 시작됨 */
   purchase: (input: PurchaseAdInput) => api.post<AdCampaign>('/app/ads/purchase', input),
+  /** 광고 활성화 — 결제 확인 후 PENDING → ACTIVE 전환 */
+  activate: (campaignId: string) => api.post<AdCampaign>(`/app/ads/${campaignId}/activate`),
   useSuperUp: (campaignId: string, targetId: string) =>
     api.post<AdCampaign>('/app/ads/super-up', { campaignId, targetId }),
   /** 목록/피드가 세그먼트 광고를 받아감 (라운드로빈) */
   serving: (placement: AdPlacement, type: AdType, regionKey?: string, genreKey?: string) =>
     api.get<AdCampaign[]>(`/app/ads/serving${qs({ placement, type, regionKey, genreKey })}`),
-  /** 홈 피드용 — 카드광고 + 슈퍼UP 캠페인을 대상 작품 정보와 함께 받아온다 */
+  /** 홈 피드용 — 카드광고 + 슈퍼UP + 배너 캠페인을 대상 작품 정보와 함께 받아온다 */
   servingArtworks: (regionKey?: string, genreKey?: string) =>
-    api.get<{ campaignId: string; type: AdType; artwork: Artwork }[]>(
+    api.get<{ campaignId: string; type: AdType; artwork: Artwork | null }[]>(
       `/app/ads/serving/artworks${qs({ regionKey, genreKey })}`,
     ),
+  /** 노출 집계 — ACTIVE 캠페인만 카운트됨 */
   impression: (campaignId: string) => api.post<{ tracked: boolean }>(`/app/ads/${campaignId}/impression`),
+  /** 클릭 집계 — ACTIVE 캠페인만 카운트됨 */
   click: (campaignId: string) => api.post<{ tracked: boolean }>(`/app/ads/${campaignId}/click`),
+  /** 문의 집계 — 광고 상세에서 문의하기/예약하기 버튼 클릭 시 호출 */
+  trackInquiry: (campaignId: string) => api.post<{ tracked: boolean }>(`/app/ads/${campaignId}/inquiry`),
 };
 
 // ── 타투용품 ──────────────────────────────────────────────

@@ -39,7 +39,7 @@ const AdManageScreen = () => {
   const targetId = route.params.targetId;
 
   const [campaigns, setCampaigns] = useState<AdCampaign[]>([]);
-  const [stats, setStats] = useState<{ impressions: number; clicks: number; spend: number; ctr: number } | null>(null);
+  const [stats, setStats] = useState<{ impressions: number; clicks: number; inquiries: number; spend: number; ctr: number } | null>(null);
   const [products, setProducts] = useState<Record<AdType, AdProduct[]> | null>(null);
   const [loading, setLoading] = useState(true);
   const [buyOpen, setBuyOpen] = useState(false);
@@ -79,10 +79,13 @@ const AdManageScreen = () => {
   const purchase = useCallback(
       async (type: AdType, productCode: string, regionKey: string) => {
         try {
-          await adApi.purchase({ placement, type, productCode, targetId, regionKey });
+          // 1단계: PENDING 캠페인 생성
+          const campaign = await adApi.purchase({ placement, type, productCode, targetId, regionKey });
+          // 2단계: 결제 확인 (PG 연동 전이므로 즉시 활성화)
+          await adApi.activate(campaign.id);
           setBuyOpen(false);
           toast(t('ad.registered' as any), { variant: 'success' });
-          void load(true); // 🚨 구매 성공 후 스피너 없이 조용히 통계 및 내역 최신화
+          void load(true);
         } catch (e) {
           toast(e instanceof ApiError ? e.userMessage : t('ad.registerFailed' as any), { variant: 'error' });
         }
@@ -117,9 +120,9 @@ const AdManageScreen = () => {
                     <View style={s.statDivider} />
                     <View style={s.statItem}><Text style={s.statValue}>{stats.clicks.toLocaleString()}</Text><Text style={s.statLabel}>{t('ad.clicks' as any)}</Text></View>
                     <View style={s.statDivider} />
-                    <View style={s.statItem}><Text style={s.statValue}>{stats.ctr}%</Text><Text style={s.statLabel}>CTR</Text></View>
+                    <View style={s.statItem}><Text style={s.statValue}>{stats.inquiries.toLocaleString()}</Text><Text style={s.statLabel}>{t('ad.inquiries' as any)}</Text></View>
                     <View style={s.statDivider} />
-                    <View style={s.statItem}><Text style={s.statValue}>{stats.spend.toLocaleString()}</Text><Text style={s.statLabel}>{t('ad.spend' as any)}</Text></View>
+                    <View style={s.statItem}><Text style={s.statValue}>{stats.ctr}%</Text><Text style={s.statLabel}>CTR</Text></View>
                   </View>
               )}
 
@@ -192,10 +195,12 @@ const PurchaseSheet = ({ visible, products, onClose, onPurchase }: {
 
             <Text style={s.sheetLabel}>{t('ad.adType' as any)}</Text>
             <View style={s.chipRow}>
-              {(['cardad', 'superup'] as AdType[]).map((adType) => (
+              {(['cardad', 'superup', 'banner'] as AdType[]).map((adType) => (
                   <TouchableOpacity key={adType} onPress={() => { setType(adType); setProductCode(''); }}
                                     style={[s.chip, type === adType && s.chipActive]} activeOpacity={0.75}>
-                    <Text style={[s.chipText, type === adType && s.chipTextActive]}>{adType === 'cardad' ? t('ad.typeCardAd' as any) : t('ad.typeSuperUp' as any)}</Text>
+                    <Text style={[s.chipText, type === adType && s.chipTextActive]}>
+                      {adType === 'cardad' ? t('ad.typeCardAd' as any) : adType === 'superup' ? t('ad.typeSuperUp' as any) : t('ad.typeBanner' as any)}
+                    </Text>
                   </TouchableOpacity>
               ))}
             </View>

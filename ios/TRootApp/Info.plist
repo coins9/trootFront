@@ -30,6 +30,9 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- 카카오 SDK 초기화 키 (react-native-seoul/kakao-login 이 앱 시작 시 이 값으로 SDK 를 init) -->
+	<key>KAKAO_NATIVE_APP_KEY</key>
+	<string>03ee03e5d371ace79e87ceef570d55d1</string>
 	<!-- 소셜 로그인 리다이렉트 수신 스킴 -->
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -50,12 +53,14 @@
 			</array>
 		</dict>
 	</array>
-	<!-- 설치된 카카오톡으로 전환하려면 조회 허용이 필요 -->
+	<!-- 설치된 카카오톡으로 전환하거나 웹 로그인 fallback 을 열려면 조회 허용이 필요 -->
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>kakaokompassauth</string>
+		<string>kakaoauth</string>
 		<string>kakaolink</string>
 		<string>kakaoplus</string>
+		<string>kakaotalk</string>
 	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>

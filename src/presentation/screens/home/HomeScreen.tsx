@@ -18,9 +18,11 @@ import FilterBottomSheet from '../../components/filter/FilterBottomSheet';
 import FullFilterModal from '../../components/filter/FullFilterModal';
 import { usePagedApi, useApi } from '../../hooks/useApi';
 import { useDebounce } from '../../hooks/useDebounce';
-import { artistApi, favoriteApi, adApi } from '../../../data/api';
+import { artistApi, favoriteApi, adApi, type AdType } from '../../../data/api';
 import { toTattoo } from '../../../data/api/mappers';
 import { FilterType, Tattoo, Artist } from '../../../domain/entities/types';
+import { HomeAd } from '../../../domain/entities/adTypes';
+import HomeAdBanner from '../../components/home/HomeAdBanner';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useFilterStore } from '../../store/filterStore';
 
@@ -64,12 +66,21 @@ const HomeScreen = () => {
   );
 
   // 🚨 1. 화면(탭)에 다시 돌아올 때마다 피드와 광고 데이터를 최신으로 갱신
+  // Fallback: 세그먼트 매칭 광고가 없으면 전체 활성 광고로 대체 (당근·번개 방식)
   const hasFocused = useRef(false);
   const { data: adArtworks, reload: reloadAds } = useApi(
-      () => adApi.servingArtworks(
-          regionMode === 'domestic' ? (region.city ?? undefined) : undefined,
-          genres[0],
-      ),
+      async () => {
+        const regionKey = regionMode === 'domestic' ? (region.city ?? undefined) : undefined;
+        const genreKey = genres[0] ?? undefined;
+        // 1차: 현재 필터 세그먼트 매칭 광고
+        const segmented = await adApi.servingArtworks(regionKey, genreKey);
+        if (segmented.length > 0) return segmented;
+        // Fallback: 세그먼트 불일치 시 targeting 없이 전체 활성 광고 요청
+        if (regionKey || genreKey) {
+          return adApi.servingArtworks(undefined, undefined);
+        }
+        return segmented;
+      },
       [regionMode, region.city, genres],
   );
 
@@ -86,6 +97,33 @@ const HomeScreen = () => {
 
   const cardAds = useMemo(
       () => (adArtworks ?? []).filter((a) => a.type === 'cardad'),
+      [adArtworks],
+  );
+
+  // banner 타입 광고를 HomeAdBanner 형식으로 변환
+  const bannerAds = useMemo<HomeAd[]>(
+      () =>
+        (adArtworks ?? [])
+          .filter((a) => a.type === 'banner')
+          .map((a) => ({
+            id: a.campaignId,
+            category: '도안 광고' as const,
+            title: a.artwork.title,
+            subtitle: a.artwork.description ?? '',
+            advertiserName: a.artwork.artist?.pageName ?? '',
+            location:
+              a.artwork.artist?.regionSigungu ??
+              a.artwork.artist?.regionSido ??
+              undefined,
+            priceLabel: a.artwork.priceKrw
+              ? `${Math.floor(a.artwork.priceKrw / 10000)}만원~`
+              : undefined,
+            imageUri: a.artwork.thumbnail ?? a.artwork.images[0] ?? '',
+            ctaLabel: '상세 보기',
+            targetType: 'tattoo' as const,
+            targetId: a.artwork.id,
+            isSponsored: true as const,
+          })),
       [adArtworks],
   );
 
@@ -225,6 +263,28 @@ const HomeScreen = () => {
         <HomeArtistHeader onArtistPress={handleArtistPress} onBannerPress={() => {}} />
         <FilterBar onFilterPress={openFilter} />
         <ActiveFilterRow onAddPress={() => openFilter('full')} />
+
+        {/* 배너 광고 (banner 타입) — 당근/번개 방식: 활성 광고 항상 노출 */}
+        {bannerAds.map((ad) => (
+            <HomeAdBanner
+                key={ad.id}
+                ad={ad}
+                onPress={() => {
+                  if (ad.targetType === 'tattoo' && ad.targetId) {
+                    const matched = (adArtworks ?? []).find((a) => a.artwork.id === ad.targetId);
+                    if (matched) {
+                      adApi.click(ad.id).catch(() => {});
+                      navigation.navigate('TattooDetail', {
+                        tattoo: toTattoo(matched.artwork, favorites[matched.artwork.id] ?? false),
+                      });
+                    }
+                  }
+                }}
+                onWhyAdPress={() => {}}
+            />
+        ))}
+
+        {/* 카드 광고 (cardad 타입) — 수평 스크롤 */}
         {sponsoredTattoos.length > 0 && (
             <View style={styles.sponsoredSection}>
               <Text style={styles.sponsoredTitle}>{t('home.sponsored')}</Text>
@@ -246,7 +306,8 @@ const HomeScreen = () => {
             </View>
         )}
       </View>
-  ), [handleArtistPress, openFilter, sponsoredTattoos, handleTattooPress, handleBookmark, t]);
+  ), [handleArtistPress, openFilter, sponsoredTattoos, bannerAds, adArtworks, favorites,
+      handleTattooPress, handleBookmark, navigation, t]);
 
   const listEmpty = useMemo(() => {
     if (loading) {
