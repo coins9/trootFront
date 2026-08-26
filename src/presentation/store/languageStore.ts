@@ -14,7 +14,9 @@ interface LanguageStore {
   isHydrated: boolean;
   hydrate: () => Promise<void>;
   setPreference: (pref: LanguagePreference) => Promise<void>;
-  t: (key: TranslationKey, params?: Record<string, string | number>) => string;
+  // TranslationKey union is large → widen to string so call-sites don't need `as any`.
+  // The underlying translate() still falls back gracefully for unknown keys.
+  t: (key: TranslationKey | string, params?: Record<string, string | number>) => string;
 }
 
 const resolveLanguage = (pref: LanguagePreference): AppLanguage =>
@@ -49,7 +51,7 @@ export const useLanguageStore = create<LanguageStore>((set, get) => ({
     }
   },
 
-  t: (key, params) => translate(get().language, key, params),
+  t: (key, params) => translate(get().language, key as TranslationKey, params),
 }));
 
 /** 컴포넌트에서 t()와 현재 언어를 함께 구독 */

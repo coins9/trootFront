@@ -1,3 +1,6 @@
+# pnpm 로컬 캐시
+.pnpm-store/
+
 # Keys & secrets (절대 커밋 금지)
 .env
 .env.local
