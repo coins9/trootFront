@@ -100,28 +100,28 @@ const HomeScreen = () => {
       [adArtworks],
   );
 
-  // banner 타입 광고를 HomeAdBanner 형식으로 변환
+  // banner 타입 광고를 HomeAdBanner 형식으로 변환 (artwork null 방어)
   const bannerAds = useMemo<HomeAd[]>(
       () =>
         (adArtworks ?? [])
-          .filter((a) => a.type === 'banner')
+          .filter((a) => a.type === 'banner' && a.artwork != null)
           .map((a) => ({
             id: a.campaignId,
             category: '도안 광고' as const,
-            title: a.artwork.title,
-            subtitle: a.artwork.description ?? '',
-            advertiserName: a.artwork.artist?.pageName ?? '',
+            title: a.artwork!.title,
+            subtitle: a.artwork!.description ?? '',
+            advertiserName: a.artwork!.artist?.pageName ?? '',
             location:
-              a.artwork.artist?.regionSigungu ??
-              a.artwork.artist?.regionSido ??
+              a.artwork!.artist?.regionSigungu ??
+              a.artwork!.artist?.regionSido ??
               undefined,
-            priceLabel: a.artwork.priceKrw
-              ? `${Math.floor(a.artwork.priceKrw / 10000)}만원~`
+            priceLabel: a.artwork!.priceKrw
+              ? `${Math.floor(a.artwork!.priceKrw / 10000)}만원~`
               : undefined,
-            imageUri: a.artwork.thumbnail ?? a.artwork.images[0] ?? '',
+            imageUri: a.artwork!.thumbnail ?? a.artwork!.images[0] ?? '',
             ctaLabel: '상세 보기',
             targetType: 'tattoo' as const,
-            targetId: a.artwork.id,
+            targetId: a.artwork!.id,
             isSponsored: true as const,
           })),
       [adArtworks],
@@ -129,7 +129,9 @@ const HomeScreen = () => {
 
   const campaignByArtworkId = useMemo(() => {
     const m = new Map<string, string>();
-    (adArtworks ?? []).forEach((a) => m.set(a.artwork.id, a.campaignId));
+    (adArtworks ?? []).forEach((a) => {
+      if (a.artwork) m.set(a.artwork.id, a.campaignId);
+    });
     return m;
   }, [adArtworks]);
 
