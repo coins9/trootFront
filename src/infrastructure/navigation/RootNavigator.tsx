@@ -58,7 +58,7 @@ export type RootStackParamList = {
   TattooShareDetail: { shop: TattooShareShop };
   BeginnerModelDetail: { post: BeginnerModelRecruit };
   MediaExpertDetail: { expert: MediaExpert };
-  TattooSupplyDetail: { supply: TattooSupply };
+  TattooSupplyDetail: { productId: string };
   ReservationManage: undefined;
   FavoriteArtists: undefined;
   FavoriteWorks: undefined;

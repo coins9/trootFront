@@ -8,7 +8,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import { useTranslation } from '../../store/languageStore';
-import { lightingLabel } from '../../utils/shopDisplayMap';
+import { lightingLabel, stencilLabel } from '../../utils/shopDisplayMap';
 import {
   BackArrowIcon, ShareIcon, BookmarkIcon, LocationPinIcon,
   AreaIcon, BedIcon, LightIcon, DoorIcon, PeopleIcon,

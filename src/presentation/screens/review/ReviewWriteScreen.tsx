@@ -24,14 +24,17 @@ import { useTranslation } from '../../store/languageStore';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteP = RouteProp<RootStackParamList, 'ReviewWrite'>;
 
-const TEXT_MIN = 5;
+const TEXT_MIN = 10;
 const TEXT_MAX = 500;
 const PHOTO_MAX = 5;
 
-const getRatingScoreLabel = (t: (key: any) => string, value: number): string => {
-  if (value <= 0) return '';
-  const keys = ['', 'review.ratingScore1', 'review.ratingScore2', 'review.ratingScore3', 'review.ratingScore4', 'review.ratingScore5'] as const;
-  return t(keys[value] as any);
+const RATING_SCORE_KEYS = [
+  '', 'review.ratingScore1', 'review.ratingScore2', 'review.ratingScore3', 'review.ratingScore4', 'review.ratingScore5',
+] as const;
+
+const getRatingScoreLabel = (t: (key: string) => string, value: number): string => {
+  const key = RATING_SCORE_KEYS[value];
+  return key ? t(key) : '';
 };
 
 const StarInput = React.memo(({ value, onChange }: {
@@ -122,11 +125,11 @@ const ReviewWriteScreen = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!allRated) {
-      toast(t('review.noRatingError' as any), { variant: 'error' });
+      toast(t('review.noRatingError'), { variant: 'error' });
       return;
     }
     if (!textValid) {
-      toast(t('review.textTooShortError' as any).replace('{{min}}', String(TEXT_MIN)), { variant: 'error' });
+      toast(t('review.textTooShortError').replace('{{min}}', String(TEXT_MIN)), { variant: 'error' });
       return;
     }
     if (submitting) return;
@@ -145,10 +148,10 @@ const ReviewWriteScreen = () => {
         body: text.trim(),
         images: photos.length > 0 ? photos : undefined,
       });
-      toast(t('review.submitted' as any), { variant: 'success' });
+      toast(t('review.submitted'), { variant: 'success' });
       navigation.goBack();
     } catch (e) {
-      toast(e instanceof ApiError ? e.userMessage : t('common.error' as any), { variant: 'error' });
+      toast(e instanceof ApiError ? e.userMessage : t('common.error'), { variant: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -166,13 +169,13 @@ const ReviewWriteScreen = () => {
           >
             <BackArrowIcon size={24} color={COLORS.white} strokeWidth={2} />
           </TouchableOpacity>
-          <Text style={s.headerTitle}>{t('review.writeTitle' as any)}</Text>
+          <Text style={s.headerTitle}>{t('review.writeTitle')}</Text>
           <View style={{ width: 24 }} />
         </View>
 
         <KeyboardAvoidingView
             style={s.flex1}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
               style={s.scroll}
@@ -207,8 +210,8 @@ const ReviewWriteScreen = () => {
             </View>
 
             {/* Ratings */}
-            <Text style={s.sectionTitle}>{t('review.sectionRating' as any)}</Text>
-            <Text style={s.sectionSub}>{t('review.sectionRatingSub' as any)}</Text>
+            <Text style={s.sectionTitle}>{t('review.sectionRating')}</Text>
+            <Text style={s.sectionSub}>{t('review.sectionRatingSub')}</Text>
             <View style={s.ratingsCard}>
               {RATING_LABELS.map((r, i) => (
                   <View key={r.key}>
@@ -225,9 +228,9 @@ const ReviewWriteScreen = () => {
             </View>
 
             {/* Photos */}
-            <Text style={s.sectionTitle}>{t('review.sectionPhoto' as any)}</Text>
+            <Text style={s.sectionTitle}>{t('review.sectionPhoto')}</Text>
             <Text style={s.sectionSub}>
-              {t('review.sectionPhotoSub' as any).replace('{{max}}', String(PHOTO_MAX))}
+              {t('review.sectionPhotoSub').replace('{{max}}', String(PHOTO_MAX))}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.photoScroll}>
               <TouchableOpacity
@@ -260,10 +263,10 @@ const ReviewWriteScreen = () => {
             </ScrollView>
 
             {/* Text */}
-            <Text style={s.sectionTitle}>{t('review.sectionText' as any)}</Text>
+            <Text style={s.sectionTitle}>{t('review.sectionText')}</Text>
             <TextInput
                 style={s.textarea}
-                placeholder={t('review.placeholder' as any).replace('{{min}}', String(TEXT_MIN))}
+                placeholder={t('review.placeholder').replace('{{min}}', String(TEXT_MIN))}
                 placeholderTextColor={COLORS.gray2}
                 value={text}
                 onChangeText={(v) => setText(v.slice(0, TEXT_MAX))}
@@ -271,11 +274,11 @@ const ReviewWriteScreen = () => {
                 textAlignVertical="top"
             />
             <Text style={[s.counter, charsLeft > 0 && s.counterWarn]}>
-              {charsLeft > 0 ? `${t('review.minCharsHint' as any).replace('{{n}}', String(charsLeft))}` : `${text.length}/${TEXT_MAX}`}
+              {charsLeft > 0 ? `${t('review.minCharsHint').replace('{{n}}', String(charsLeft))}` : `${text.length}/${TEXT_MAX}`}
             </Text>
 
             <View style={s.noticeBox}>
-              <Text style={s.noticeText}>{t('review.noticeText' as any)}</Text>
+              <Text style={s.noticeText}>{t('review.noticeText')}</Text>
             </View>
 
             <View style={{ height: 24 }} />
@@ -293,7 +296,7 @@ const ReviewWriteScreen = () => {
                   <ActivityIndicator color={COLORS.black} />
               ) : (
                   <Text style={[s.submitText, !canSubmit && s.submitTextDisabled]}>
-                    {t('review.submitBtn' as any)}
+                    {t('review.submitBtn')}
                   </Text>
               )}
             </TouchableOpacity>

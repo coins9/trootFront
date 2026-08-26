@@ -108,12 +108,10 @@ const MediaExpertCard = memo(({ expert, onPress, onBookmark }: Props) => {
           </View>
 
           {/* Heart count */}
-          {expert.likeCount > 0 && (
-            <View style={styles.statsRow}>
-              <HeartIcon size={13} color={COLORS.gray} />
-              <Text style={styles.statsText}>{expert.likeCount}</Text>
-            </View>
-          )}
+          <View style={styles.statsRow}>
+            <HeartIcon size={13} color={COLORS.gray} />
+            <Text style={styles.statsText}>{expert.likeCount ?? 0}</Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>

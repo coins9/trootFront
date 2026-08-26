@@ -657,6 +657,7 @@ export const en: TranslationSchema = {
       stencil: 'Stencil Supplies',
       aftercare: 'Aftercare',
       furniture: 'Furniture & Interior',
+      etc: 'Other',
     },
     sort: {
       popular: 'Popular',
@@ -1151,6 +1152,7 @@ export const en: TranslationSchema = {
     favoriteArtist: 'Saved artist news',
     favoriteWorkStock: 'Saved design sold out',
     favoriteSupplyPrice: 'Saved supply price change',
+    shopApplication: 'New shop & matching applications',
     event: 'Events & offers',
     notice: 'T:ROOT announcements',
     description: 'Choose which notifications you receive\nto get the most out of T:ROOT.',
@@ -1270,6 +1272,8 @@ export const en: TranslationSchema = {
     productCreated: 'Product listed',
     submitEdit: 'Save Changes',
     submitNew: 'List Product',
+    invalidOpenChatUrl: 'Enter a valid Kakao Open Chat HTTPS URL.',
+    invalidStoreUrl: 'Enter a valid HTTPS store URL.',
   },
 
   favorites: {

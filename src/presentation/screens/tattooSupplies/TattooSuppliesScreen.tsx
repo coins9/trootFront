@@ -26,6 +26,7 @@ import ScreenBanner from '../../components/common/ScreenBanner';
 import BannerCarousel from '../../components/common/BannerCarousel';
 import { useTranslation } from '../../store/languageStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { toTattooSupply } from '../../../data/api/supplyMapper';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -37,6 +38,7 @@ const CODE_BY_CATEGORY: Record<SupplyCategory, ProductCategory> = {
   '스탠실 용품': 'stencil',
   '애프터케어': 'aftercare',
   '가구·인테리어': 'furniture',
+  '기타': 'etc',
 };
 
 const CATEGORY_T_KEY: Record<SupplyCategory, string> = {
@@ -47,6 +49,7 @@ const CATEGORY_T_KEY: Record<SupplyCategory, string> = {
   '스탠실 용품': 'stencil',
   '애프터케어': 'aftercare',
   '가구·인테리어': 'furniture',
+  '기타': 'etc',
 };
 
 const SORT_T_KEY: Record<SupplySort, string> = {
@@ -55,55 +58,29 @@ const SORT_T_KEY: Record<SupplySort, string> = {
   '가격순': 'price',
 };
 
-const CATEGORY_BY_CODE = Object.fromEntries(
-    Object.entries(CODE_BY_CATEGORY).map(([label, code]) => [code, label]),
-) as Record<ProductCategory, SupplyCategory>;
-
 const SORT_BY_LABEL: Record<SupplySort, 'popular' | 'price_asc' | 'recent'> = {
   '인기순': 'popular',
   '최신순': 'recent',
   '가격순': 'price_asc',
 };
 
-// 🚨 1. 데이터 매핑 로직 수정: 부제목(subtitle)과 한글 카테고리 대응
-const toSupply = (p: SupplyProduct, sellerFallback: string): TattooSupply => {
-  const mappedCategory = CATEGORY_BY_CODE[p.category] ?? p.category;
-
-  return {
-    id: p.id,
-    category: mappedCategory as SupplyCategory,
-    name: p.name,
-    // 등록 폼에서 저장한 부제목을 우선 사용하고, 없으면 description 활용
-    subtitle: (p as any).subtitle ?? p.description ?? '',
-    brand: p.brand ?? undefined,
-    imageUri: p.thumbnail ?? p.images[0] ?? '',
-    images: p.images,
-    price: p.priceKrw ?? (p as any).price ?? 0,
-    seller: { id: p.vendorId, nickname: sellerFallback },
-    isBookmarked: false,
-    popularityScore: (p as any).popularityScore ?? 0,
-    externalUrl: (p as any).externalUrl,
-  };
-};
-
 const TattooSuppliesScreen = () => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const settings = usePublicSettings();
   const [category, setCategory] = useState<SupplyCategory>('머신 & 장비');
   const [sort, setSort] = useState<SupplySort>('최신순');
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [bookmarkOverride, setBookmarkOverride] = useState<Map<string, boolean>>(new Map());
   const [searchVisible, setSearchVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
   const debouncedKeyword = useDebounce(keyword, 400);
 
-  // 🚨 2. API 호출 파라미터 안전망 추가
   const {
     items, loading, loadingMore, error, loadMore, reload,
   } = usePagedApi(
       (cursor) => supplyApi.list({
-        category: (CODE_BY_CATEGORY[category] || category) as any,
+        category: CODE_BY_CATEGORY[category],
         sort: SORT_BY_LABEL[sort],
         keyword: debouncedKeyword || undefined,
         cursor,
@@ -118,64 +95,43 @@ const TattooSuppliesScreen = () => {
     setKeyword('');
   }, []);
 
-  // 🚨 3. 클라이언트 화면에서 확실하게 카테고리와 정렬이 적용되도록 처리
-  const filtered = useMemo(() => {
-    let mapped = items.map((p) => toSupply(p, '판매자'));
+  // 서버가 이미 필터·정렬한 결과를 클라이언트에서 재처리하지 않는다
+  const supplies = useMemo(
+    () => items.map((p) => toTattooSupply(p, language)),
+    [items, language],
+  );
 
-    // 카테고리가 일치하는 항목만 필터링
-    if (category) {
-      mapped = mapped.filter(item => item.category === category);
-    }
-
-    // 인기순 / 최신순 / 가격순 기준 정렬 적용
-    return mapped.sort((a, b) => {
-      switch (sort) {
-        case '가격순':
-          return (a.price || 0) - (b.price || 0); // 가격 낮은 순
-        case '최신순':
-          return 0; // API가 이미 최신순으로 반환
-        case '인기순':
-        default:
-          return (b.popularityScore || 0) - (a.popularityScore || 0);
-      }
-    });
-  }, [items, category, sort]);
-
-  const handleBookmark = useCallback(async (id: string) => {
-    const willAdd = !bookmarkedIds.has(id);
-    setBookmarkedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const handleBookmark = useCallback(async (id: string, serverValue: boolean) => {
+    const current = bookmarkOverride.has(id) ? bookmarkOverride.get(id)! : serverValue;
+    const willAdd = !current;
+    setBookmarkOverride((prev) => new Map(prev).set(id, willAdd));
     toast(willAdd ? t('common.bookmarked') : t('common.unbookmarked'), {
       variant: willAdd ? 'success' : undefined,
     });
     try {
-      await favoriteApi.toggle('supply', id);
+      const result = await favoriteApi.toggle('supply', id);
+      setBookmarkOverride((prev) => new Map(prev).set(id, result.favorited));
     } catch {
-      setBookmarkedIds((prev) => {
-        const next = new Set(prev);
-        if (willAdd) next.delete(id);
-        else next.add(id);
-        return next;
-      });
+      setBookmarkOverride((prev) => new Map(prev).set(id, current));
     }
-  }, [bookmarkedIds, toast, t]);
+  }, [bookmarkOverride, toast, t]);
 
-  const handleOpenDetail = useCallback((supply: TattooSupply) => {
-    navigation.navigate('TattooSupplyDetail', { supply });
+  const handleOpenDetail = useCallback((id: string) => {
+    navigation.navigate('TattooSupplyDetail', { productId: id });
   }, [navigation]);
 
-  const renderItem = useCallback(({ item }: { item: TattooSupply }) => (
+  const renderItem = useCallback(({ item }: { item: TattooSupply }) => {
+    const isBookmarked = bookmarkOverride.has(item.id)
+      ? bookmarkOverride.get(item.id)!
+      : (item.isBookmarked ?? false);
+    return (
       <SupplyCard
-          supply={{ ...item, isBookmarked: bookmarkedIds.has(item.id) }}
-          onBookmark={() => handleBookmark(item.id)}
-          onInquiry={() => handleOpenDetail(item)}
-          onPress={() => handleOpenDetail(item)}
+        supply={{ ...item, isBookmarked }}
+        onBookmark={() => handleBookmark(item.id, item.isBookmarked ?? false)}
+        onPress={() => handleOpenDetail(item.id)}
       />
-  ), [bookmarkedIds, handleBookmark, handleOpenDetail]);
+    );
+  }, [bookmarkOverride, handleBookmark, handleOpenDetail]);
 
   const Header = (
       <View>
@@ -244,7 +200,7 @@ const TattooSuppliesScreen = () => {
             />
         )}
         <FlatList
-            data={filtered}
+            data={supplies}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             numColumns={2}
@@ -254,7 +210,7 @@ const TattooSuppliesScreen = () => {
             showsVerticalScrollIndicator={false}
             onEndReached={loadMore}
             onEndReachedThreshold={0.4}
-            refreshing={loading && filtered.length > 0}
+            refreshing={loading && supplies.length > 0}
             onRefresh={reload}
             ListFooterComponent={
               loadingMore ? <ActivityIndicator color={COLORS.gold} style={{ paddingVertical: 20 }} /> : null

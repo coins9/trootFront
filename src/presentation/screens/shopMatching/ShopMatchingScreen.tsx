@@ -246,21 +246,14 @@ const ShopMatchingScreen = () => {
       [expertRegion],
   );
 
-  // 아이템이 로드될 때마다 서버에서 북마크 상태를 가져와 favorites를 초기화
-  // 로컬에서 아직 상호작용하지 않은 항목(favorites 미등록)만 업데이트
+  // 아이템이 로드/리로드될 때 서버에서 북마크 상태를 전부 덮어씌운다
   useEffect(() => {
     const allRaw = [...rawBooth, ...rawOverseasBooth, ...rawModel, ...rawMedia];
     if (allRaw.length === 0) return;
     const ids = allRaw.map((p) => p.id);
     favoriteApi.check('shop_post', ids)
       .then((map) => {
-        setFavorites((prev) => {
-          const next = { ...prev };
-          Object.entries(map).forEach(([id, fav]) => {
-            if (!(id in next)) next[id] = fav;
-          });
-          return next;
-        });
+        setFavorites((prev) => ({ ...prev, ...map }));
       })
       .catch(() => {});
   }, [rawBooth, rawOverseasBooth, rawModel, rawMedia]);
@@ -272,8 +265,6 @@ const ShopMatchingScreen = () => {
           hasFocused.current = true;
           return;
         }
-        // 재진입 시 favorites를 초기화하여 서버 상태와 재동기화
-        setFavorites({});
         reloadBooth();
         reloadOverseasBooth();
         reloadModel();
@@ -340,15 +331,9 @@ const ShopMatchingScreen = () => {
     }));
 
     try {
-      const { favorited } = await favoriteApi.toggle('shop_post', id);
+      const { favorited, likeCount } = await favoriteApi.toggle('shop_post', id);
       setFavorites((prev) => ({ ...prev, [id]: favorited }));
-      // API 응답이 예측과 다를 때 likeCount 보정
-      if (favorited !== nextBookmarked) {
-        setLikeCounts((prev) => ({
-          ...prev,
-          [id]: Math.max(0, (prev[id] ?? baseLikeCount) + (favorited ? 1 : -1)),
-        }));
-      }
+      setLikeCounts((prev) => ({ ...prev, [id]: likeCount }));
     } catch {
       // 롤백
       setFavorites((prev) => ({ ...prev, [id]: wasBookmarked }));
@@ -367,7 +352,7 @@ const ShopMatchingScreen = () => {
             likeCount: likeCounts[item.id] ?? item.likeCount,
           }}
           onPress={() => handleShopPress(item)}
-          onBookmark={() => handleBookmark(item.id, item.likeCount)}
+          onBookmark={() => handleBookmark(item.id, item.likeCount ?? 0)}
       />
   ), [handleShopPress, handleBookmark, favorites, likeCounts]);
 
@@ -391,7 +376,7 @@ const ShopMatchingScreen = () => {
             likeCount: likeCounts[item.id] ?? item.likeCount,
           }}
           onPress={() => handleExpertPress(item)}
-          onBookmark={() => handleBookmark(item.id, item.likeCount)}
+          onBookmark={() => handleBookmark(item.id, item.likeCount ?? 0)}
       />
   ), [handleExpertPress, handleBookmark, favorites, likeCounts]);
 

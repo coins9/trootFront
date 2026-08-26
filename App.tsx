@@ -91,6 +91,9 @@ const App = () => {
         <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
         <NavigationContainer
           ref={navigationRef}
+          onReady={() => notificationService.flushPendingRoute((route) => {
+            if (navigationRef.isReady()) navigationRef.navigate(route.screen, route.params);
+          })}
           theme={{
             dark: true,
             colors: {

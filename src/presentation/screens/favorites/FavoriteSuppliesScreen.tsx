@@ -39,6 +39,7 @@ const CATEGORY_LABEL_KEY: Record<CategoryFilter, TranslationKey> = {
   '스탠실 용품': 'supplies.category.stencil',
   '애프터케어': 'supplies.category.aftercare',
   '가구·인테리어': 'supplies.category.furniture',
+  '기타': 'supplies.category.etc',
 };
 
 // 백엔드 카테고리 코드 → 화면 카테고리 라벨 (필터 유지)
@@ -50,27 +51,31 @@ const CATEGORY_MAP: Record<ProductCategory, SupplyCategory> = {
   stencil: '스탠실 용품',
   aftercare: '애프터케어',
   furniture: '가구·인테리어',
-  etc: '위생·소모품',
+  etc: '기타',
 };
 
-// 찜한 용품(API) → 기존 카드 모델. 판매자 연락처는 아직 백엔드 미제공 → 비움(문의 시 안내).
-const toSupply = (f: FavoriteItem<SupplyProduct>, sellerFallback: string): TattooSupply | null => (
-    f.target
-        ? {
-          id: f.target.id,
-          category: CATEGORY_MAP[f.target.category],
-          name: f.target.name,
-          subtitle: f.target.description ?? '',
-          brand: f.target.brand ?? undefined,
-          imageUri: f.target.thumbnail ?? f.target.images[0] ?? '',
-          images: f.target.images,
-          price: f.target.priceKrw,
-          seller: { id: f.target.vendorId, nickname: sellerFallback },
-          isBookmarked: true,
-          popularityScore: 0,
-        }
-        : null
-);
+const toSupply = (f: FavoriteItem<SupplyProduct>, sellerFallback: string): TattooSupply | null => {
+  if (!f.target) return null;
+  const images = f.target.images.filter(Boolean);
+  return {
+    id: f.target.id,
+    category: CATEGORY_MAP[f.target.category],
+    name: f.target.name,
+    subtitle: f.target.subtitle ?? '',
+    brand: f.target.brand ?? undefined,
+    imageUri: f.target.thumbnail || images[0] || '',
+    images,
+    price: f.target.priceKrw,
+    description: f.target.description ?? undefined,
+    seller: { id: f.target.vendorId, nickname: f.target.vendorName || sellerFallback },
+    openChatUrl: f.target.openChatUrl,
+    storeUrl: f.target.storeUrl,
+    nameEn: f.target.nameEn,
+    descriptionEn: f.target.descriptionEn,
+    isBookmarked: true,
+    popularityScore: f.target.likeCount ?? f.target.soldCount ?? 0,
+  };
+};
 
 const { width: W } = Dimensions.get('window');
 const H_PAD = 16;
@@ -179,7 +184,7 @@ const FavoriteSuppliesScreen = () => {
   }, [toast, t]);
 
   const handleOpenDetail = useCallback((supply: TattooSupply) => {
-    navigation.navigate('TattooSupplyDetail', { supply });
+    navigation.navigate('TattooSupplyDetail', { productId: supply.id });
   }, [navigation]);
 
   return (

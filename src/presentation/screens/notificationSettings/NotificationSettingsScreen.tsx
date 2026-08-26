@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Animated,
-  StatusBar,
+  StatusBar, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import { BackArrowIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
+import { notificationApi } from '../../../data/api';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -76,7 +77,7 @@ type NotifKey =
   | 'reservationStatus' | 'reservationConfirm' | 'reservationRemind'
   | 'procedureDone' | 'newReply'
   | 'favoriteArtist' | 'favoriteWorkStock' | 'favoriteSupplyPrice'
-  | 'event' | 'notice';
+  | 'shopApplication' | 'event' | 'notice';
 
 type NotifState = Record<NotifKey, boolean>;
 
@@ -89,6 +90,7 @@ const INITIAL_STATE: NotifState = {
   favoriteArtist: true,
   favoriteWorkStock: true,
   favoriteSupplyPrice: false,
+  shopApplication: true,
   event: true,
   notice: true,
 };
@@ -99,7 +101,22 @@ const NotificationSettingsScreen = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const [state, setState] = useState<NotifState>(INITIAL_STATE);
-  const [initialState] = useState<NotifState>(INITIAL_STATE);
+  const [initialState, setInitialState] = useState<NotifState>(INITIAL_STATE);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    notificationApi.preferences()
+      .then((preferences) => {
+        if (!alive) return;
+        setState(preferences);
+        setInitialState(preferences);
+      })
+      .catch(() => toast(t('common.error'), { variant: 'error' }))
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [t, toast]);
 
   const sections = useMemo(() => [
     {
@@ -118,6 +135,7 @@ const NotificationSettingsScreen = () => {
         { key: 'favoriteArtist' as NotifKey, label: t('notification.favoriteArtist') },
         { key: 'favoriteWorkStock' as NotifKey, label: t('notification.favoriteWorkStock') },
         { key: 'favoriteSupplyPrice' as NotifKey, label: t('notification.favoriteSupplyPrice') },
+        { key: 'shopApplication' as NotifKey, label: t('notification.shopApplication') },
         { key: 'event' as NotifKey, label: t('notification.event') },
         { key: 'notice' as NotifKey, label: t('notification.notice') },
       ],
@@ -140,10 +158,21 @@ const NotificationSettingsScreen = () => {
     [state],
   );
 
-  const handleSave = useCallback(() => {
-    toast(t('notification.savedMsg', { count: enabledCount } as any), { variant: 'success' });
-    navigation.goBack();
-  }, [toast, navigation, enabledCount, t]);
+  const handleSave = useCallback(async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const saved = await notificationApi.updatePreferences(state);
+      setState(saved);
+      setInitialState(saved);
+      toast(t('notification.savedMsg', { count: String(enabledCount) }), { variant: 'success' });
+      navigation.goBack();
+    } catch {
+      toast(t('common.error'), { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  }, [saving, state, toast, navigation, enabledCount, t]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -161,7 +190,7 @@ const NotificationSettingsScreen = () => {
         <Text style={styles.title}>{t('notification.title')}</Text>
       </View>
 
-      <ScrollView
+      {loading ? <View style={styles.loading}><ActivityIndicator color={COLORS.gold} /></View> : <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -189,16 +218,17 @@ const NotificationSettingsScreen = () => {
           <Text style={styles.footText}>{t('notification.footNote')}</Text>
           <Text style={styles.footText}>{t('notification.footPermission')}</Text>
         </View>
-      </ScrollView>
+      </ScrollView>}
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
         <TouchableOpacity
           onPress={handleSave}
+          disabled={loading || saving}
           activeOpacity={0.85}
           style={styles.submitBtn}
         >
           <Text style={styles.submitText}>
-            {isDirty ? t('notification.saveBtn') : t('notification.saveBtnDone')}
+            {saving ? t('common.loading') : isDirty ? t('notification.saveBtn') : t('notification.saveBtnDone')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -210,6 +240,7 @@ export default NotificationSettingsScreen;
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.bg },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   subHeader: {
     flexDirection: 'row',

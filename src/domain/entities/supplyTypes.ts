@@ -5,7 +5,8 @@ export type SupplyCategory =
   | '위생·소모품'
   | '스탠실 용품'
   | '애프터케어'
-  | '가구·인테리어';
+  | '가구·인테리어'
+  | '기타';
 
 export type SupplySort = '인기순' | '최신순' | '가격순';
 
@@ -48,7 +49,7 @@ export const SUPPLY_CATEGORIES: SupplyCategory[] = [
   '위생·소모품',
   '스탠실 용품',
   '애프터케어',
-  '가구·인테리어',
+  '가구·인테리어', '기타',
 ];
 
 export const SUPPLY_SORTS: SupplySort[] = ['인기순', '최신순', '가격순'];

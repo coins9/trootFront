@@ -128,6 +128,7 @@ export interface CustomerReservationView {
   bodyPart: string | null;
   sizePreset: string | null;
   artworkTitle: string | null;
+  artworkPriceKrw: number | null;
   depositKrw: number;
   depositStatus: 'none' | 'pending' | 'paid' | 'refunded';
   estimatedPriceKrw: number | null;
@@ -406,7 +407,7 @@ export const favoriteApi = {
   ) => api.get<CursorPage<FavoriteItem<T>>>(`/app/favorites${qs({ type, ...p })}`),
 
   toggle: (type: FavoriteType, targetId: string) =>
-    api.post<{ favorited: boolean }>('/app/favorites/toggle', { type, targetId }),
+    api.post<{ favorited: boolean; likeCount: number }>('/app/favorites/toggle', { type, targetId }),
 
   /** 목록 렌더링 시 N+1 을 피하려 한 번에 조회 */
   check: (type: FavoriteType, targetIds: string[]) =>
@@ -497,6 +498,7 @@ export type ProductCategory =
 export interface SupplyProduct {
   id: string;
   vendorId: string;
+  vendorName?: string | null;
   name: string;
   subtitle: string | null;
   description: string | null;
@@ -516,6 +518,8 @@ export interface SupplyProduct {
   nameEn: string | null;
   descriptionEn: string | null;
   createdAt: string;
+  isBookmarked?: boolean;
+  likeCount?: number;
 }
 
 export const supplyApi = {
@@ -560,6 +564,48 @@ export const userApi = {
     api.patch('/app/users/me/fcm-token', { fcmToken, platform }),
   switchRole: (role: 'USER' | 'TATTOOIST') => api.patch('/app/users/me/role', { role }),
   withdraw: () => api.delete<void>('/app/users/me'),
+};
+
+// ── 알림 ──────────────────────────────────────────────────
+export interface NotificationPreferences {
+  reservationStatus: boolean;
+  reservationConfirm: boolean;
+  reservationRemind: boolean;
+  procedureDone: boolean;
+  newReply: boolean;
+  favoriteArtist: boolean;
+  favoriteWorkStock: boolean;
+  favoriteSupplyPrice: boolean;
+  shopApplication: boolean;
+  event: boolean;
+  notice: boolean;
+}
+
+export interface UserNotificationItem {
+  id: string;
+  type: string;
+  titleKo: string;
+  titleEn: string;
+  bodyKo: string;
+  bodyEn: string;
+  data: Record<string, string>;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export const notificationApi = {
+  preferences: () => api.get<NotificationPreferences>('/app/notifications/preferences'),
+  updatePreferences: (body: Partial<NotificationPreferences>) =>
+    api.patch<NotificationPreferences>('/app/notifications/preferences', body),
+  list: (p: { cursor?: string; limit?: number } = {}) =>
+    api.get<CursorPage<UserNotificationItem>>(`/app/notifications${qs(p)}`),
+  unreadCount: () => api.get<{ count: number }>('/app/notifications/unread-count'),
+  markRead: (id: string) => api.patch<{ read: boolean }>(`/app/notifications/${id}/read`, {}),
+  markAllRead: () => api.patch<{ read: boolean }>('/app/notifications/read-all', {}),
+  registerToken: (body: { token: string; platform: 'ios' | 'android'; installationId: string }) =>
+    api.post<{ registered: boolean }>('/app/notifications/tokens', body),
+  removeCurrentToken: (installationId: string) =>
+    api.delete<{ removed: boolean }>('/app/notifications/tokens/current', { installationId }),
 };
 
 // ── 공개 사이트 설정 ──────────────────────────────────────

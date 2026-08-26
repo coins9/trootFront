@@ -55,7 +55,7 @@ function toReservation(v: CustomerReservationView, language: string): Reservatio
     artworkTitle: v.artworkTitle ?? null,
     bodyPart: v.bodyPart ?? '',
     genre: v.sizePreset ?? '',
-    totalPrice: v.estimatedPriceKrw ?? 0,
+    totalPrice: v.artworkPriceKrw ?? v.estimatedPriceKrw ?? 0,
     createdAt: v.createdAt,
   };
 }

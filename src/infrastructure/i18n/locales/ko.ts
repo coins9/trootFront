@@ -654,6 +654,7 @@ export const ko = {
       stencil: '스탠실 용품',
       aftercare: '애프터케어',
       furniture: '가구·인테리어',
+      etc: '기타',
     },
     sort: {
       popular: '인기순',
@@ -1148,6 +1149,7 @@ export const ko = {
     favoriteArtist: '찜한 타투이스트 새 소식',
     favoriteWorkStock: '찜한 도안 소진 알림',
     favoriteSupplyPrice: '찜한 용품 가격 변동 알림',
+    shopApplication: '샵&매칭 신규 지원',
     event: '이벤트 및 혜택',
     notice: 'T:ROOT 공지사항',
     description: '원하는 알림을 선택하여\nT:ROOT 서비스를 더 편리하게 이용하세요.',
@@ -1267,6 +1269,8 @@ export const ko = {
     productCreated: '상품이 등록되었습니다',
     submitEdit: '수정 완료',
     submitNew: '상품 등록',
+    invalidOpenChatUrl: '카카오 오픈채팅 HTTPS 주소를 입력해주세요.',
+    invalidStoreUrl: '올바른 HTTPS 스토어 주소를 입력해주세요.',
   },
 
   favorites: {

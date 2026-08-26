@@ -17,6 +17,7 @@ import { useImageUpload } from '../../hooks/useImageUpload';
 import { deleteUpload } from '../../../data/api/upload';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
+import { isKakaoOpenChatUrl, isSafeHttpsUrl, normalizeHttpsUrl } from '../../utils/externalUrl';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteP = RouteProp<RootStackParamList, 'ProductForm'>;
@@ -54,8 +55,7 @@ const ProductFormScreen = () => {
 
     (async () => {
       try {
-        const list = await supplyVendorApi.myProducts();
-        const found = list.find((p) => p.id === productId);
+        const found = await supplyVendorApi.myProduct(productId);
         if (!alive) return;
 
         if (!found) {
@@ -65,7 +65,7 @@ const ProductFormScreen = () => {
         }
         setName(found.name);
         // 타입 에러 방지를 위해 any 캐스팅 처리
-        setSubtitle((found as any).subtitle ?? '');
+        setSubtitle(found.subtitle ?? '');
         // 백엔드는 English enum(machine, needle...) 반환 → 한글 카테고리로 역변환
         setCategory((ENUM_TO_SUPPLY_CATEGORY[found.category] ?? found.category) as SupplyCategory);
         setBrand(found.brand ?? '');
@@ -74,10 +74,10 @@ const ProductFormScreen = () => {
         setPrice(String(found.priceKrw ?? ''));
         setStock(String(found.stock ?? 0));
         setDescription(found.description ?? '');
-        setNameEn((found as any).nameEn ?? '');
-        setDescriptionEn((found as any).descriptionEn ?? '');
-        setOpenChatUrl((found as any).openChatUrl ?? '');
-        setStoreUrl((found as any).storeUrl ?? (found.externalUrl ?? ''));
+        setNameEn(found.nameEn ?? '');
+        setDescriptionEn(found.descriptionEn ?? '');
+        setOpenChatUrl(found.openChatUrl ?? '');
+        setStoreUrl(found.storeUrl ?? '');
         setImages(found.images ?? (found.thumbnail ? [found.thumbnail] : []));
       } catch (e) {
         if (alive) {
@@ -92,8 +92,12 @@ const ProductFormScreen = () => {
   }, [productId, navigation, toast, t]);
 
   const priceNum = Number(price);
+  const openChatValid = isKakaoOpenChatUrl(openChatUrl);
+  const storeUrlValid = isSafeHttpsUrl(storeUrl);
   const canSubmit =
-      name.trim().length >= 2 && subtitle.trim().length >= 2 && !!category && Number.isFinite(priceNum) && priceNum >= 0;
+      name.trim().length >= 2 && subtitle.trim().length >= 2 && !!category &&
+      Number.isFinite(priceNum) && priceNum >= 0 && images.length > 0 &&
+      openChatValid && storeUrlValid;
 
   const { pickAndUpload, uploading } = useImageUpload({
     scope: 'product',
@@ -118,13 +122,13 @@ const ProductFormScreen = () => {
       nameEn: nameEn.trim() || undefined,
       descriptionEn: descriptionEn.trim() || undefined,
       // 한글 카테고리 → 백엔드 English enum 변환
-      category: (SUPPLY_CATEGORY_TO_ENUM[category] ?? category) as any,
+      category: SUPPLY_CATEGORY_TO_ENUM[category],
       priceKrw: priceNum,
       stock: stock ? Number(stock) : 0,
       brand: brand.trim() || undefined,
       description: description.trim() || undefined,
-      openChatUrl: openChatUrl.trim() || undefined,
-      storeUrl: storeUrl.trim() || undefined,
+      openChatUrl: normalizeHttpsUrl(openChatUrl),
+      storeUrl: normalizeHttpsUrl(storeUrl),
       images,
       thumbnail: images[0],
     };
@@ -261,9 +265,11 @@ const ProductFormScreen = () => {
 
                 <Text style={s.label}>1:1 문의 링크 (오픈채팅)</Text>
                 <TextInput style={s.input} placeholder="https://open.kakao.com/..." placeholderTextColor={COLORS.gray2} value={openChatUrl} onChangeText={setOpenChatUrl} autoCapitalize="none" keyboardType="url" />
+                {!!openChatUrl && !openChatValid && <Text style={s.hintError}>{t('vendor.invalidOpenChatUrl')}</Text>}
 
                 <Text style={s.label}>구매 링크 (외부 스토어)</Text>
                 <TextInput style={s.input} placeholder="https://smartstore.naver.com/..." placeholderTextColor={COLORS.gray2} value={storeUrl} onChangeText={setStoreUrl} autoCapitalize="none" keyboardType="url" />
+                {!!storeUrl && !storeUrlValid && <Text style={s.hintError}>{t('vendor.invalidStoreUrl')}</Text>}
 
                 {/* 제출 버튼 — ScrollView 안에 포함시켜 키보드에 밀려도 접근 가능 */}
                 <View style={[s.submitWrapper, { paddingBottom: Math.max(insets.bottom, 8) }]}>
@@ -293,6 +299,7 @@ const s = StyleSheet.create({
   req: { color: COLORS.gold },
   sub: { color: COLORS.gray2, fontSize: 11.5, lineHeight: 17, marginTop: 6, marginBottom: 4 },
   input: { backgroundColor: COLORS.card, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: COLORS.white, lineHeight: 20 },
+  hintError: { color: COLORS.danger, fontSize: 12, lineHeight: 17, marginTop: 6 },
   textarea: { minHeight: 110 },
   row: { flexDirection: 'row', gap: 12 },
   rowItem: { flex: 1 },

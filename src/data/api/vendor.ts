@@ -44,7 +44,7 @@ export interface MyProduct {
 
 export interface ProductPayload {
   name: string;
-  subtitle?: string;
+  subtitle: string;
   nameEn?: string;
   description?: string;
   descriptionEn?: string;
@@ -52,13 +52,18 @@ export interface ProductPayload {
   brand?: string;
   priceKrw: number;
   stock?: number;
-  images?: string[];
-  thumbnail?: string;
+  images: string[];
+  thumbnail: string;
   attributes?: Record<string, unknown>;
   externalUrl?: string;
+  openChatUrl: string;
+  storeUrl: string;
+}
+
+export type ProductUpdatePayload = Partial<Omit<ProductPayload, 'openChatUrl' | 'storeUrl'>> & {
   openChatUrl?: string;
   storeUrl?: string;
-}
+};
 
 /** 한글 카테고리(SUPPLY_CATEGORIES) → 백엔드 enum 변환 */
 export const SUPPLY_CATEGORY_TO_ENUM: Record<string, ProductCategory> = {
@@ -69,6 +74,7 @@ export const SUPPLY_CATEGORY_TO_ENUM: Record<string, ProductCategory> = {
   '스탠실 용품': 'stencil',
   '애프터케어': 'aftercare',
   '가구·인테리어': 'furniture',
+  '기타': 'etc',
 };
 
 /** 백엔드 enum → 한글 카테고리 변환 */
@@ -80,7 +86,7 @@ export const ENUM_TO_SUPPLY_CATEGORY: Record<ProductCategory, string> = {
   stencil: '스탠실 용품',
   aftercare: '애프터케어',
   furniture: '가구·인테리어',
-  etc: '머신 & 장비',
+  etc: '기타',
 };
 
 /** 상품 카테고리 — 등록 화면 선택지 */
@@ -108,10 +114,12 @@ export const supplyVendorApi = {
 
   myProducts: () => api.get<MyProduct[]>('/app/supplies/vendors/me/products'),
 
+  myProduct: (id: string) => api.get<MyProduct>(`/app/supplies/vendors/me/products/${id}`),
+
   createProduct: (body: ProductPayload) =>
     api.post<MyProduct>('/app/supplies/vendors/me/products', body),
 
-  updateProduct: (id: string, body: ProductPayload) =>
+  updateProduct: (id: string, body: ProductUpdatePayload) =>
     api.patch<MyProduct>(`/app/supplies/vendors/me/products/${id}`, body),
 
   deleteProduct: (id: string) =>
@@ -121,4 +129,7 @@ export const supplyVendorApi = {
     openChatUrl?: string; name?: string; businessNo?: string;
     ecommerceRegNo?: string; contactEmail?: string;
   }) => api.patch<MyVendor>('/app/supplies/vendors/me', body),
+
+  trackProductInquiry: (id: string) =>
+    api.post<{ tracked: boolean }>(`/app/supplies/products/${id}/inquiry`, {}),
 };

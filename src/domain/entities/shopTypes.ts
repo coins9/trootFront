@@ -239,7 +239,6 @@ export interface BeginnerModelRecruit {
   };
   likeCount: number;
   commentCount: number;
-  likeCount: number;
   isBookmarked: boolean;
 }
 
@@ -334,6 +333,7 @@ export interface MediaExpert {
   primaryKind: MediaWorkKind;
   kakaoLink?: string;
   smsPhone?: string;
+  likeCount?: number;
   isBookmarked: boolean;
 }
 

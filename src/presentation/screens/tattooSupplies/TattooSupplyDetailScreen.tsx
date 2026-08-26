@@ -1,23 +1,25 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, StyleSheet,
-  Dimensions, StatusBar, Linking,
+  Dimensions, StatusBar, Linking, ActivityIndicator,
 } from 'react-native';
-import Clipboard from '@react-native-clipboard/clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
   BackArrowIcon, HeartIcon, TattooPlaceholderIcon,
 } from '../../components/icons';
-import { favoriteApi } from '../../../data/api';
+import { favoriteApi, supplyApi } from '../../../data/api';
+import { supplyVendorApi } from '../../../data/api/vendor';
+import { toTattooSupply } from '../../../data/api/supplyMapper';
 import { useToast } from '../../components/common/Toast';
 import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
 import ImageZoomModal from '../../components/common/ImageZoomModal';
-import SupplyInquiryBottomSheet from '../../components/supplies/SupplyInquiryBottomSheet';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
+import type { TattooSupply } from '../../../domain/entities/supplyTypes';
+import { isKakaoOpenChatUrl, isSafeHttpsUrl, normalizeHttpsUrl } from '../../utils/externalUrl';
 
 const { width: W, height: H } = Dimensions.get('window');
 const CAROUSEL_H = H * 0.4;
@@ -29,29 +31,53 @@ const TattooSupplyDetailScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<DetailNav>();
   const route = useRoute<DetailRoute>();
-  const { supply } = route.params;
+  const { productId } = route.params;
   const { toast } = useToast();
   const { t, language } = useTranslation();
 
+  const [supply, setSupply] = useState<TattooSupply | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activePage, setActivePage] = useState(0);
-  const [bookmarked, setBookmarked] = useState(supply.isBookmarked);
-  const [inquiryVisible, setInquiryVisible] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
   const [zoomIndex, setZoomIndex] = useState(0);
   const [zoomVisible, setZoomVisible] = useState(false);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    supply.optionGroups?.forEach((g) => {
-      if (g.values.length > 0) init[g.label] = g.values[0];
-    });
-    return init;
-  });
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+
+  const load = useCallback(async () => {
+    setLoadError(false);
+    try {
+      const [product, favoriteState] = await Promise.all([
+        supplyApi.detail(productId),
+        favoriteApi.check('supply', [productId]).catch(() => ({} as Record<string, boolean>)),
+      ]);
+      const mapped = toTattooSupply(product, language);
+      setSupply(mapped);
+      setBookmarked(Boolean(favoriteState[productId]));
+      const defaults: Record<string, string> = {};
+      mapped.optionGroups?.forEach((group) => {
+        if (group.values[0]) defaults[group.label] = group.values[0];
+      });
+      setSelectedOptions(defaults);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [language, productId]);
+
+  useFocusEffect(useCallback(() => {
+    setLoading(true);
+    void load();
+  }, [load]));
 
   const images = useMemo(() => {
+    if (!supply) return [];
     const list = (supply.images && supply.images.length > 0)
         ? supply.images
         : [supply.imageUri];
-    return list.length > 0 ? list : [''];
-  }, [supply.images, supply.imageUri]);
+    return list.filter(Boolean);
+  }, [supply]);
 
   const renderCarouselItem = useCallback((uri: string, idx: number) => (
       <TouchableOpacity
@@ -72,6 +98,7 @@ const TattooSupplyDetailScreen = () => {
   ), []);
 
   const toggleBookmark = useCallback(async () => {
+    if (!supply) return;
     const next = !bookmarked;
     setBookmarked(next);
     toast(next ? t('common.bookmarked') : t('common.unbookmarked'), {
@@ -82,48 +109,41 @@ const TattooSupplyDetailScreen = () => {
     } catch {
       setBookmarked(!next);
     }
-  }, [bookmarked, supply.id, toast, t]);
+  }, [bookmarked, supply?.id, toast, t]);
 
-  // https:// 없이 입력된 URL 보정 (Linking.openURL은 scheme 없으면 실패)
-  const ensureScheme = (url: string | null | undefined): string | null => {
-    if (!url) return null;
-    const trimmed = url.trim();
-    if (!trimmed) return null;
-    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  };
-
-  // 선택 옵션 클립보드 복사 → toast → 오픈채팅 열기
-  const handleContact = useCallback(() => {
-    const chatUrl = ensureScheme(supply.openChatUrl);
-
-    // 클립보드에 복사할 문의 텍스트 빌드
-    const lines: string[] = [
-      t('supplies.inquiryMsgHeader'),
-      `${t('supplies.inquiryMsgProduct')}: ${supply.name}`,
-      ...(supply.subtitle ? [`${t('supplies.inquiryMsgDesc')}: ${supply.subtitle}`] : []),
-      ...(supply.brand ? [`${t('supplies.inquiryMsgBrand')}: ${supply.brand}`] : []),
-      ...(typeof supply.price === 'number'
-        ? [`${t('supplies.inquiryMsgListPrice')}: ₩${supply.price.toLocaleString()}`]
-        : []),
-    ];
-    Object.entries(selectedOptions).forEach(([k, v]) => {
-      if (v) lines.push(`${k}: ${v}`);
-    });
-    Clipboard.setString(lines.join('\n'));
-
-    if (chatUrl) {
-      // 클립보드 복사 직후 바로 오픈채팅 이동 → 입력창에 즉시 붙여넣기 가능
-      Linking.openURL(chatUrl).catch(() => toast(t('common.linkError'), { variant: 'error' }));
-    } else {
-      // openChatUrl 미등록 시: 복사 완료 토스트 → 인앱 바텀시트 fallback
-      toast(t('common.copiedToChat'), { variant: 'success' });
-      setTimeout(() => setInquiryVisible(true), 300);
+  const openExternalUrl = useCallback(async (raw: string, trackInquiry: boolean) => {
+    const url = normalizeHttpsUrl(raw);
+    const valid = trackInquiry ? isKakaoOpenChatUrl(url) : isSafeHttpsUrl(url);
+    if (!valid || !(await Linking.canOpenURL(url))) {
+      toast(t('common.linkError'), { variant: 'error' });
+      return;
     }
-  }, [supply, selectedOptions, toast, t]);
+    try {
+      await Linking.openURL(url);
+      if (trackInquiry) await supplyVendorApi.trackProductInquiry(productId);
+    } catch {
+      toast(t('common.linkError'), { variant: 'error' });
+    }
+  }, [productId, t, toast]);
 
   const handleOptionSelect = useCallback((groupLabel: string, value: string) => {
     setSelectedOptions((prev) => ({ ...prev, [groupLabel]: value }));
   }, []);
+
+  if (loading && !supply) {
+    return <View style={styles.state}><ActivityIndicator color={COLORS.gold} /></View>;
+  }
+
+  if (!supply || loadError) {
+    return (
+      <View style={styles.state}>
+        <Text style={styles.stateText}>{t('common.error')}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={() => void load()}>
+          <Text style={styles.retryText}>{t('common.retry')}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
       <View style={styles.container}>
@@ -212,42 +232,22 @@ const TattooSupplyDetailScreen = () => {
           </View>
         </ScrollView>
 
-        {/* Sticky CTA: 1:1문의 / 구매하러가기 */}
         <View style={[styles.stickyFooter, { paddingBottom: insets.bottom + 12 }]}>
-          {/* 1:1 구매 문의하기 — 선택 옵션 클립보드 복사 → toast → 오픈채팅 열기 */}
-          <TouchableOpacity
-              onPress={handleContact}
-              style={[styles.ctaBtn, (ensureScheme(supply.storeUrl) || ensureScheme(supply.externalUrl)) ? styles.ctaBtnSecondary : {}]}
-              activeOpacity={0.85}
-          >
-            <Text style={[styles.ctaText, (ensureScheme(supply.storeUrl) || ensureScheme(supply.externalUrl)) ? styles.ctaTextSecondary : {}]}>
-              {t('supplies.detail.contact')}
-            </Text>
-          </TouchableOpacity>
-
-          {/* 구매하러 가기 — storeUrl → externalUrl 순서로 연결 */}
-          {(ensureScheme(supply.storeUrl) || ensureScheme(supply.externalUrl)) ? (
-              <TouchableOpacity
-                  onPress={() => {
-                    const raw = supply.storeUrl || supply.externalUrl!;
-                    const url = ensureScheme(raw);
-                    if (!url) { toast(t('common.linkError'), { variant: 'error' }); return; }
-                    Linking.openURL(url).catch(() => toast(t('common.linkError'), { variant: 'error' }));
-                  }}
-                  style={styles.ctaBtn}
-                  activeOpacity={0.85}
-              >
-                <Text style={styles.ctaText}>{t('supplies.detail.buyNow')}</Text>
-              </TouchableOpacity>
-          ) : null}
+            <TouchableOpacity
+                onPress={() => void openExternalUrl(supply.openChatUrl || '', true)}
+                style={[styles.ctaBtn, styles.ctaBtnSecondary]}
+                activeOpacity={0.85}
+            >
+              <Text style={[styles.ctaText, styles.ctaTextSecondary]}>{t('supplies.detail.contact')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={() => void openExternalUrl(supply.storeUrl || '', false)}
+                style={styles.ctaBtn}
+                activeOpacity={0.85}
+            >
+              <Text style={styles.ctaText}>{t('supplies.detail.buyNow')}</Text>
+            </TouchableOpacity>
         </View>
-
-        <SupplyInquiryBottomSheet
-            visible={inquiryVisible}
-            supply={supply}
-            selectedOptions={selectedOptions}
-            onClose={() => setInquiryVisible(false)}
-        />
 
         <ImageZoomModal
           visible={zoomVisible}
@@ -263,6 +263,10 @@ export default TattooSupplyDetailScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
+  state: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
+  stateText: { color: COLORS.gray, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  retryBtn: { borderWidth: 1, borderColor: COLORS.gold, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 10 },
+  retryText: { color: COLORS.gold, fontSize: 14, fontWeight: '700', lineHeight: 20 },
   scroll: { flex: 1 },
 
   /* Carousel */
@@ -314,9 +318,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FBC02D', borderRadius: 14, paddingVertical: 17, alignItems: 'center'
   },
-  ctaBtnSecondary: {
-    backgroundColor: COLORS.elevated, borderWidth: 1, borderColor: COLORS.border
-  },
+  ctaBtnSecondary: { backgroundColor: COLORS.elevated, borderWidth: 1, borderColor: COLORS.border },
   ctaText: { color: COLORS.black, fontSize: 16, fontWeight: '700', lineHeight: 22 },
   ctaTextSecondary: { color: COLORS.white },
 });

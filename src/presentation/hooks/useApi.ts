@@ -80,7 +80,11 @@ export function usePagedApi<T>(
       const page = await loaderRef.current(reset ? undefined : cursor ?? undefined);
       if (!alive.current) return;
 
-      setItems((prev) => (reset ? page.items : [...prev, ...page.items]));
+      setItems((prev) => {
+        if (!reset) return [...prev, ...page.items];
+        // 빈 응답으로 기존 목록이 사라지는 것을 방지 — 기존 데이터가 있고 새 응답이 비어 있으면 보존
+        return page.items.length > 0 || prev.length === 0 ? page.items : prev;
+      });
       setCursor(page.nextCursor);
       setHasNext(page.hasNext);
     } catch (e) {

@@ -5,8 +5,6 @@ import {
 import { COLORS } from '../../theme/colors';
 import { HeartIcon, TattooPlaceholderIcon } from '../icons';
 import { TattooSupply } from '../../../domain/entities/supplyTypes';
-import { useTranslation } from '../../store/languageStore';
-
 const { width: W } = Dimensions.get('window');
 const CARD_WIDTH = (W - 16 * 2 - 10) / 2;
 const IMG_HEIGHT = CARD_WIDTH * 1.1;
@@ -14,12 +12,10 @@ const IMG_HEIGHT = CARD_WIDTH * 1.1;
 interface Props {
   supply: TattooSupply;
   onBookmark: () => void;
-  onInquiry: () => void;
   onPress?: () => void;
 }
 
-const SupplyCard = memo(({ supply, onBookmark, onInquiry, onPress }: Props) => {
-  const { t } = useTranslation();
+const SupplyCard = memo(({ supply, onBookmark, onPress }: Props) => {
   return (
   <TouchableOpacity
     activeOpacity={onPress ? 0.9 : 1}
@@ -81,14 +77,6 @@ const SupplyCard = memo(({ supply, onBookmark, onInquiry, onPress }: Props) => {
       ) : null}
     </View>
 
-    {/* Inquiry button */}
-    <TouchableOpacity
-      style={styles.inquiryBtn}
-      activeOpacity={0.85}
-      onPress={onInquiry}
-    >
-      <Text style={styles.inquiryText}>{t('supplies.buyInquiry')}</Text>
-    </TouchableOpacity>
   </TouchableOpacity>
   );
 });
@@ -176,21 +164,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 19,
     marginTop: 4,
-  },
-  inquiryBtn: {
-    marginHorizontal: 14,
-    marginBottom: 14,
-    paddingVertical: 11,
-    borderRadius: 10,
-    backgroundColor: '#1E1E1E',
-    borderWidth: 1,
-    borderColor: COLORS.chipBorder,
-    alignItems: 'center',
-  },
-  inquiryText: {
-    color: COLORS.white,
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 18,
   },
 });
