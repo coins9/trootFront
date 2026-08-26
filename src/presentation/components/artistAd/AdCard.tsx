@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import CachedImage from '../common/CachedImage';
 import { COLORS } from '../../theme/colors';
-import { TattooPlaceholderIcon, ChevronRightIcon } from '../icons';
+import { TattooPlaceholderIcon } from '../icons';
 import { ArtistAdItem } from '../../../domain/entities/artistAdTypes';
 import StatBar from './StatBar';
 import MiniLineChart from './MiniLineChart';
@@ -12,7 +12,6 @@ import { useTranslation } from '../../store/languageStore';
 
 interface Props {
   ad: ArtistAdItem;
-  onOpenDetail: () => void;
   onUp: () => void;
   onSuperUp: () => void;
   onCardAd: () => void;
@@ -20,7 +19,7 @@ interface Props {
 }
 
 const AdCard = memo(({
-  ad, onOpenDetail, onUp, onSuperUp, onCardAd, onBannerAd,
+  ad, onUp, onSuperUp, onCardAd, onBannerAd,
 }: Props) => {
   const { t } = useTranslation();
   return (
@@ -43,14 +42,6 @@ const AdCard = memo(({
           {t('ad.adPeriod')}  {ad.periodStart} ~ {ad.periodEnd}
         </Text>
       </View>
-      <TouchableOpacity
-        onPress={onOpenDetail}
-        activeOpacity={0.75}
-        style={styles.detailBtn}
-      >
-        <Text style={styles.detailText}>{t('ad.viewDetail')}</Text>
-        <ChevronRightIcon size={14} color={COLORS.white} />
-      </TouchableOpacity>
     </View>
 
     {/* Stats grid — 활성 광고일 때만 표시 */}
@@ -157,24 +148,6 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     marginTop: 2,
   },
-  detailBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: COLORS.elevated,
-  },
-  detailText: {
-    color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 15,
-  },
-
   /* Stats */
   statsRow: {
     flexDirection: 'row',

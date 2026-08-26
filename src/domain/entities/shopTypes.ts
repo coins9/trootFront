@@ -239,6 +239,7 @@ export interface BeginnerModelRecruit {
   };
   likeCount: number;
   commentCount: number;
+  likeCount: number;
   isBookmarked: boolean;
 }
 

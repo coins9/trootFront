@@ -15,6 +15,7 @@ import {
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import ModelApplicationBottomSheet from '../../components/shopMatching/ModelApplicationBottomSheet';
+import ImageZoomModal from '../../components/common/ImageZoomModal';
 import { useToast } from '../../components/common/Toast';
 import { favoriteApi } from '../../../data/api';
 
@@ -37,6 +38,8 @@ const BeginnerModelDetailScreen = () => {
   const [bookmarked, setBookmarked] = useState(post.isBookmarked);
   const [expandDesc, setExpandDesc] = useState(false);
   const [applyVisible, setApplyVisible] = useState(false);
+  const [zoomIndex, setZoomIndex] = useState(0);
+  const [zoomVisible, setZoomVisible] = useState(false);
   const heroRef = useRef<ScrollView>(null);
 
   const displayTitle = language === 'en' && post.titleEn ? post.titleEn : post.title;
@@ -95,7 +98,12 @@ const BeginnerModelDetailScreen = () => {
                 scrollEventThrottle={16}
             >
               {post.images.map((uri, i) => (
-                  <View key={i} style={styles.heroSlot}>
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.heroSlot}
+                    activeOpacity={0.9}
+                    onPress={() => { if (uri) { setZoomIndex(i); setZoomVisible(true); } }}
+                  >
                     {uri ? (
                         <Image source={{ uri }} style={styles.heroImage} resizeMode="cover" />
                     ) : (
@@ -103,7 +111,7 @@ const BeginnerModelDetailScreen = () => {
                           <TattooPlaceholderIcon size={80} color="#2e2e2e" />
                         </View>
                     )}
-                  </View>
+                  </TouchableOpacity>
               ))}
             </ScrollView>
 
@@ -320,6 +328,13 @@ const BeginnerModelDetailScreen = () => {
             artistKakaoLink={post.artist.kakaoLink}
             artistSmsPhone={post.artist.smsPhone}
             onClose={() => setApplyVisible(false)}
+        />
+
+        <ImageZoomModal
+          visible={zoomVisible}
+          images={post.images.filter(Boolean)}
+          initialIndex={zoomIndex}
+          onClose={() => setZoomVisible(false)}
         />
       </View>
   );

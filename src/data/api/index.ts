@@ -351,6 +351,7 @@ export interface ShopPost {
   likeCount: number;
   applicationCount: number;
   createdAt: string;
+  isBookmarked?: boolean;
 }
 
 export const shopApi = {

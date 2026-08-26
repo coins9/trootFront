@@ -15,6 +15,7 @@ import {
   ChevronDownIcon, ChevronUpIcon, TattooPlaceholderIcon, PersonSilhouette,
   PaletteIcon, CameraSolidIcon, // 🚨 1. 스텐실, 촬영존 아이콘 임포트 추가
 } from '../../components/icons';
+import ImageZoomModal from '../../components/common/ImageZoomModal';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { favoriteApi } from '../../../data/api';
 import { useToast } from '../../components/common/Toast';
@@ -36,6 +37,8 @@ const TattooShareDetailScreen = () => {
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(shop.isBookmarked);
   const [expandDescription, setExpandDescription] = useState(false);
+  const [zoomIndex, setZoomIndex] = useState(0);
+  const [zoomVisible, setZoomVisible] = useState(false);
 
   const displayTitle = language === 'en' && shop.titleEn ? shop.titleEn : shop.title;
   const displayDesc = language === 'en' && shop.descriptionEn ? shop.descriptionEn : shop.description;
@@ -107,7 +110,12 @@ const TattooShareDetailScreen = () => {
               scrollEventThrottle={16}
           >
             {shop.images.map((uri, i) => (
-                <View key={i} style={styles.heroSlot}>
+                <TouchableOpacity
+                  key={i}
+                  style={styles.heroSlot}
+                  activeOpacity={0.9}
+                  onPress={() => { if (uri) { setZoomIndex(i); setZoomVisible(true); } }}
+                >
                   {uri ? (
                       <Image source={{ uri }} style={styles.heroImage} resizeMode="cover" />
                   ) : (
@@ -115,7 +123,7 @@ const TattooShareDetailScreen = () => {
                         <TattooPlaceholderIcon size={72} color="#2e2e2e" />
                       </View>
                   )}
-                </View>
+                </TouchableOpacity>
             ))}
           </ScrollView>
 
@@ -273,6 +281,13 @@ const TattooShareDetailScreen = () => {
             <Text style={styles.ctaText}>{t('shop.bookingInquiry' as any)}</Text>
           </TouchableOpacity>
         </View>
+
+        <ImageZoomModal
+          visible={zoomVisible}
+          images={shop.images.filter(Boolean)}
+          initialIndex={zoomIndex}
+          onClose={() => setZoomVisible(false)}
+        />
       </View>
   );
 };

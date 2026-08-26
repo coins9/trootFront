@@ -13,6 +13,7 @@ import {
   StarIcon, PersonSilhouette, // 🚨 기본 프로필 아이콘 추가
 } from '../../components/icons';
 import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
+import ImageZoomModal from '../../components/common/ImageZoomModal';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
 import { favoriteApi, adApi } from '../../../data/api';
@@ -38,6 +39,8 @@ const TattooDetailScreen = () => {
   const [likeLoading, setLikeLoading] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [bookingVisible, setBookingVisible] = useState(false);
+  const [zoomIndex, setZoomIndex] = useState(0);
+  const [zoomVisible, setZoomVisible] = useState(false);
 
   // 🚨 1. 공유하기 기능 연결
   const handleShare = useCallback(async () => {
@@ -92,12 +95,18 @@ const TattooDetailScreen = () => {
 
         <View style={styles.imageContainer}>
           <PagerCarousel
-              data={tattoo.images ?? []} // 🚨 방어: images가 없을 경우 대비
+              data={tattoo.images ?? []}
               width={W}
               height={IMAGE_HEIGHT}
-              renderItem={(img) =>
+              renderItem={(img, idx) =>
                   img ? (
-                      <Image source={{ uri: img }} style={styles.heroImage} resizeMode="cover" />
+                      <TouchableOpacity
+                        style={{ flex: 1 }}
+                        activeOpacity={0.9}
+                        onPress={() => { setZoomIndex(idx); setZoomVisible(true); }}
+                      >
+                        <Image source={{ uri: img }} style={styles.heroImage} resizeMode="cover" />
+                      </TouchableOpacity>
                   ) : (
                       <View style={[styles.heroImage, { backgroundColor: COLORS.card }]} />
                   )
@@ -246,6 +255,13 @@ const TattooDetailScreen = () => {
             artworkId={tattoo.id}
             designTitle={tattoo.title}
             onClose={() => setBookingVisible(false)}
+        />
+
+        <ImageZoomModal
+          visible={zoomVisible}
+          images={(tattoo.images ?? []).filter(Boolean)}
+          initialIndex={zoomIndex}
+          onClose={() => setZoomVisible(false)}
         />
       </View>
   );

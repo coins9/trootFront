@@ -862,17 +862,18 @@ const ArtistReservationScreen = () => {
             });
             return next;
           });
-          // 즉시 '취소' 상태 칩 표시 후, API 재조회로 목록에서 완전히 제거
           setStatusOverride((prev) => ({ ...prev, [id]: '취소' }));
           setDetail(null);
           toast(t('reservation.toastCancelled' as any), { variant: 'success' });
           reloadSchedule();
+          // 샵 일정에도 즉시 반영
+          if (studio) loadShopSchedule(true);
         } catch {
           toast(t('reservation.toastCancelError' as any), { variant: 'error' });
         }
       },
     });
-  }, [selectedDate, scheduleByDate, toast, t, reloadSchedule]);
+  }, [selectedDate, scheduleByDate, toast, t, reloadSchedule, studio, loadShopSchedule]);
 
   /* FAB → 새 예약 등록 시트 오픈 */
   const handleFab = useCallback(() => {

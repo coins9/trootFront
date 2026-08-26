@@ -117,11 +117,11 @@ const NewReservationSheet = memo(({
   const handleSubmit = useCallback(() => {
     if (!canSubmit) return;
     // subtitle 자동 생성
-    const kindLabel = KIND_ITEMS.find((k) => k.key === form.kind)?.label ?? '';
+    const kindLabel = kindLabelMap[form.kind] ?? '';
     const subtitle = [
       kindLabel,
       form.customerName,
-      form.durationH >= 1 ? `${form.durationH}시간` : '30분',
+      durationLabel(form.durationH),
     ].filter(Boolean).join(' · ');
     onSubmit({ ...form, subtitle });
   }, [canSubmit, form, onSubmit]);

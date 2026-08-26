@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import {
   View, Text, Modal, Animated, StyleSheet, Dimensions,
   TouchableWithoutFeedback, ScrollView, KeyboardAvoidingView, Platform,
-  TouchableOpacity, TextInput, Linking, Alert,
+  TouchableOpacity, TextInput, Linking, Alert, Keyboard,
 } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
@@ -47,6 +48,7 @@ const ModelApplicationBottomSheet = memo(({
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const [form, setForm] = useState<ModelApplicationForm>(INITIAL_MODEL_APPLICATION_FORM);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [showCopiedNotice, setShowCopiedNotice] = useState(false);
   const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -232,19 +234,63 @@ const ModelApplicationBottomSheet = memo(({
                 <Text style={styles.fieldLabel}>{t('shop.fieldWorkDate')}</Text>
                 <Text style={styles.required}>{t('common.required')}</Text>
               </View>
-              <View style={styles.dateInputWrap}>
-                <TextInput
-                  style={[styles.textInput, { flex: 1, paddingRight: 40 }]}
-                  value={form.desiredDate}
-                  onChangeText={(t) => update('desiredDate', t)}
-                  placeholder={t('shop.bs.datePlaceholder')}
-                  placeholderTextColor={COLORS.gray2}
-                />
-                <View style={styles.dateIconAbs}>
-                  <CalendarIcon size={18} color={COLORS.gray} />
+              <TouchableOpacity
+                onPress={() => { Keyboard.dismiss(); setShowCalendar(true); }}
+                activeOpacity={0.8}
+                style={styles.dateInputWrap}
+              >
+                <View style={[styles.textInput, { flex: 1, paddingRight: 40, justifyContent: 'center' }]}>
+                  <Text style={form.desiredDate ? styles.dateValueText : styles.datePlaceholderText}>
+                    {form.desiredDate || t('shop.bs.datePlaceholder')}
+                  </Text>
                 </View>
-              </View>
+                <View style={styles.dateIconAbs}>
+                  <CalendarIcon size={18} color={COLORS.gold} />
+                </View>
+              </TouchableOpacity>
             </View>
+
+            {/* 캘린더 모달 */}
+            <Modal
+              visible={showCalendar}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowCalendar(false)}
+            >
+              <TouchableWithoutFeedback onPress={() => setShowCalendar(false)}>
+                <View style={styles.calendarOverlay}>
+                  <TouchableWithoutFeedback>
+                    <View style={styles.calendarBox}>
+                      <Calendar
+                        onDayPress={(day: any) => {
+                          update('desiredDate', day.dateString);
+                          setShowCalendar(false);
+                        }}
+                        markedDates={
+                          form.desiredDate
+                            ? { [form.desiredDate]: { selected: true, selectedColor: COLORS.gold } }
+                            : {}
+                        }
+                        theme={{
+                          backgroundColor: COLORS.sheet,
+                          calendarBackground: COLORS.sheet,
+                          textSectionTitleColor: COLORS.gray,
+                          selectedDayBackgroundColor: COLORS.gold,
+                          selectedDayTextColor: COLORS.black,
+                          todayTextColor: COLORS.gold,
+                          dayTextColor: COLORS.white,
+                          textDisabledColor: COLORS.gray3,
+                          arrowColor: COLORS.gold,
+                          monthTextColor: COLORS.white,
+                          textMonthFontWeight: '700',
+                        }}
+                        minDate={new Date().toISOString().split('T')[0]}
+                      />
+                    </View>
+                  </TouchableWithoutFeedback>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
 
             {/* 3. 작업 부위 상태 */}
             <View style={styles.fieldBlock}>
@@ -528,10 +574,36 @@ const styles = StyleSheet.create({
   dateInputWrap: {
     position: 'relative',
     justifyContent: 'center',
+    flexDirection: 'row',
   },
   dateIconAbs: {
     position: 'absolute',
     right: 14,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  dateValueText: {
+    color: COLORS.white,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  datePlaceholderText: {
+    color: COLORS.gray2,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  calendarBox: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 
   dropdownBtn: {

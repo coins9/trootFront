@@ -86,7 +86,7 @@ export function usePagedApi<T>(
     } catch (e) {
       if (!alive.current) return;
       setError(e instanceof ApiError ? e.userMessage : t('common.loadListFailed'));
-      if (reset) setItems([]);
+      // 오류 시 기존 아이템 보존 (네트워크 오류로 목록이 사라지는 현상 방지)
     } finally {
       if (alive.current) {
         setLoading(false);

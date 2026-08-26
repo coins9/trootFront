@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Image, StatusBar, Linking,
 } from 'react-native';
@@ -71,7 +71,7 @@ const ReservationManageScreen = () => {
   const { toast } = useToast();
   const [tab, setTab] = useState<ReservationTab>('진행 중인 예약');
 
-  const { items: raw, loading, loadingMore, loadMore, reload } =
+  const { items: raw, loading, loadingMore, hasNext, loadMore, reload } =
       usePagedApi((cursor) => reservationApi.mine({ cursor }), []);
 
   const hasFocused = useRef(false);
@@ -136,6 +136,13 @@ const ReservationManageScreen = () => {
   }, [rawMap, navigation, language]);
 
   const isOngoingTab = tab === '진행 중인 예약';
+
+  // 필터링 후 목록이 비어 있고 더 불러올 데이터가 있으면 자동으로 추가 로드
+  useEffect(() => {
+    if (filtered.length === 0 && !loading && !loadingMore && hasNext) {
+      loadMore();
+    }
+  }, [filtered.length, loading, loadingMore, hasNext, loadMore]);
 
   const renderItem = useCallback(({ item }: { item: Reservation }) => {
     // 🚨 TS2367 방어: as string으로 변경하여 자유로운 비교 허용
@@ -204,20 +211,18 @@ const ReservationManageScreen = () => {
             </View>
           </View>
 
-          {isOngoingTab ? (
+          {statusStr === '완료' ? (
+              <TouchableOpacity onPress={() => handleWriteReview(item)} activeOpacity={0.85} style={styles.ctaSolid}>
+                <Text style={styles.ctaSolidText}>{t('reservation.writeReview' as any)}</Text>
+              </TouchableOpacity>
+          ) : statusStr === '예약 대기중' || statusStr === '확정' ? (
               <TouchableOpacity onPress={() => handleOpenChat(item)} activeOpacity={0.85} style={styles.ctaSolid}>
                 <Text style={styles.ctaSolidText}>{t('reservation.chat' as any)}</Text>
               </TouchableOpacity>
           ) : (
-              statusStr === '완료' ? (
-                  <TouchableOpacity onPress={() => handleWriteReview(item)} activeOpacity={0.85} style={styles.ctaSolid}>
-                    <Text style={styles.ctaSolidText}>{t('reservation.writeReview' as any)}</Text>
-                  </TouchableOpacity>
-              ) : (
-                  <View style={[styles.ctaOutline, { opacity: 0.5 }]}>
-                    <Text style={styles.ctaOutlineText}>{statusLabel}</Text>
-                  </View>
-              )
+              <View style={[styles.ctaOutline, { opacity: 0.5 }]}>
+                <Text style={styles.ctaOutlineText}>{statusLabel}</Text>
+              </View>
           )}
         </View>
     );

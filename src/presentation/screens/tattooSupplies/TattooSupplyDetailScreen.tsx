@@ -11,8 +11,10 @@ import { COLORS } from '../../theme/colors';
 import {
   BackArrowIcon, HeartIcon, TattooPlaceholderIcon,
 } from '../../components/icons';
+import { favoriteApi } from '../../../data/api';
 import { useToast } from '../../components/common/Toast';
 import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
+import ImageZoomModal from '../../components/common/ImageZoomModal';
 import SupplyInquiryBottomSheet from '../../components/supplies/SupplyInquiryBottomSheet';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
@@ -34,6 +36,8 @@ const TattooSupplyDetailScreen = () => {
   const [activePage, setActivePage] = useState(0);
   const [bookmarked, setBookmarked] = useState(supply.isBookmarked);
   const [inquiryVisible, setInquiryVisible] = useState(false);
+  const [zoomIndex, setZoomIndex] = useState(0);
+  const [zoomVisible, setZoomVisible] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     supply.optionGroups?.forEach((g) => {
@@ -49,8 +53,12 @@ const TattooSupplyDetailScreen = () => {
     return list.length > 0 ? list : [''];
   }, [supply.images, supply.imageUri]);
 
-  const renderCarouselItem = useCallback((uri: string) => (
-      <View style={styles.carouselSlot}>
+  const renderCarouselItem = useCallback((uri: string, idx: number) => (
+      <TouchableOpacity
+        style={styles.carouselSlot}
+        activeOpacity={0.9}
+        onPress={() => { if (uri) { setZoomIndex(idx); setZoomVisible(true); } }}
+      >
         <View style={styles.lightBox}>
           {uri ? (
               <Image source={{ uri }} style={styles.productImage} resizeMode="contain" />
@@ -60,18 +68,21 @@ const TattooSupplyDetailScreen = () => {
               </View>
           )}
         </View>
-      </View>
+      </TouchableOpacity>
   ), []);
 
-  const toggleBookmark = useCallback(() => {
-    setBookmarked((prev) => {
-      const next = !prev;
-      toast(next ? t('common.bookmarked') : t('common.unbookmarked'), {
-        variant: next ? 'success' : 'default',
-      });
-      return next;
+  const toggleBookmark = useCallback(async () => {
+    const next = !bookmarked;
+    setBookmarked(next);
+    toast(next ? t('common.bookmarked') : t('common.unbookmarked'), {
+      variant: next ? 'success' : 'default',
     });
-  }, [toast, t]);
+    try {
+      await favoriteApi.toggle('supply', supply.id);
+    } catch {
+      setBookmarked(!next);
+    }
+  }, [bookmarked, supply.id, toast, t]);
 
   // https:// 없이 입력된 URL 보정 (Linking.openURL은 scheme 없으면 실패)
   const ensureScheme = (url: string | null | undefined): string | null => {
@@ -236,6 +247,13 @@ const TattooSupplyDetailScreen = () => {
             supply={supply}
             selectedOptions={selectedOptions}
             onClose={() => setInquiryVisible(false)}
+        />
+
+        <ImageZoomModal
+          visible={zoomVisible}
+          images={images.filter(Boolean)}
+          initialIndex={zoomIndex}
+          onClose={() => setZoomVisible(false)}
         />
       </View>
   );

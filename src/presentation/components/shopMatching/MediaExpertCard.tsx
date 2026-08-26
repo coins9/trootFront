@@ -5,7 +5,7 @@ import {
 import CachedImage from '../common/CachedImage';
 import { COLORS } from '../../theme/colors';
 import {
-  LocationPinIcon, BookmarkIcon, TattooPlaceholderIcon, PlayCircleIcon,
+  LocationPinIcon, BookmarkIcon, TattooPlaceholderIcon, PlayCircleIcon, HeartIcon,
 } from '../icons';
 import { MediaExpert } from '../../../domain/entities/shopTypes';
 import { useTranslation } from '../../store/languageStore';
@@ -106,6 +106,14 @@ const MediaExpertCard = memo(({ expert, onPress, onBookmark }: Props) => {
             </Text>
             <Text style={styles.priceNote}>{t('shop.card.priceFlexNote')}</Text>
           </View>
+
+          {/* Heart count */}
+          {expert.likeCount > 0 && (
+            <View style={styles.statsRow}>
+              <HeartIcon size={13} color={COLORS.gray} />
+              <Text style={styles.statsText}>{expert.likeCount}</Text>
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -218,5 +226,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     marginTop: 2,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 10,
+  },
+  statsText: {
+    color: COLORS.gray,
+    fontSize: 12,
+    lineHeight: 17,
   },
 });

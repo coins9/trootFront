@@ -21,7 +21,6 @@ import { toTattoo } from '../../../data/api/mappers';
 import { Tattoo } from '../../../domain/entities/types';
 import { artistTagLabels } from '../../../domain/entities/artistTags';
 import { translateGenre, translateTag } from '../../utils/tagTranslations';
-import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
 import ReportSheet, { ReportReason } from '../../components/report/ReportSheet';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
@@ -90,7 +89,6 @@ const ArtistProfileScreen = () => {
     }
   }, [following, followLoading, artist.id, toast, t]);
 
-  const [bookingVisible, setBookingVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
 
   const handleReportSubmit = useCallback((_reason: ReportReason, _detail: string) => {
@@ -422,14 +420,6 @@ const ArtistProfileScreen = () => {
                       <Text style={styles.kakaoText}>{t('artistProfile.openChat' as any)}</Text>
                     </TouchableOpacity>
                 ) : null}
-                <TouchableOpacity
-                    style={[styles.consultBtn, artist.kakaoLink ? styles.consultBtnNarrow : undefined]}
-                    activeOpacity={0.85}
-                    onPress={() => setBookingVisible(true)}
-                >
-                  <CommentIcon size={16} color={COLORS.black} strokeWidth={2} />
-                  <Text style={styles.consultText}>{t('artistProfile.cta' as any)}</Text>
-                </TouchableOpacity>
               </View>
 
               <View style={styles.badgeCard}>
@@ -581,14 +571,6 @@ const ArtistProfileScreen = () => {
           <View style={{ height: Math.max(insets.bottom, 24) + 24 }} />
         </ScrollView>
 
-        <BookingBottomSheet
-            visible={bookingVisible}
-            artistPageId={artist.id}
-            artistName={artist.nickname}
-            artistKakaoLink={artist.kakaoLink}
-            onClose={() => setBookingVisible(false)}
-        />
-
         <ReportSheet
             visible={reportVisible}
             targetName={artist.nickname}
@@ -631,7 +613,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     top: 0,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   topBar: {
     position: 'absolute',
@@ -816,25 +798,6 @@ const styles = StyleSheet.create({
   },
   followTextActive: {
     color: COLORS.gold,
-  },
-  consultBtn: {
-    flex: 2.4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: COLORS.gold,
-  },
-  consultBtnNarrow: {
-    flex: 1.6,
-  },
-  consultText: {
-    color: COLORS.black,
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 20,
   },
   kakaoBtn: {
     flex: 1.2,

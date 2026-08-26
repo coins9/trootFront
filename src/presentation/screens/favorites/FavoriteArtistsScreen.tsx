@@ -11,7 +11,7 @@ import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import {
   BackArrowIcon, HeartIcon, StarIcon, CrownIcon,
-  PersonSilhouette, TattooPlaceholderIcon,
+  PersonSilhouette,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
@@ -26,16 +26,9 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 const { width: W } = Dimensions.get('window');
 const CARD_H_PAD = 16;
 const CARD_INNER_PAD = 18;
-const GALLERY_GAP = 6;
-const GALLERY_ITEM_SIZE =
-    (W - CARD_H_PAD * 2 - CARD_INNER_PAD * 2 - GALLERY_GAP * 2) / 3;
-
-// 갤러리 자리(백엔드 작품 썸네일 연동 전까지 placeholder 3칸 유지)
-const EMPTY_WORKS = ['', '', ''];
 
 interface FavoriteCardProps {
   artist: Artist;
-  works: string[];
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onVisitProfile: () => void;
@@ -43,7 +36,7 @@ interface FavoriteCardProps {
 }
 
 const FavoriteCard = React.memo(({
-                                   artist, works, isFavorite, onToggleFavorite, onVisitProfile, visitLabel,
+                                   artist, isFavorite, onToggleFavorite, onVisitProfile, visitLabel,
                                  }: FavoriteCardProps) => (
     <View style={styles.card}>
       <View style={styles.headerRow}>
@@ -85,20 +78,6 @@ const FavoriteCard = React.memo(({
               filled={isFavorite}
           />
         </TouchableOpacity>
-      </View>
-
-      <View style={styles.gallery}>
-        {works.map((uri, i) => (
-            <View key={i} style={styles.galleryItem}>
-              {uri ? (
-                  <Image source={{ uri }} style={styles.galleryImg} resizeMode="cover" />
-              ) : (
-                  <View style={styles.galleryPlaceholder}>
-                    <TattooPlaceholderIcon size={36} color="#2e2e2e" />
-                  </View>
-              )}
-            </View>
-        ))}
       </View>
 
       <TouchableOpacity
@@ -190,7 +169,6 @@ const FavoriteArtistsScreen = () => {
             renderItem={({ item }) => (
                 <FavoriteCard
                     artist={item}
-                    works={EMPTY_WORKS}
                     isFavorite
                     onToggleFavorite={() => handleToggle(item)}
                     onVisitProfile={() => handleVisit(item)}
@@ -340,29 +318,6 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontSize: 13,
     lineHeight: 18,
-  },
-
-  /* Gallery */
-  gallery: {
-    flexDirection: 'row',
-    gap: GALLERY_GAP,
-    marginBottom: 14,
-  },
-  galleryItem: {
-    width: GALLERY_ITEM_SIZE,
-    height: GALLERY_ITEM_SIZE,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: COLORS.elevated,
-  },
-  galleryImg: {
-    width: '100%',
-    height: '100%',
-  },
-  galleryPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 
   /* CTA */

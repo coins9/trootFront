@@ -24,7 +24,7 @@ import { useTranslation } from '../../store/languageStore';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteP = RouteProp<RootStackParamList, 'ReviewWrite'>;
 
-const TEXT_MIN = 10;
+const TEXT_MIN = 5;
 const TEXT_MAX = 500;
 const PHOTO_MAX = 5;
 
@@ -116,6 +116,7 @@ const ReviewWriteScreen = () => {
   );
   const textValid = text.trim().length >= TEXT_MIN;
   const canSubmit = allRated && textValid;
+  const charsLeft = TEXT_MIN - text.trim().length;
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -269,7 +270,9 @@ const ReviewWriteScreen = () => {
                 multiline
                 textAlignVertical="top"
             />
-            <Text style={s.counter}>{text.length}/{TEXT_MAX}</Text>
+            <Text style={[s.counter, charsLeft > 0 && s.counterWarn]}>
+              {charsLeft > 0 ? `${t('review.minCharsHint' as any).replace('{{n}}', String(charsLeft))}` : `${text.length}/${TEXT_MAX}`}
+            </Text>
 
             <View style={s.noticeBox}>
               <Text style={s.noticeText}>{t('review.noticeText' as any)}</Text>
@@ -396,6 +399,7 @@ const s = StyleSheet.create({
     lineHeight: 21,
   },
   counter: { fontSize: 11, color: COLORS.gray2, lineHeight: 15, textAlign: 'right', marginTop: 6 },
+  counterWarn: { color: COLORS.gold },
 
   noticeBox: {
     marginTop: 16,

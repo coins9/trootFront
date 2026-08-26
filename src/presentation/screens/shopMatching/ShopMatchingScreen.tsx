@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo, useRef } from 'react';
+import React, { useCallback, useState, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
   ScrollView, StatusBar,
@@ -112,7 +112,7 @@ const toShareShop = (p: ShopPost): TattooShareShop => {
     },
     likeCount: p.likeCount,
     commentCount: p.applicationCount,
-    isBookmarked: false,
+    isBookmarked: p.isBookmarked ?? false,
   };
 };
 
@@ -141,7 +141,7 @@ const toModelRecruit = (p: ShopPost): BeginnerModelRecruit => {
     },
     likeCount: p.likeCount,
     commentCount: p.applicationCount,
-    isBookmarked: false,
+    isBookmarked: p.isBookmarked ?? false,
   };
 };
 
@@ -175,7 +175,8 @@ const toMediaExpert = (p: ShopPost): MediaExpert => {
     primaryKind: '사진 촬영',
     kakaoLink: p.contact?.startsWith('http') ? p.contact : undefined,
     smsPhone: p.contact && !p.contact.startsWith('http') ? p.contact : undefined,
-    isBookmarked: false,
+    likeCount: p.likeCount,
+    isBookmarked: p.isBookmarked ?? false,
   };
 };
 
@@ -245,6 +246,25 @@ const ShopMatchingScreen = () => {
       [expertRegion],
   );
 
+  // 아이템이 로드될 때마다 서버에서 북마크 상태를 가져와 favorites를 초기화
+  // 로컬에서 아직 상호작용하지 않은 항목(favorites 미등록)만 업데이트
+  useEffect(() => {
+    const allRaw = [...rawBooth, ...rawOverseasBooth, ...rawModel, ...rawMedia];
+    if (allRaw.length === 0) return;
+    const ids = allRaw.map((p) => p.id);
+    favoriteApi.check('shop_post', ids)
+      .then((map) => {
+        setFavorites((prev) => {
+          const next = { ...prev };
+          Object.entries(map).forEach(([id, fav]) => {
+            if (!(id in next)) next[id] = fav;
+          });
+          return next;
+        });
+      })
+      .catch(() => {});
+  }, [rawBooth, rawOverseasBooth, rawModel, rawMedia]);
+
   const hasFocused = useRef(false);
   useFocusEffect(
       useCallback(() => {
@@ -252,6 +272,8 @@ const ShopMatchingScreen = () => {
           hasFocused.current = true;
           return;
         }
+        // 재진입 시 favorites를 초기화하여 서버 상태와 재동기화
+        setFavorites({});
         reloadBooth();
         reloadOverseasBooth();
         reloadModel();
@@ -363,11 +385,15 @@ const ShopMatchingScreen = () => {
 
   const renderExpertItem = useCallback(({ item }: { item: MediaExpert }) => (
       <MediaExpertCard
-          expert={{ ...item, isBookmarked: favorites[item.id] ?? item.isBookmarked }}
+          expert={{
+            ...item,
+            isBookmarked: favorites[item.id] ?? item.isBookmarked,
+            likeCount: likeCounts[item.id] ?? item.likeCount,
+          }}
           onPress={() => handleExpertPress(item)}
-          onBookmark={() => handleBookmark(item.id, 0)}
+          onBookmark={() => handleBookmark(item.id, item.likeCount)}
       />
-  ), [handleExpertPress, handleBookmark, favorites]);
+  ), [handleExpertPress, handleBookmark, favorites, likeCounts]);
 
   const isBeginnerCategory = category === '타투 모델 구인 (비기너)';
   const isEditorCategory = category === '사진/영상 편집자';

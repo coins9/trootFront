@@ -27,7 +27,6 @@ import { artistApi, adApi, reservationApi  } from '../../../data/api';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
 import { adaptyService } from '../../../infrastructure/adapty/adaptyService';
-import { toTattoo } from '../../../data/api/mappers';
 
 const FMT_DATE = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '-';
@@ -120,15 +119,6 @@ const AdStatsScreen = () => {
       toast(t('adStats.linkError'), { variant: 'error' });
     });
   }, [t, toast]);
-
-  const handleOpenDetail = useCallback((item: ArtistAdItem) => () => {
-    const artwork = artworks.find((aw) => aw.id === item.artworkId);
-    if (artwork) {
-      navigation.navigate('TattooDetail', { tattoo: toTattoo(artwork) });
-    } else {
-      toast(t('adStats.detailComingSoon').replace('{{title}}', item.title));
-    }
-  }, [artworks, navigation, toast, t]);
 
   const handleUp = useCallback((item: ArtistAdItem) => () => {
     setConfirm({
@@ -257,7 +247,6 @@ const AdStatsScreen = () => {
           renderItem={({ item: ad }) => (
               <AdCard
                   ad={ad}
-                  onOpenDetail={handleOpenDetail(ad)}
                   onUp={handleUp(ad)}
                   onSuperUp={handleSuperUp(ad)}
                   onCardAd={handleCardAd(ad)}

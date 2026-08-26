@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Image,
-  StatusBar, Dimensions, ScrollView, Linking, ActivityIndicator,
+  StatusBar, Dimensions, ScrollView, ActivityIndicator,
 } from 'react-native';
 // 🚨 1. 하단 안전 여백 처리를 위해 useSafeAreaInsets 훅 추가
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +17,6 @@ import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
 import {
   TattooSupply, SupplyCategory, SUPPLY_CATEGORIES,
-  formatSupplyInquiryMessage,
 } from '../../../domain/entities/supplyTypes';
 import { usePagedApi } from '../../hooks/useApi';
 import {
@@ -82,13 +81,11 @@ const IMG_H = CARD_W;
 interface SupplyCardProps {
   supply: TattooSupply;
   onToggleFavorite: () => void;
-  onInquiry: () => void;
   onOpenDetail: () => void;
-  buyInquireLabel: string;
 }
 
 const SupplyCard = React.memo(({
-                                 supply, onToggleFavorite, onInquiry, onOpenDetail, buyInquireLabel,
+                                 supply, onToggleFavorite, onOpenDetail,
                                }: SupplyCardProps) => (
     <View style={styles.card}>
       <TouchableOpacity
@@ -119,14 +116,6 @@ const SupplyCard = React.memo(({
         <Text style={styles.subtitle} numberOfLines={1}>
           {supply.brand ?? supply.subtitle}
         </Text>
-
-        <TouchableOpacity
-            onPress={onInquiry}
-            activeOpacity={0.75}
-            style={styles.ctaBtn}
-        >
-          <Text style={styles.ctaText}>{buyInquireLabel}</Text>
-        </TouchableOpacity>
       </View>
     </View>
 ));
@@ -189,23 +178,6 @@ const FavoriteSuppliesScreen = () => {
     }
   }, [toast, t]);
 
-  const handleInquiry = useCallback((supply: TattooSupply) => {
-    if (supply.seller.kakaoLink) {
-      Linking.openURL(supply.seller.kakaoLink).catch(() => {
-        toast(t('favorites.inquiryChannelError' as any).replace('{{name}}', supply.seller.nickname), { variant: 'error' });
-      });
-      return;
-    }
-    if (supply.seller.smsPhone) {
-      const smsUrl = `sms:${supply.seller.smsPhone}?body=${encodeURIComponent(formatSupplyInquiryMessage(supply))}`;
-      Linking.openURL(smsUrl).catch(() => {
-        toast(t('favorites.inquiryChannelError' as any).replace('{{name}}', supply.seller.nickname), { variant: 'error' });
-      });
-      return;
-    }
-    toast(t('favorites.inquiryChannelError' as any).replace('{{name}}', supply.seller.nickname), { variant: 'error' });
-  }, [toast, t]);
-
   const handleOpenDetail = useCallback((supply: TattooSupply) => {
     navigation.navigate('TattooSupplyDetail', { supply });
   }, [navigation]);
@@ -262,9 +234,7 @@ const FavoriteSuppliesScreen = () => {
                 <SupplyCard
                     supply={item}
                     onToggleFavorite={() => handleToggle(item)}
-                    onInquiry={() => handleInquiry(item)}
                     onOpenDetail={() => handleOpenDetail(item)}
-                    buyInquireLabel={t('common.buyInquire' as any)}
                 />
             )}
             numColumns={2}
@@ -429,22 +399,6 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontSize: 12,
     lineHeight: 17,
-    marginBottom: 10,
-  },
-  ctaBtn: {
-    borderWidth: 1,
-    borderColor: COLORS.gold,
-    borderRadius: 8,
-    paddingVertical: 9,
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  ctaText: {
-    color: COLORS.gold,
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-    letterSpacing: 0.3,
   },
 
   empty: {
