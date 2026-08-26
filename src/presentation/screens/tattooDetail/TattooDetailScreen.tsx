@@ -15,7 +15,7 @@ import {
 import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
-import { favoriteApi } from '../../../data/api';
+import { favoriteApi, adApi } from '../../../data/api';
 import { artistTagLabels } from '../../../domain/entities/artistTags';
 import { translateTag, translateSizePreset } from '../../utils/tagTranslations';
 import { useToast } from '../../components/common/Toast'; // 🚨 토스트 알림 추가
@@ -30,7 +30,7 @@ const TattooDetailScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<DetailNav>();
   const route = useRoute<DetailRoute>();
-  const { tattoo } = route.params;
+  const { tattoo, campaignId } = route.params;
 
   const { t, language } = useTranslation();
   const { toast } = useToast(); // 🚨 토스트 훅 초기화
@@ -229,7 +229,10 @@ const TattooDetailScreen = () => {
           <TouchableOpacity
               style={styles.ctaBtn}
               activeOpacity={0.85}
-              onPress={() => setBookingVisible(true)}
+              onPress={() => {
+                if (campaignId) adApi.trackInquiry(campaignId).catch(() => {});
+                setBookingVisible(true);
+              }}
           >
             <Text style={styles.ctaText}>{t('artist.consultWithDesign' as any)}</Text>
           </TouchableOpacity>

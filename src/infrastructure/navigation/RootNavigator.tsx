@@ -53,7 +53,7 @@ export type AdManageParams = {
 
 export type RootStackParamList = {
   Main: undefined;
-  TattooDetail: { tattoo: Tattoo };
+  TattooDetail: { tattoo: Tattoo; campaignId?: string };
   ArtistProfile: { artist: Artist };
   TattooShareDetail: { shop: TattooShareShop };
   BeginnerModelDetail: { post: BeginnerModelRecruit };

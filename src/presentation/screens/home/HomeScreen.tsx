@@ -211,13 +211,13 @@ const HomeScreen = () => {
       [navigation],
   );
 
-  // 🚨 4. 작품 클릭 시 캠페인(광고) 아이디가 있다면 서버로 클릭(click) 통계 전송
+  // 🚨 4. 작품 클릭 시 캠페인 클릭 통계 전송 + campaignId 를 상세화면으로 전달(문의 집계용)
   const handleTattooPress = useCallback((tattoo: Tattoo) => {
     const campaignId = campaignByArtworkId.get(tattoo.id);
     if (campaignId) {
       adApi.click(campaignId).catch(() => {});
     }
-    navigation.navigate('TattooDetail', { tattoo });
+    navigation.navigate('TattooDetail', { tattoo, campaignId });
   }, [navigation, campaignByArtworkId]);
 
   const handleBookmark = useCallback(async (tattoo: Tattoo) => {
@@ -256,7 +256,9 @@ const HomeScreen = () => {
   ), [handleTattooPress, handleArtistPress, handleBookmark]);
 
   const sponsoredTattoos = useMemo(
-      () => cardAds.map((a) => toTattoo(a.artwork, favorites[a.artwork.id] ?? false)),
+      () => cardAds
+        .filter((a) => a.artwork != null)
+        .map((a) => toTattoo(a.artwork!, favorites[a.artwork!.id] ?? false)),
       [cardAds, favorites],
   );
 
@@ -273,11 +275,14 @@ const HomeScreen = () => {
                 ad={ad}
                 onPress={() => {
                   if (ad.targetType === 'tattoo' && ad.targetId) {
-                    const matched = (adArtworks ?? []).find((a) => a.artwork.id === ad.targetId);
-                    if (matched) {
+                    const matched = (adArtworks ?? []).find(
+                      (a) => a.artwork != null && a.artwork.id === ad.targetId,
+                    );
+                    if (matched?.artwork) {
                       adApi.click(ad.id).catch(() => {});
                       navigation.navigate('TattooDetail', {
                         tattoo: toTattoo(matched.artwork, favorites[matched.artwork.id] ?? false),
+                        campaignId: matched.campaignId,
                       });
                     }
                   }
