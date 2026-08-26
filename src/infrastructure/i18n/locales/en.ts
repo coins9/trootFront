@@ -194,6 +194,7 @@ export const en: TranslationSchema = {
   home: {
     searchPlaceholder: 'Search artworks, artists',
     empty: 'No artworks yet.',
+    searchError: 'Could not load search results. Try a different keyword.',
     totalArtists: '{{count}} artists',
     bannerTitle: "This Week's Featured Artists",
     bannerSubtitle: 'Consult with top tattoo artists right now',
@@ -658,8 +659,8 @@ export const en: TranslationSchema = {
     },
     sort: {
       popular: 'Popular',
-      price: 'Price',
-      recent: 'Category',
+      price: 'Cheapest',
+      recent: 'Latest',
     },
     seller: 'Seller',
     noProducts: 'No products yet.',

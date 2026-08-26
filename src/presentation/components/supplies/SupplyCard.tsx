@@ -55,6 +55,9 @@ const SupplyCard = memo(({ supply, onBookmark, onInquiry, onPress }: Props) => {
 
     {/* Info */}
     <View style={styles.body}>
+      {supply.brand ? (
+        <Text style={styles.brand} numberOfLines={1}>{supply.brand}</Text>
+      ) : null}
       <Text
         style={styles.name}
         numberOfLines={1}
@@ -63,14 +66,19 @@ const SupplyCard = memo(({ supply, onBookmark, onInquiry, onPress }: Props) => {
       >
         {supply.name}
       </Text>
-      <Text
-        style={styles.subtitle}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
-      >
-        {supply.subtitle}
-      </Text>
+      {supply.subtitle ? (
+        <Text
+          style={styles.subtitle}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+        >
+          {supply.subtitle}
+        </Text>
+      ) : null}
+      {typeof supply.price === 'number' && supply.price > 0 ? (
+        <Text style={styles.price}>{supply.price.toLocaleString()}원</Text>
+      ) : null}
     </View>
 
     {/* Inquiry button */}
@@ -144,6 +152,13 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     gap: 2,
   },
+  brand: {
+    color: COLORS.gold,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
+    letterSpacing: 0.3,
+  },
   name: {
     color: COLORS.white,
     fontSize: 14,
@@ -154,6 +169,13 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontSize: 12,
     lineHeight: 17,
+  },
+  price: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 19,
+    marginTop: 4,
   },
   inquiryBtn: {
     marginHorizontal: 14,

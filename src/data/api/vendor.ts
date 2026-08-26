@@ -23,7 +23,10 @@ export interface MyProduct {
   id: string;
   vendorId: string;
   name: string;
+  subtitle: string | null;
+  nameEn: string | null;
   description: string | null;
+  descriptionEn: string | null;
   category: ProductCategory;
   brand: string | null;
   priceKrw: number;
@@ -32,6 +35,8 @@ export interface MyProduct {
   thumbnail: string | null;
   attributes: Record<string, unknown>;
   externalUrl: string | null;
+  openChatUrl: string | null;
+  storeUrl: string | null;
   isActive: boolean;
   soldCount: number;
   createdAt: string;
@@ -39,7 +44,10 @@ export interface MyProduct {
 
 export interface ProductPayload {
   name: string;
+  subtitle?: string;
+  nameEn?: string;
   description?: string;
+  descriptionEn?: string;
   category: ProductCategory;
   brand?: string;
   priceKrw: number;
@@ -48,7 +56,32 @@ export interface ProductPayload {
   thumbnail?: string;
   attributes?: Record<string, unknown>;
   externalUrl?: string;
+  openChatUrl?: string;
+  storeUrl?: string;
 }
+
+/** 한글 카테고리(SUPPLY_CATEGORIES) → 백엔드 enum 변환 */
+export const SUPPLY_CATEGORY_TO_ENUM: Record<string, ProductCategory> = {
+  '머신 & 장비': 'machine',
+  '니들 (바늘)': 'needle',
+  '잉크': 'ink',
+  '위생·소모품': 'hygiene',
+  '스탠실 용품': 'stencil',
+  '애프터케어': 'aftercare',
+  '가구·인테리어': 'furniture',
+};
+
+/** 백엔드 enum → 한글 카테고리 변환 */
+export const ENUM_TO_SUPPLY_CATEGORY: Record<ProductCategory, string> = {
+  machine: '머신 & 장비',
+  needle: '니들 (바늘)',
+  ink: '잉크',
+  hygiene: '위생·소모품',
+  stencil: '스탠실 용품',
+  aftercare: '애프터케어',
+  furniture: '가구·인테리어',
+  etc: '머신 & 장비',
+};
 
 /** 상품 카테고리 — 등록 화면 선택지 */
 export const PRODUCT_CATEGORIES: { value: ProductCategory; label: string }[] = [

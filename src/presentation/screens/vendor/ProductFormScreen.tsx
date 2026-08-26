@@ -10,7 +10,7 @@ import { COLORS } from '../../theme/colors';
 import { BackArrowIcon, CameraAddIcon, XIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { ApiError } from '../../../data/api/client';
-import { supplyVendorApi, type ProductPayload } from '../../../data/api/vendor';
+import { supplyVendorApi, type ProductPayload, SUPPLY_CATEGORY_TO_ENUM, ENUM_TO_SUPPLY_CATEGORY } from '../../../data/api/vendor';
 // 🚨 기존 PRODUCT_CATEGORIES 대신 supplyTypes의 한글 카테고리를 사용하도록 변경
 import { SUPPLY_CATEGORIES, type SupplyCategory } from '../../../domain/entities/supplyTypes';
 import { useImageUpload } from '../../hooks/useImageUpload';
@@ -33,10 +33,11 @@ const ProductFormScreen = () => {
 
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
+  const [langTab, setLangTab] = useState<'ko' | 'en'>('ko');
 
   const [name, setName] = useState('');
-  const [subtitle, setSubtitle] = useState(''); // 🚨 새로 추가된 부제목 상태
-  const [category, setCategory] = useState<SupplyCategory | ''>(''); // 🚨 타입 변경
+  const [subtitle, setSubtitle] = useState('');
+  const [category, setCategory] = useState<SupplyCategory | ''>('');
   const [brand, setBrand] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
@@ -65,7 +66,8 @@ const ProductFormScreen = () => {
         setName(found.name);
         // 타입 에러 방지를 위해 any 캐스팅 처리
         setSubtitle((found as any).subtitle ?? '');
-        setCategory(found.category as SupplyCategory);
+        // 백엔드는 English enum(machine, needle...) 반환 → 한글 카테고리로 역변환
+        setCategory((ENUM_TO_SUPPLY_CATEGORY[found.category] ?? found.category) as SupplyCategory);
         setBrand(found.brand ?? '');
 
         // 🚨 TS2339 에러 수정 부분: priceKrw와 thumbnail로 정확히 매핑
@@ -110,12 +112,13 @@ const ProductFormScreen = () => {
     Keyboard.dismiss();
     setSubmitting(true);
 
-    const payload: ProductPayload & { subtitle?: string; nameEn?: string; descriptionEn?: string; openChatUrl?: string; storeUrl?: string } = {
+    const payload: ProductPayload = {
       name: name.trim(),
       subtitle: subtitle.trim(),
       nameEn: nameEn.trim() || undefined,
       descriptionEn: descriptionEn.trim() || undefined,
-      category: category as any,
+      // 한글 카테고리 → 백엔드 English enum 변환
+      category: (SUPPLY_CATEGORY_TO_ENUM[category] ?? category) as any,
       priceKrw: priceNum,
       stock: stock ? Number(stock) : 0,
       brand: brand.trim() || undefined,
@@ -184,21 +187,51 @@ const ProductFormScreen = () => {
                   ))}
                 </ScrollView>
 
-                <Text style={s.label}>{t('vendor.fieldName')} <Text style={s.req}>*</Text></Text>
-                <TextInput style={s.input} placeholder={t('vendor.fieldNamePlaceholder')} placeholderTextColor={COLORS.gray2} value={name} onChangeText={setName} />
+                {/* ── 언어 탭 ── */}
+                <View style={s.langTabRow}>
+                  <TouchableOpacity
+                      style={[s.langTab, langTab === 'ko' && s.langTabActive]}
+                      onPress={() => setLangTab('ko')}
+                      activeOpacity={0.8}
+                  >
+                    <Text style={[s.langTabText, langTab === 'ko' && s.langTabTextActive]}>한국어</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                      style={[s.langTab, langTab === 'en' && s.langTabActive]}
+                      onPress={() => setLangTab('en')}
+                      activeOpacity={0.8}
+                  >
+                    <Text style={[s.langTabText, langTab === 'en' && s.langTabTextActive]}>English</Text>
+                  </TouchableOpacity>
+                </View>
 
-                <Text style={s.label}>영문 상품명 (English Name)</Text>
-                <TextInput style={s.input} placeholder="e.g. Beginner Tattoo Machine Kit" placeholderTextColor={COLORS.gray2} value={nameEn} onChangeText={setNameEn} autoCapitalize="none" />
+                {langTab === 'ko' ? (
+                    <>
+                      <Text style={s.label}>{t('vendor.fieldName')} <Text style={s.req}>*</Text></Text>
+                      <TextInput style={s.input} placeholder={t('vendor.fieldNamePlaceholder')} placeholderTextColor={COLORS.gray2} value={name} onChangeText={setName} />
 
-                <Text style={s.label}>한 줄 설명 (부제목) <Text style={s.req}>*</Text></Text>
-                <TextInput
-                    style={s.input}
-                    placeholder="리스트에 노출될 핵심 설명을 적어주세요 (예: 입문용 최고의 머신)"
-                    placeholderTextColor={COLORS.gray2}
-                    value={subtitle}
-                    onChangeText={setSubtitle}
-                    maxLength={40}
-                />
+                      <Text style={s.label}>한 줄 설명 (부제목) <Text style={s.req}>*</Text></Text>
+                      <TextInput
+                          style={s.input}
+                          placeholder="리스트에 노출될 핵심 설명을 적어주세요 (예: 입문용 최고의 머신)"
+                          placeholderTextColor={COLORS.gray2}
+                          value={subtitle}
+                          onChangeText={setSubtitle}
+                          maxLength={40}
+                      />
+
+                      <Text style={s.label}>{t('vendor.fieldDescription')}</Text>
+                      <TextInput style={[s.input, s.textarea]} placeholder={t('vendor.descPlaceholder')} placeholderTextColor={COLORS.gray2} value={description} onChangeText={setDescription} multiline textAlignVertical="top" />
+                    </>
+                ) : (
+                    <>
+                      <Text style={s.label}>English Name</Text>
+                      <TextInput style={s.input} placeholder="e.g. Beginner Tattoo Machine Kit" placeholderTextColor={COLORS.gray2} value={nameEn} onChangeText={setNameEn} autoCapitalize="none" />
+
+                      <Text style={s.label}>English Description</Text>
+                      <TextInput style={[s.input, s.textarea]} placeholder="Enter product description in English" placeholderTextColor={COLORS.gray2} value={descriptionEn} onChangeText={setDescriptionEn} multiline textAlignVertical="top" autoCapitalize="none" />
+                    </>
+                )}
 
                 <Text style={s.label}>{t('vendor.fieldCategory')} <Text style={s.req}>*</Text></Text>
                 <View style={s.chipRow}>
@@ -225,12 +258,6 @@ const ProductFormScreen = () => {
                     <TextInput style={s.input} placeholder="100" placeholderTextColor={COLORS.gray2} value={stock} onChangeText={(v) => setStock(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" />
                   </View>
                 </View>
-
-                <Text style={s.label}>{t('vendor.fieldDescription')}</Text>
-                <TextInput style={[s.input, s.textarea]} placeholder={t('vendor.descPlaceholder')} placeholderTextColor={COLORS.gray2} value={description} onChangeText={setDescription} multiline textAlignVertical="top" />
-
-                <Text style={s.label}>영문 설명 (English Description)</Text>
-                <TextInput style={[s.input, s.textarea]} placeholder="Enter product description in English" placeholderTextColor={COLORS.gray2} value={descriptionEn} onChangeText={setDescriptionEn} multiline textAlignVertical="top" autoCapitalize="none" />
 
                 <Text style={s.label}>1:1 문의 링크 (오픈채팅)</Text>
                 <TextInput style={s.input} placeholder="https://open.kakao.com/..." placeholderTextColor={COLORS.gray2} value={openChatUrl} onChangeText={setOpenChatUrl} autoCapitalize="none" keyboardType="url" />
@@ -270,6 +297,34 @@ const s = StyleSheet.create({
   textarea: { minHeight: 110 },
   row: { flexDirection: 'row', gap: 12 },
   rowItem: { flex: 1 },
+  langTabRow: {
+    flexDirection: 'row',
+    marginTop: 18,
+    marginBottom: 4,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+  },
+  langTab: {
+    flex: 1,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  langTabActive: {
+    backgroundColor: COLORS.gold,
+  },
+  langTabText: {
+    color: COLORS.gray,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  langTabTextActive: {
+    color: COLORS.black,
+    fontWeight: '800',
+  },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: COLORS.chipBorder, backgroundColor: COLORS.card },
   chipActive: { borderColor: COLORS.gold, backgroundColor: COLORS.goldDim },

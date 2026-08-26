@@ -324,7 +324,7 @@ const MyProfileScreen = () => {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
         <LogoHeader
-            showGear={mode === 'user'}
+            showGear={true}
             onGearPress={() => navigation.navigate('Settings')}
         />
 
@@ -420,8 +420,6 @@ const MyProfileScreen = () => {
                 {renderCompactSection(t('profile.myPosts'), userPostItems)}
               </>
           )}
-
-          {renderCompactSection(t('settings.title') || '설정', userSettingItems)}
 
           {mode === 'shopMatching' && (
               <>

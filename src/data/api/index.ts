@@ -354,7 +354,7 @@ export interface ShopPost {
 }
 
 export const shopApi = {
-  list: (p: { category: ShopCategory; region?: string; keyword?: string; cursor?: string; limit?: number }) =>
+  list: (p: { category: ShopCategory; region?: string; cursor?: string; limit?: number }) =>
     api.get<CursorPage<ShopPost>>(`/app/shop-posts${qs(p)}`),
 
   detail: (id: string) => api.get<ShopPost>(`/app/shop-posts/${id}`),

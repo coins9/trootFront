@@ -1,14 +1,15 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, StyleSheet,
-  Dimensions, StatusBar, Linking, Share,
+  Dimensions, StatusBar, Linking,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
-  BackArrowIcon, ShareIcon, HeartIcon, TattooPlaceholderIcon,
+  BackArrowIcon, HeartIcon, TattooPlaceholderIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
@@ -72,15 +73,34 @@ const TattooSupplyDetailScreen = () => {
     });
   }, [toast, t]);
 
-  const handleShare = useCallback(async () => {
-    try {
-      await Share.share({
-        message: `[${supply.name}] T:ROOT에서 확인하기\nhttps://tattooroot.com/supply/${supply.id}`,
-      });
-    } catch {
-      toast(t('common.error'), { variant: 'error' });
+  // 선택 옵션 클립보드 복사 → toast → 오픈채팅 열기
+  const handleContact = useCallback(() => {
+    const chatUrl = supply.openChatUrl;
+
+    // 클립보드에 복사할 문의 텍스트 빌드
+    const lines: string[] = [
+      t('supplies.inquiryMsgHeader'),
+      `${t('supplies.inquiryMsgProduct')}: ${supply.name}`,
+      ...(supply.subtitle ? [`${t('supplies.inquiryMsgDesc')}: ${supply.subtitle}`] : []),
+      ...(supply.brand ? [`${t('supplies.inquiryMsgBrand')}: ${supply.brand}`] : []),
+      ...(typeof supply.price === 'number'
+        ? [`${t('supplies.inquiryMsgListPrice')}: ₩${supply.price.toLocaleString()}`]
+        : []),
+    ];
+    Object.entries(selectedOptions).forEach(([k, v]) => {
+      if (v) lines.push(`${k}: ${v}`);
+    });
+    Clipboard.setString(lines.join('\n'));
+
+    if (chatUrl) {
+      // 클립보드 복사 직후 바로 오픈채팅 이동 → 입력창에 즉시 붙여넣기 가능
+      Linking.openURL(chatUrl).catch(() => toast(t('common.linkError'), { variant: 'error' }));
+    } else {
+      // openChatUrl 미등록 시: 복사 완료 토스트 → 인앱 바텀시트 fallback
+      toast(t('common.copiedToChat'), { variant: 'success' });
+      setTimeout(() => setInquiryVisible(true), 300);
     }
-  }, [supply.id, supply.name, toast, t]);
+  }, [supply, selectedOptions, toast, t]);
 
   const handleOptionSelect = useCallback((groupLabel: string, value: string) => {
     setSelectedOptions((prev) => ({ ...prev, [groupLabel]: value }));
@@ -113,9 +133,6 @@ const TattooSupplyDetailScreen = () => {
               <View style={styles.topRight}>
                 <TouchableOpacity onPress={toggleBookmark} style={styles.topBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                   <HeartIcon size={22} color={bookmarked ? COLORS.gold : COLORS.black} filled={bookmarked} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleShare} style={styles.topBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <ShareIcon size={22} color={COLORS.black} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -176,18 +193,11 @@ const TattooSupplyDetailScreen = () => {
           </View>
         </ScrollView>
 
-        {/* Sticky CTA: 1:1문의 / 구매하러가기 분리 */}
+        {/* Sticky CTA: 1:1문의 / 구매하러가기 */}
         <View style={[styles.stickyFooter, { paddingBottom: insets.bottom + 12 }]}>
-          {/* 1:1 문의 — openChatUrl 있으면 외부링크, 없으면 인앱 바텀시트 */}
+          {/* 1:1 구매 문의하기 — 선택 옵션 클립보드 복사 → toast → 오픈채팅 열기 */}
           <TouchableOpacity
-              onPress={() => {
-                const chatUrl = supply.openChatUrl;
-                if (chatUrl) {
-                  Linking.openURL(chatUrl).catch(() => toast(t('common.linkError'), { variant: 'error' }));
-                } else {
-                  setInquiryVisible(true);
-                }
-              }}
+              onPress={handleContact}
               style={[styles.ctaBtn, (supply.storeUrl || supply.externalUrl) ? styles.ctaBtnSecondary : {}]}
               activeOpacity={0.85}
           >
@@ -196,6 +206,7 @@ const TattooSupplyDetailScreen = () => {
             </Text>
           </TouchableOpacity>
 
+          {/* 구매하러 가기 — storeUrl → externalUrl 순서로 연결 */}
           {(supply.storeUrl || supply.externalUrl) ? (
               <TouchableOpacity
                   onPress={() => {

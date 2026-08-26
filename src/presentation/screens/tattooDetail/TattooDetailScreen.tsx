@@ -17,6 +17,7 @@ import { RootStackParamList } from '../../../infrastructure/navigation/RootNavig
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
 import { favoriteApi } from '../../../data/api';
 import { artistTagLabels } from '../../../domain/entities/artistTags';
+import { translateTag, translateSizePreset } from '../../utils/tagTranslations';
 import { useToast } from '../../components/common/Toast'; // 🚨 토스트 알림 추가
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -161,17 +162,17 @@ const TattooDetailScreen = () => {
               <View style={styles.tagsRow}>
                 {tattoo.genres?.map((g) => (
                     <View key={`g-${g}`} style={styles.tag}>
-                      <Text style={styles.tagText}>{g}</Text>
+                      <Text style={styles.tagText}>{translateTag(g, language)}</Text>
                     </View>
                 ))}
                 {tattoo.bodyParts?.map((b) => (
                     <View key={`b-${b}`} style={[styles.tag, styles.tagBodyPart]}>
-                      <Text style={styles.tagText}>{b}</Text>
+                      <Text style={styles.tagText}>{translateTag(b, language)}</Text>
                     </View>
                 ))}
                 {tattoo.sizePreset ? (
                     <View style={[styles.tag, styles.tagSize]}>
-                      <Text style={styles.tagText}>{tattoo.sizePreset}</Text>
+                      <Text style={styles.tagText}>{translateSizePreset(tattoo.sizePreset, language)}</Text>
                     </View>
                 ) : null}
               </View>
@@ -209,12 +210,12 @@ const TattooDetailScreen = () => {
                 <View style={styles.artistRatingRow}>
                   <StarIcon size={13} color={COLORS.gold} filled />
                   <Text style={styles.artistRating}>
-                    {tattoo.artist?.rating} ({t('shop.reviewCountFmt' as any, { count: tattoo.artist?.reviewCount ?? 0 })})
+                    {tattoo.artist?.rating} {t('shop.reviewCountFmt' as any, { count: tattoo.artist?.reviewCount ?? 0 })}
                   </Text>
                 </View>
-                {artistTagLabels(tattoo.artist?.tags ?? []).length > 0 && (
+                {artistTagLabels(tattoo.artist?.tags ?? [], language).length > 0 && (
                     <Text style={styles.artistTags} numberOfLines={1}>
-                      {artistTagLabels(tattoo.artist.tags).join(' · ')}
+                      {artistTagLabels(tattoo.artist.tags, language).join(' · ')}
                     </Text>
                 )}
               </View>

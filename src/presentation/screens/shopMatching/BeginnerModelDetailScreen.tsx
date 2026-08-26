@@ -15,7 +15,7 @@ import {
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import ModelApplicationBottomSheet from '../../components/shopMatching/ModelApplicationBottomSheet';
-// 🚨 1. 북마크(찜) 저장을 위한 API 임포트 추가
+import { useToast } from '../../components/common/Toast';
 import { favoriteApi } from '../../../data/api';
 
 const { width: W, height: H } = Dimensions.get('window');

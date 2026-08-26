@@ -256,17 +256,21 @@ const HomeScreen = () => {
           </View>
       );
     }
+    // 키워드 검색 중 서버 오류 시 전용 안내 메시지
+    const emptyText = error
+        ? (debouncedKeyword ? t('home.searchError' as any) : error)
+        : t('home.empty');
     return (
         <View style={styles.state}>
-          <Text style={styles.stateText}>{error ?? t('home.empty')}</Text>
-          {error && (
+          <Text style={styles.stateText}>{emptyText}</Text>
+          {error && !debouncedKeyword && (
               <TouchableOpacity onPress={reload} style={styles.retry} activeOpacity={0.8}>
                 <Text style={styles.retryText}>{t('common.retry')}</Text>
               </TouchableOpacity>
           )}
         </View>
     );
-  }, [loading, error, reload, t]);
+  }, [loading, error, debouncedKeyword, reload, t]);
 
   return (
       <SafeAreaView style={styles.safe} edges={['top']}>

@@ -206,6 +206,8 @@ const ShopMatchingScreen = () => {
   const debouncedKeyword = useDebounce(keyword, 400);
 
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  // 북마크 토글 시 하트(likeCount) 즉시 반영을 위한 로컬 override
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
 
   const handleSearchPress = useCallback(() => setSearchVisible(true), []);
   const handleSearchCancel = useCallback(() => {
@@ -225,21 +227,22 @@ const ShopMatchingScreen = () => {
   const modelRegion = beginnerFilter.region !== '전체' ? beginnerFilter.region : undefined;
   const expertRegion = expertFilter.region !== '전체' ? expertFilter.region : undefined;
 
+  // 🚨 백엔드 /app/shop-posts는 keyword 파라미터 미지원 → 제거하고 클라이언트 필터링으로 대체
   const { items: rawBooth, reload: reloadBooth } = usePagedApi(
-      (cursor) => shopApi.list({ category: 'booth_share', keyword: debouncedKeyword || undefined, region: boothRegion, cursor }),
-      [debouncedKeyword, boothRegion],
+      (cursor) => shopApi.list({ category: 'booth_share', region: boothRegion, cursor }),
+      [boothRegion],
   );
   const { items: rawOverseasBooth, reload: reloadOverseasBooth } = usePagedApi(
-      (cursor) => shopApi.list({ category: 'booth_share_overseas', keyword: debouncedKeyword || undefined, cursor }),
-      [debouncedKeyword],
+      (cursor) => shopApi.list({ category: 'booth_share_overseas', cursor }),
+      [],
   );
   const { items: rawModel, reload: reloadModel } = usePagedApi(
-      (cursor) => shopApi.list({ category: 'model_recruit', keyword: debouncedKeyword || undefined, region: modelRegion, cursor }),
-      [debouncedKeyword, modelRegion],
+      (cursor) => shopApi.list({ category: 'model_recruit', region: modelRegion, cursor }),
+      [modelRegion],
   );
   const { items: rawMedia, reload: reloadMedia } = usePagedApi(
-      (cursor) => shopApi.list({ category: 'media_expert', keyword: debouncedKeyword || undefined, region: expertRegion, cursor }),
-      [debouncedKeyword, expertRegion],
+      (cursor) => shopApi.list({ category: 'media_expert', region: expertRegion, cursor }),
+      [expertRegion],
   );
 
   const hasFocused = useRef(false);
@@ -256,9 +259,24 @@ const ShopMatchingScreen = () => {
       }, [reloadBooth, reloadOverseasBooth, reloadModel, reloadMedia])
   );
 
-  const boothPosts = useMemo(() => rawBooth.map(toShareShop), [rawBooth]);
+  // 클라이언트 사이드 키워드 필터 (백엔드 미지원 → 직접 처리)
+  const kwLower = debouncedKeyword.toLowerCase();
+  const matchKeyword = (p: { title: string; titleEn?: string | null; description: string; region?: string | null }) => {
+    if (!kwLower) return true;
+    return (
+        p.title.toLowerCase().includes(kwLower) ||
+        (p.titleEn?.toLowerCase() ?? '').includes(kwLower) ||
+        p.description.toLowerCase().includes(kwLower) ||
+        (p.region?.toLowerCase() ?? '').includes(kwLower)
+    );
+  };
+
+  const boothPosts = useMemo(
+      () => rawBooth.filter(matchKeyword).map(toShareShop),
+      [rawBooth, kwLower],
+  );
   const overseasBoothPosts = useMemo(() => {
-    const all = rawOverseasBooth.map(toShareShop);
+    const all = rawOverseasBooth.filter(matchKeyword).map(toShareShop);
     const byCountry = overseasCountry === '전체' ? all : all.filter((s) => s.address.includes(overseasCountry));
     const filtered = byCountry.filter((s) =>
         matchLighting(s.lighting, overseasFilter.lighting)
@@ -266,9 +284,15 @@ const ShopMatchingScreen = () => {
         && matchOccupancy(s.maxOccupancy, overseasFilter.occupancy),
     );
     return applyShareSort(filtered, overseasFilter.sort);
-  }, [rawOverseasBooth, overseasCountry, overseasFilter]);
-  const modelPosts = useMemo(() => rawModel.map(toModelRecruit), [rawModel]);
-  const mediaPosts = useMemo(() => rawMedia.map(toMediaExpert), [rawMedia]);
+  }, [rawOverseasBooth, overseasCountry, overseasFilter, kwLower]);
+  const modelPosts = useMemo(
+      () => rawModel.filter(matchKeyword).map(toModelRecruit),
+      [rawModel, kwLower],
+  );
+  const mediaPosts = useMemo(
+      () => rawMedia.filter(matchKeyword).map(toMediaExpert),
+      [rawMedia, kwLower],
+  );
 
   const handleShopPress = useCallback((shop: TattooShareShop) => {
     navigation.navigate('TattooShareDetail', { shop });
@@ -282,37 +306,66 @@ const ShopMatchingScreen = () => {
     navigation.navigate('MediaExpertDetail', { expert });
   }, [navigation]);
 
-  const handleBookmark = useCallback(async (id: string) => {
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+  const handleBookmark = useCallback(async (id: string, baseLikeCount: number) => {
+    const wasBookmarked = favorites[id] ?? false;
+    const nextBookmarked = !wasBookmarked;
+
+    // Optimistic update — 북마크 ON → +1, OFF → -1
+    setFavorites((prev) => ({ ...prev, [id]: nextBookmarked }));
+    setLikeCounts((prev) => ({
+      ...prev,
+      [id]: Math.max(0, (prev[id] ?? baseLikeCount) + (nextBookmarked ? 1 : -1)),
+    }));
+
     try {
       const { favorited } = await favoriteApi.toggle('shop_post', id);
       setFavorites((prev) => ({ ...prev, [id]: favorited }));
+      // API 응답이 예측과 다를 때 likeCount 보정
+      if (favorited !== nextBookmarked) {
+        setLikeCounts((prev) => ({
+          ...prev,
+          [id]: Math.max(0, (prev[id] ?? baseLikeCount) + (favorited ? 1 : -1)),
+        }));
+      }
     } catch {
-      setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+      // 롤백
+      setFavorites((prev) => ({ ...prev, [id]: wasBookmarked }));
+      setLikeCounts((prev) => ({
+        ...prev,
+        [id]: Math.max(0, (prev[id] ?? baseLikeCount) + (wasBookmarked ? 1 : -1)),
+      }));
     }
-  }, []);
+  }, [favorites]);
 
   const renderShopItem = useCallback(({ item }: { item: TattooShareShop }) => (
       <ShopShareCard
-          shop={{ ...item, isBookmarked: favorites[item.id] ?? item.isBookmarked }}
+          shop={{
+            ...item,
+            isBookmarked: favorites[item.id] ?? item.isBookmarked,
+            likeCount: likeCounts[item.id] ?? item.likeCount,
+          }}
           onPress={() => handleShopPress(item)}
-          onBookmark={() => handleBookmark(item.id)}
+          onBookmark={() => handleBookmark(item.id, item.likeCount)}
       />
-  ), [handleShopPress, handleBookmark, favorites]);
+  ), [handleShopPress, handleBookmark, favorites, likeCounts]);
 
   const renderBeginnerItem = useCallback(({ item }: { item: BeginnerModelRecruit }) => (
       <BeginnerModelCard
-          post={{ ...item, isBookmarked: favorites[item.id] ?? item.isBookmarked }}
+          post={{
+            ...item,
+            isBookmarked: favorites[item.id] ?? item.isBookmarked,
+            likeCount: likeCounts[item.id] ?? item.likeCount,
+          }}
           onPress={() => handleBeginnerPress(item)}
-          onBookmark={() => handleBookmark(item.id)}
+          onBookmark={() => handleBookmark(item.id, item.likeCount)}
       />
-  ), [handleBeginnerPress, handleBookmark, favorites]);
+  ), [handleBeginnerPress, handleBookmark, favorites, likeCounts]);
 
   const renderExpertItem = useCallback(({ item }: { item: MediaExpert }) => (
       <MediaExpertCard
           expert={{ ...item, isBookmarked: favorites[item.id] ?? item.isBookmarked }}
           onPress={() => handleExpertPress(item)}
-          onBookmark={() => handleBookmark(item.id)}
+          onBookmark={() => handleBookmark(item.id, 0)}
       />
   ), [handleExpertPress, handleBookmark, favorites]);
 

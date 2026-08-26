@@ -256,10 +256,10 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
                 </>
             )}
 
-            <SectionLabel label={t('shop.writeForm.contactLabel' as any)} required />
+            <SectionLabel label={writeLang === 'en' ? 'Contact' : t('shop.writeForm.contactLabel' as any)} required />
             <TextInput
                 style={s.input}
-                placeholder={t('shop.writeForm.contactPlaceholder' as any)}
+                placeholder={writeLang === 'en' ? 'e.g. open.kakao.com/... or 010-XXXX-XXXX' : t('shop.writeForm.contactPlaceholder' as any)}
                 placeholderTextColor={COLORS.gray2}
                 value={form.contact}
                 onChangeText={v => setForm(p => ({ ...p, contact: v }))}
@@ -474,7 +474,7 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
                 </>
             )}
 
-            <SectionLabel label={t('shop.writeForm.overseasContactLabel' as any)} required />
+            <SectionLabel label={writeLang === 'en' ? 'Contact' : t('shop.writeForm.overseasContactLabel' as any)} required />
             <TextInput
                 style={s.input}
                 placeholder="Instagram @username / Email / WhatsApp"
@@ -543,8 +543,8 @@ const ModelRecruitForm = ({ form, setForm, writeLang }: {
                 multiline maxLength={500}
             />
 
-            <SectionLabel label={t('shop.writeForm.contactFieldLabel' as any)} required />
-            <TextInput style={s.input} placeholder={t('shop.writeForm.contactFieldPlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.contact} onChangeText={v => setForm(p => ({ ...p, contact: v }))} />
+            <SectionLabel label={writeLang === 'en' ? 'Contact' : t('shop.writeForm.contactFieldLabel' as any)} required />
+            <TextInput style={s.input} placeholder={writeLang === 'en' ? 'KakaoTalk open chat URL or phone number' : t('shop.writeForm.contactFieldPlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.contact} onChangeText={v => setForm(p => ({ ...p, contact: v }))} />
         </>
     );
 };
@@ -607,8 +607,8 @@ const MediaExpertForm = ({ form, setForm, writeLang }: {
             <SectionLabel label={t('shop.writeForm.instagramLabel' as any)} />
             <TextInput style={s.input} placeholder="@username" placeholderTextColor={COLORS.gray2} value={form.instagramUrl} onChangeText={v => setForm(p => ({ ...p, instagramUrl: v }))} autoCapitalize="none" />
 
-            <SectionLabel label={t('shop.writeForm.contactFieldLabel' as any)} required />
-            <TextInput style={s.input} placeholder={t('shop.writeForm.contactFieldPlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.contact} onChangeText={v => setForm(p => ({ ...p, contact: v }))} />
+            <SectionLabel label={writeLang === 'en' ? 'Contact' : t('shop.writeForm.contactFieldLabel' as any)} required />
+            <TextInput style={s.input} placeholder={writeLang === 'en' ? 'KakaoTalk open chat URL or phone number' : t('shop.writeForm.contactFieldPlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.contact} onChangeText={v => setForm(p => ({ ...p, contact: v }))} />
         </>
     );
 };

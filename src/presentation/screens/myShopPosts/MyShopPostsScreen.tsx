@@ -338,9 +338,9 @@ const s = StyleSheet.create({
     borderColor: COLORS.chipBorder,
     backgroundColor: COLORS.card,
   },
-  filterTabActive: { borderColor: COLORS.gold, backgroundColor: COLORS.goldDim },
+  filterTabActive: { borderColor: COLORS.gold, backgroundColor: COLORS.gold },
   filterTabText: { fontSize: 13, color: COLORS.gray, lineHeight: 18 },
-  filterTabTextActive: { color: COLORS.gold, fontWeight: '600' },
+  filterTabTextActive: { color: COLORS.black, fontWeight: '700' },
 
   listContent: { padding: 16, paddingTop: 4, backgroundColor: COLORS.bg, flexGrow: 1 },
 

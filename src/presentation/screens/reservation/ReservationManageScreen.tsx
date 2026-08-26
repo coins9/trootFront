@@ -195,9 +195,10 @@ const ReservationManageScreen = () => {
               <WonIcon size={13} color={COLORS.gray} />
               <Text style={styles.detailText}>
                 {t('reservation.totalPrice' as any)}{'   '}
-                {/* 🚨 언어 설정에 맞춰 금액 포맷팅 완벽 분리 */}
                 <Text style={styles.priceValue}>
-                  {language === 'ko' ? `${item.totalPrice.toLocaleString()}원` : `₩${item.totalPrice.toLocaleString()}`}
+                  {item.totalPrice > 0
+                    ? (language === 'ko' ? `${item.totalPrice.toLocaleString()}원` : `₩${item.totalPrice.toLocaleString()}`)
+                    : (language === 'ko' ? '확인 예정' : 'To be confirmed')}
                 </Text>
               </Text>
             </View>

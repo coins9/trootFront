@@ -20,6 +20,7 @@ import { artistApi, favoriteApi, reviewApi, type ReviewByArtist } from '../../..
 import { toTattoo } from '../../../data/api/mappers';
 import { Tattoo } from '../../../domain/entities/types';
 import { artistTagLabels } from '../../../domain/entities/artistTags';
+import { translateGenre, translateTag } from '../../utils/tagTranslations';
 import BookingBottomSheet from '../../components/booking/BookingBottomSheet';
 import ReportSheet, { ReportReason } from '../../components/report/ReportSheet';
 import { useToast } from '../../components/common/Toast';
@@ -40,7 +41,7 @@ const ArtistProfileScreen = () => {
   const navigation = useNavigation<ProfileNav>();
   const route = useRoute<ProfileRoute>();
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { artist } = route.params;
 
   const [activeTab, setActiveTab] = useState<TabType>('works');
@@ -180,7 +181,7 @@ const ArtistProfileScreen = () => {
   const renderReviewItem = (rv: ReviewByArtist) => {
     const avg = (rv.painScore + rv.kindnessScore + rv.hygieneScore + rv.satisfactionScore) / 4;
     const score = Math.round(avg * 10) / 10;
-    const date = new Date(rv.createdAt).toLocaleDateString('ko-KR', {
+    const date = new Date(rv.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'ko-KR', {
       year: 'numeric', month: '2-digit', day: '2-digit',
     });
     const customer = rv.customerNickname
@@ -373,16 +374,16 @@ const ArtistProfileScreen = () => {
               <View style={styles.specialtiesRow}>
                 {(artist.specialties ?? []).map((s) => (
                     <View key={s} style={styles.specialtyChip}>
-                      <Text style={styles.specialtyText}>{s}</Text>
+                      <Text style={styles.specialtyText}>{translateGenre(s, language)}</Text>
                     </View>
                 ))}
               </View>
 
-              {artistTagLabels(artist.tags ?? []).length > 0 && (
+              {artistTagLabels(artist.tags ?? [], language).length > 0 && (
                   <View style={styles.tagsRow}>
-                    {artistTagLabels(artist.tags ?? []).map((t) => (
-                        <View key={t} style={styles.tagChip}>
-                          <Text style={styles.tagText}>{t}</Text>
+                    {artistTagLabels(artist.tags ?? [], language).map((tagLabel) => (
+                        <View key={tagLabel} style={styles.tagChip}>
+                          <Text style={styles.tagText}>{tagLabel}</Text>
                         </View>
                     ))}
                   </View>

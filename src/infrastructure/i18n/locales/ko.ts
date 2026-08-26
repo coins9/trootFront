@@ -191,6 +191,7 @@ export const ko = {
   home: {
     searchPlaceholder: '작품, 타투이스트 검색',
     empty: '아직 등록된 작품이 없습니다.',
+    searchError: '검색 결과를 불러오지 못했습니다. 다른 검색어로 시도해 주세요.',
     totalArtists: '전체 {{count}}명',
     bannerTitle: '이번 주 추천 작가',
     bannerSubtitle: '지금 인기 아티스트와 상담해보세요',
@@ -655,8 +656,8 @@ export const ko = {
     },
     sort: {
       popular: '인기순',
-      price: '가격대',
-      recent: '카테고리',
+      price: '가격순',
+      recent: '최신순',
     },
     seller: '판매자',
     noProducts: '등록된 상품이 없습니다.',

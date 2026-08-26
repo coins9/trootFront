@@ -51,8 +51,8 @@ const CATEGORY_T_KEY: Record<SupplyCategory, string> = {
 
 const SORT_T_KEY: Record<SupplySort, string> = {
   '인기순': 'popular',
-  '가격대': 'price',
-  '카테고리': 'recent',
+  '최신순': 'recent',
+  '가격순': 'price',
 };
 
 const CATEGORY_BY_CODE = Object.fromEntries(
@@ -61,8 +61,8 @@ const CATEGORY_BY_CODE = Object.fromEntries(
 
 const SORT_BY_LABEL: Record<SupplySort, 'popular' | 'price_asc' | 'recent'> = {
   '인기순': 'popular',
-  '가격대': 'price_asc',
-  '카테고리': 'recent',
+  '최신순': 'recent',
+  '가격순': 'price_asc',
 };
 
 // 🚨 1. 데이터 매핑 로직 수정: 부제목(subtitle)과 한글 카테고리 대응
@@ -92,7 +92,7 @@ const TattooSuppliesScreen = () => {
   const { toast } = useToast();
   const settings = usePublicSettings();
   const [category, setCategory] = useState<SupplyCategory>('머신 & 장비');
-  const [sort, setSort] = useState<SupplySort>('인기순');
+  const [sort, setSort] = useState<SupplySort>('최신순');
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [searchVisible, setSearchVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -127,16 +127,16 @@ const TattooSuppliesScreen = () => {
       mapped = mapped.filter(item => item.category === category);
     }
 
-    // 인기순, 가격대, 카테고리 기준 정렬 적용
+    // 인기순 / 최신순 / 가격순 기준 정렬 적용
     return mapped.sort((a, b) => {
       switch (sort) {
-        case '가격대':
-          return (a.price || 0) - (b.price || 0); // 저렴한 순
-        case '카테고리':
-          return a.category.localeCompare(b.category);
+        case '가격순':
+          return (a.price || 0) - (b.price || 0); // 가격 낮은 순
+        case '최신순':
+          return 0; // API가 이미 최신순으로 반환
         case '인기순':
         default:
-          return (b.popularityScore || 0) - (a.popularityScore || 0); // 점수 높은 순
+          return (b.popularityScore || 0) - (a.popularityScore || 0);
       }
     });
   }, [items, category, sort]);
