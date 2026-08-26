@@ -547,6 +547,7 @@ export const ko = {
     introLabel: '상세 소개',
     cautionLabel: '주의사항',
     applyModel: '[ 타투 모델 지원하기 ]',
+    consultDirect: '1:1 예약/상담',
     perUnit: '건당',
     priceFlexible: '위치/작업 난이도에 따라 변동 가능',
     descriptionLabel: '상세 소개',

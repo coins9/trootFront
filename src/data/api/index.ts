@@ -497,6 +497,7 @@ export interface SupplyProduct {
   id: string;
   vendorId: string;
   name: string;
+  subtitle: string | null;
   description: string | null;
   category: ProductCategory;
   brand: string | null;
@@ -509,6 +510,10 @@ export interface SupplyProduct {
   reviewCount: number;
   soldCount: number;
   externalUrl: string | null;
+  openChatUrl: string | null;
+  storeUrl: string | null;
+  nameEn: string | null;
+  descriptionEn: string | null;
   createdAt: string;
 }
 

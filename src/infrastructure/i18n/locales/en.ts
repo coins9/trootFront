@@ -550,6 +550,7 @@ export const en: TranslationSchema = {
     introLabel: 'Details',
     cautionLabel: 'Cautions',
     applyModel: '[ Apply as Model ]',
+    consultDirect: '1:1 Consult',
     perUnit: 'per project',
     priceFlexible: 'May vary by location/difficulty',
     descriptionLabel: 'Description',

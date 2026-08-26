@@ -161,7 +161,7 @@ const ProductFormScreen = () => {
         {loading ? (
             <View style={s.loading}><ActivityIndicator color={COLORS.gold} /></View>
         ) : (
-            <KeyboardAvoidingView style={s.flex1} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <KeyboardAvoidingView style={s.flex1} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 0}>
               <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 {/* 사진 등록 영역 유지 */}
                 <Text style={s.label}>{t('vendor.fieldPhoto')}</Text>
@@ -265,16 +265,15 @@ const ProductFormScreen = () => {
                 <Text style={s.label}>구매 링크 (외부 스토어)</Text>
                 <TextInput style={s.input} placeholder="https://smartstore.naver.com/..." placeholderTextColor={COLORS.gray2} value={storeUrl} onChangeText={setStoreUrl} autoCapitalize="none" keyboardType="url" />
 
-                <View style={{ height: 24 }} />
+                {/* 제출 버튼 — ScrollView 안에 포함시켜 키보드에 밀려도 접근 가능 */}
+                <View style={[s.submitWrapper, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+                  <TouchableOpacity onPress={handleSubmit} disabled={!canSubmit || submitting} activeOpacity={0.85} style={[s.submitBtn, (!canSubmit || submitting) && s.submitBtnDisabled]}>
+                    <Text style={[s.submitText, (!canSubmit || submitting) && s.submitTextDisabled]}>
+                      {submitting ? t('vendor.saving') : isEdit ? t('vendor.submitEdit') : t('vendor.submitNew')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </ScrollView>
-
-              <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
-                <TouchableOpacity onPress={handleSubmit} disabled={!canSubmit || submitting} activeOpacity={0.85} style={[s.submitBtn, (!canSubmit || submitting) && s.submitBtnDisabled]}>
-                  <Text style={[s.submitText, (!canSubmit || submitting) && s.submitTextDisabled]}>
-                    {submitting ? t('vendor.saving') : isEdit ? t('vendor.submitEdit') : t('vendor.submitNew')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </KeyboardAvoidingView>
         )}
       </SafeAreaView>
@@ -338,7 +337,7 @@ const s = StyleSheet.create({
   thumbRemove: { position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' },
   mainBadge: { position: 'absolute', bottom: 4, left: 4, backgroundColor: COLORS.gold, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
   mainBadgeText: { fontSize: 10, color: COLORS.black, fontWeight: '700', lineHeight: 13 },
-  footer: { paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border, backgroundColor: COLORS.black },
+  submitWrapper: { paddingHorizontal: 0, paddingTop: 20 },
   submitBtn: { paddingVertical: 16, borderRadius: 12, backgroundColor: COLORS.gold, alignItems: 'center' },
   submitBtnDisabled: { backgroundColor: COLORS.elevated },
   submitText: { fontSize: 15, fontWeight: '700', color: COLORS.black, lineHeight: 20 },

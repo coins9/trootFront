@@ -73,9 +73,17 @@ const TattooSupplyDetailScreen = () => {
     });
   }, [toast, t]);
 
+  // https:// 없이 입력된 URL 보정 (Linking.openURL은 scheme 없으면 실패)
+  const ensureScheme = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    const trimmed = url.trim();
+    if (!trimmed) return null;
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  };
+
   // 선택 옵션 클립보드 복사 → toast → 오픈채팅 열기
   const handleContact = useCallback(() => {
-    const chatUrl = supply.openChatUrl;
+    const chatUrl = ensureScheme(supply.openChatUrl);
 
     // 클립보드에 복사할 문의 텍스트 빌드
     const lines: string[] = [
@@ -198,19 +206,21 @@ const TattooSupplyDetailScreen = () => {
           {/* 1:1 구매 문의하기 — 선택 옵션 클립보드 복사 → toast → 오픈채팅 열기 */}
           <TouchableOpacity
               onPress={handleContact}
-              style={[styles.ctaBtn, (supply.storeUrl || supply.externalUrl) ? styles.ctaBtnSecondary : {}]}
+              style={[styles.ctaBtn, (ensureScheme(supply.storeUrl) || ensureScheme(supply.externalUrl)) ? styles.ctaBtnSecondary : {}]}
               activeOpacity={0.85}
           >
-            <Text style={[styles.ctaText, (supply.storeUrl || supply.externalUrl) ? styles.ctaTextSecondary : {}]}>
+            <Text style={[styles.ctaText, (ensureScheme(supply.storeUrl) || ensureScheme(supply.externalUrl)) ? styles.ctaTextSecondary : {}]}>
               {t('supplies.detail.contact')}
             </Text>
           </TouchableOpacity>
 
           {/* 구매하러 가기 — storeUrl → externalUrl 순서로 연결 */}
-          {(supply.storeUrl || supply.externalUrl) ? (
+          {(ensureScheme(supply.storeUrl) || ensureScheme(supply.externalUrl)) ? (
               <TouchableOpacity
                   onPress={() => {
-                    const url = supply.storeUrl || supply.externalUrl!;
+                    const raw = supply.storeUrl || supply.externalUrl!;
+                    const url = ensureScheme(raw);
+                    if (!url) { toast(t('common.linkError'), { variant: 'error' }); return; }
                     Linking.openURL(url).catch(() => toast(t('common.linkError'), { variant: 'error' }));
                   }}
                   style={styles.ctaBtn}

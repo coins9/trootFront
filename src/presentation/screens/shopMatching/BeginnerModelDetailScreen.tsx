@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, Image, TouchableOpacity, StyleSheet,
-  Dimensions, StatusBar, NativeSyntheticEvent, NativeScrollEvent,
+  Dimensions, StatusBar, NativeSyntheticEvent, NativeScrollEvent, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -11,7 +11,7 @@ import { useTranslation } from '../../store/languageStore';
 import {
   BackArrowIcon, ShareIcon, BookmarkIcon, LocationPinIcon,
   ChevronDownIcon, ChevronUpIcon, TattooPlaceholderIcon,
-  PersonSilhouette, WarningTriangleIcon, CalendarIcon,
+  PersonSilhouette, WarningTriangleIcon, CalendarIcon, CommentIcon,
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import ModelApplicationBottomSheet from '../../components/shopMatching/ModelApplicationBottomSheet';
@@ -205,37 +205,43 @@ const BeginnerModelDetailScreen = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('shop.tattooistLabel')}</Text>
 
-            {/* 🚨 3. View를 TouchableOpacity로 변경하고 ArtistProfile 이동 로직 연결 */}
             <TouchableOpacity
                 style={styles.artistCard}
                 activeOpacity={0.8}
                 onPress={() => {
                   if (post.artist.id) {
-                    // 아티스트 아이디와 기본 정보를 묶어 프로필 페이지로 넘깁니다.
                     navigation.navigate('ArtistProfile', {
                       artist: {
                         id: post.artist.id,
                         nickname: post.artist.nickname,
                         profileImage: post.artist.profileImage,
-                      } as any
+                      } as any,
                     });
                   }
                 }}
             >
-              <View style={styles.artistAvatar}>
-                {post.artist.profileImage ? (
-                    <Image
-                        source={{ uri: post.artist.profileImage }}
-                        style={styles.imgFill}
-                        resizeMode="cover"
-                    />
-                ) : (
-                    <PersonSilhouette size={40} color="#3a3a3a" />
-                )}
+              {/* 아바타 — 그림자 분리 */}
+              <View style={styles.artistAvatarOuter}>
+                <View style={styles.artistAvatar}>
+                  {post.artist.profileImage ? (
+                      <Image
+                          source={{ uri: post.artist.profileImage }}
+                          style={styles.imgFill}
+                          resizeMode="cover"
+                      />
+                  ) : (
+                      <PersonSilhouette size={40} color="#3a3a3a" />
+                  )}
+                </View>
               </View>
+
               <View style={styles.artistInfo}>
+                {/* '타투이스트' 역할 레이블 */}
+                <Text style={styles.artistRoleLabel}>{t('booking.tattooist' as any)}</Text>
                 <Text style={styles.artistName}>{post.artist.nickname}</Text>
-                <Text style={styles.artistExp}>{post.artist.experience}</Text>
+                {!!post.artist.experience && (
+                    <Text style={styles.artistExp}>{post.artist.experience}</Text>
+                )}
               </View>
             </TouchableOpacity>
           </View>
@@ -277,15 +283,34 @@ const BeginnerModelDetailScreen = () => {
           )}
         </ScrollView>
 
-        {/* Sticky CTA */}
+        {/* Sticky CTA — 두 버튼 나란히 */}
         <View style={[styles.stickyFooter, { paddingBottom: insets.bottom + 12 }]}>
-          <TouchableOpacity
-              onPress={() => setApplyVisible(true)}
-              style={styles.ctaBtn}
-              activeOpacity={0.85}
-          >
-            <Text style={styles.ctaText}>{t('shop.applyModel')}</Text>
-          </TouchableOpacity>
+          <View style={styles.ctaRow}>
+            {/* 1:1 예약/상담하기 — 타투이스트 카카오 오픈채팅으로 바로 이동 */}
+            {!!post.artist.kakaoLink && (
+                <TouchableOpacity
+                    onPress={() =>
+                        Linking.openURL(post.artist.kakaoLink!).catch(() =>
+                            toast(t('common.linkError' as any), { variant: 'error' }),
+                        )
+                    }
+                    style={[styles.ctaBtn, styles.ctaBtnOutline]}
+                    activeOpacity={0.85}
+                >
+                  <CommentIcon size={16} color={COLORS.gold} strokeWidth={2} />
+                  <Text style={styles.ctaTextOutline}>{t('shop.consultDirect' as any)}</Text>
+                </TouchableOpacity>
+            )}
+
+            {/* 모델 신청하기 */}
+            <TouchableOpacity
+                onPress={() => setApplyVisible(true)}
+                style={[styles.ctaBtn, post.artist.kakaoLink ? styles.ctaBtnFlex : undefined]}
+                activeOpacity={0.85}
+            >
+              <Text style={styles.ctaText}>{t('shop.applyModel')}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ModelApplicationBottomSheet
@@ -364,17 +389,25 @@ const styles = StyleSheet.create({
   sectionTitle: { color: COLORS.white, fontSize: 15, fontWeight: '700', lineHeight: 20 },
 
   artistCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COLORS.card,
+    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: COLORS.card,
     borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 14,
   },
+  /* 그림자 레이어 — overflow:hidden과 같은 View에 두지 않기 위해 분리 */
+  artistAvatarOuter: {
+    width: 54, height: 54, borderRadius: 27,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
+    elevation: 4,
+  },
   artistAvatar: {
-    width: 48, height: 48, borderRadius: 24, overflow: 'hidden',
+    width: 54, height: 54, borderRadius: 27, overflow: 'hidden',
     backgroundColor: COLORS.elevated, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1.5, borderColor: COLORS.border,
   },
   imgFill: { width: '100%', height: '100%' },
-  artistInfo: { gap: 2 },
-  artistName: { color: COLORS.white, fontSize: 15, fontWeight: '700', lineHeight: 20 },
-  artistExp: { color: COLORS.gray, fontSize: 12, lineHeight: 17 },
+  artistInfo: { gap: 2, flexShrink: 1 },
+  artistRoleLabel: { color: COLORS.gray, fontSize: 11, lineHeight: 15, letterSpacing: 0.3 },
+  artistName: { color: COLORS.white, fontSize: 15, fontWeight: '700', lineHeight: 21 },
+  artistExp: { color: COLORS.gold, fontSize: 12, lineHeight: 17 },
 
   description: { color: COLORS.gray, fontSize: 14, lineHeight: 22 },
   expandBtn: {
@@ -395,6 +428,15 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20,
     paddingTop: 12, backgroundColor: COLORS.bg, borderTopWidth: 1, borderTopColor: COLORS.border,
   },
-  ctaBtn: { backgroundColor: COLORS.gold, borderRadius: 14, paddingVertical: 17, alignItems: 'center' },
-  ctaText: { color: COLORS.black, fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  ctaRow: { flexDirection: 'row', gap: 10 },
+  ctaBtn: {
+    flex: 1, backgroundColor: COLORS.gold, borderRadius: 14, paddingVertical: 17,
+    alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6,
+  },
+  ctaBtnFlex: { flex: 1 },
+  ctaBtnOutline: {
+    backgroundColor: 'transparent', borderWidth: 1.5, borderColor: COLORS.gold,
+  },
+  ctaText: { color: COLORS.black, fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  ctaTextOutline: { color: COLORS.gold, fontSize: 14, fontWeight: '700', lineHeight: 20 },
 });

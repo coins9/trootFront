@@ -42,7 +42,15 @@ const ArtistProfileScreen = () => {
   const route = useRoute<ProfileRoute>();
   const { toast } = useToast();
   const { t, language } = useTranslation();
-  const { artist } = route.params;
+  const { artist: artistParam } = route.params;
+
+  // 비기너 상세 등 부분 객체로 진입한 경우를 대비해 풀 데이터를 fetch
+  const { data: artistFull } = useApi(
+    () => artistApi.detail(artistParam.id),
+    [artistParam.id],
+  );
+  // fetch 완료 전에는 route.params 데이터를 fallback으로 사용
+  const artist = (artistFull ?? artistParam) as typeof artistParam;
 
   const [activeTab, setActiveTab] = useState<TabType>('works');
   const [activeGenreKey, setActiveGenreKey] = useState('all');
@@ -350,7 +358,7 @@ const ArtistProfileScreen = () => {
                   <View style={styles.statItem}>
                     <StarIcon size={13} color={COLORS.gold} filled />
                     <Text style={styles.statValue}>{artist.rating}</Text>
-                    <Text style={styles.statLabelSmall}>{t('artistProfile.reviewScore' as any, { count: artist.reviewCount } as any)}</Text>
+                    <Text style={styles.statLabelSmall}>{t('artistProfile.reviewScore' as any, { count: artist.reviewCount ?? 0 } as any)}</Text>
                   </View>
                   <View style={styles.statDivider} />
                   <View style={styles.statItemStack}>
@@ -449,7 +457,7 @@ const ArtistProfileScreen = () => {
             <View style={styles.tabBar}>
               {([
                 { key: 'works' as TabType, label: t('artistProfile.tabWorks' as any) },
-                { key: 'reviews' as TabType, label: t('artistProfile.reviewCount' as any, { count: artist.reviewCount } as any) },
+                { key: 'reviews' as TabType, label: t('artistProfile.reviewCount' as any, { count: artist.reviewCount ?? 0 } as any) },
                 { key: 'info' as TabType, label: t('artistProfile.tabInfo' as any) },
               ]).map((tab) => {
                 const isActive = activeTab === tab.key;
