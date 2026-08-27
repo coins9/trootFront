@@ -284,6 +284,15 @@ workflows:
           agvtool new-marketing-version 1.0.0
           echo "새 빌드 번호: $NEW"
 
+      - name: Beta App Localization 보장 (최초 1회 생성)
+        script: |
+          # betaAppLocalization 없으면 TestFlight 제출이 422로 실패하므로 미리 upsert
+          app-store-connect beta-app-localizations create \
+            --app "$APP_STORE_APP_ID" \
+            --locale en-US \
+            --description "Latest features and improvements." \
+            --feedback-email "tmddus9259@gmail.com" 2>/dev/null || true
+
       - name: IPA 빌드
         script: |
           set -e
