@@ -29,6 +29,7 @@ export interface ArtistPage {
   availableHours?: string | null;
   closedDay?: string | null;
   openChatUrl?: string | null;
+  detailAddress?: string | null;
   tags?: string[];
   intro?: string | null;
 }
@@ -232,6 +233,24 @@ export interface StudioMember {
   joinedAt: string;
 }
 
+export interface PersonalEvent {
+  id: string;
+  artistPageId: string;
+  date: string;
+  startHour: number;
+  durationH: number;
+  title: string;
+  subtitle: string | null;
+  kind: 'procedure' | 'consulting' | 'retouch' | 'meeting';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+  customerName: string | null;
+  bodyPart: string | null;
+  memo: string | null;
+  depositStatus: 'none' | 'partial' | 'paid';
+  depositAmount: number | null;
+  createdAt: string;
+}
+
 export interface StudioScheduleEntry {
   memberId: string;
   nickname: string;
@@ -244,6 +263,18 @@ export interface StudioScheduleEntry {
     customerName: string | null;
     status: ReservationStatus;
     memo: string | null;
+  }[];
+  personalEvents: {
+    id: string;
+    date: string;
+    startHour: number;
+    durationH: number;
+    title: string;
+    subtitle: string | null;
+    kind: PersonalEvent['kind'];
+    status: PersonalEvent['status'];
+    customerName: string | null;
+    bodyPart: string | null;
   }[];
 }
 
@@ -261,6 +292,34 @@ export const studioApi = {
     ),
   schedule: (studioId: string, date: string) =>
     api.get<StudioScheduleEntry[]>(`/app/studios/${studioId}/schedule${qs({ date })}`),
+};
+
+// ── 개인 일정 ──────────────────────────────────────────────
+export type PersonalEventCreateDto = {
+  date: string;
+  startHour: number;
+  durationH: number;
+  title: string;
+  subtitle?: string;
+  kind: PersonalEvent['kind'];
+  customerName?: string;
+  bodyPart?: string;
+  memo?: string;
+  depositStatus?: PersonalEvent['depositStatus'];
+  depositAmount?: number;
+};
+
+export type PersonalEventUpdateDto = Partial<PersonalEventCreateDto & { status: PersonalEvent['status'] }>;
+
+export const personalScheduleApi = {
+  list: (from: string, to: string) =>
+    api.get<PersonalEvent[]>(`/app/personal-schedule${qs({ from, to })}`),
+  create: (body: PersonalEventCreateDto) =>
+    api.post<PersonalEvent>('/app/personal-schedule', body),
+  update: (id: string, body: PersonalEventUpdateDto) =>
+    api.patch<PersonalEvent>(`/app/personal-schedule/${id}`, body),
+  remove: (id: string) =>
+    api.delete<{ ok: boolean }>(`/app/personal-schedule/${id}`),
 };
 
 // ── 리뷰 ──────────────────────────────────────────────────

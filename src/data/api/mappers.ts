@@ -26,6 +26,7 @@ export const toArtist = (page: ArtistPage): Artist => ({
   availableHours: page.availableHours ?? '',
   closedDay: page.closedDay ?? '',
   kakaoLink: page.openChatUrl ?? undefined,
+  detailAddress: page.detailAddress ?? null,
   tags: page.tags ?? [],
   isVerified: page.tier === 'main',
   isHygieneCertified: false,

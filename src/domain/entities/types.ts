@@ -20,6 +20,7 @@ export interface Artist {
   isPromoted: boolean;
   isSelectedMaster?: boolean;
   kakaoLink?: string;
+  detailAddress?: string | null;
   /** 편의/특성 태그 코드 (same_day, open_24h, parking, female_artist, male_artist) */
   tags?: string[];
 }

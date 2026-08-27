@@ -24,7 +24,10 @@ import {
 } from '../../../domain/entities/artistScheduleTypes';
 
 import { useApi } from '../../hooks/useApi';
-import { reservationApi, studioApi, type Studio, type StudioScheduleEntry } from '../../../data/api';
+import {
+  reservationApi, studioApi, personalScheduleApi,
+  type Studio, type StudioScheduleEntry, type PersonalEvent,
+} from '../../../data/api';
 import { MultiDayEvent } from '../../../domain/entities/artistScheduleTypes';
 import ReservationDetailModal, {
   ReservationDetail,
@@ -36,7 +39,6 @@ import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/App
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 if (
     Platform.OS === 'android' &&
@@ -596,21 +598,42 @@ const ArtistReservationScreen = () => {
   const [shopScheduleLoading, setShopScheduleLoading] = useState(false);
   const [dayPopupDate, setDayPopupDate] = useState<Date | null>(null);
   const [customItems, setCustomItems] = useState<Record<string, PersonalTimelineItem[]>>({});
-  const CUSTOM_ITEMS_KEY = 'artist_custom_schedule_v1';
 
-  // Load persisted items on mount
-  useEffect(() => {
-    AsyncStorage.getItem(CUSTOM_ITEMS_KEY).then((raw) => {
-      if (raw) {
-        try { setCustomItems(JSON.parse(raw)); } catch {}
-      }
-    });
+  const apiEventToItem = useCallback((pe: PersonalEvent): PersonalTimelineItem => {
+    const statusMap: Record<string, BookingStatus> = {
+      pending: '대기', confirmed: '확정', completed: '완료', cancelled: '취소', no_show: '노쇼',
+    };
+    return {
+      id: pe.id,
+      startHour: pe.startHour,
+      durationH: pe.durationH,
+      title: pe.title,
+      subtitle: pe.subtitle ?? '',
+      status: statusMap[pe.status] ?? '대기',
+      kind: pe.kind,
+      customerName: pe.customerName ?? undefined,
+      bodyPart: pe.bodyPart ?? undefined,
+      memo: pe.memo ?? undefined,
+      isAppLinked: false,
+      depositStatus: (pe.depositStatus === 'partial' ? 'pending' : pe.depositStatus) as any,
+      depositAmount: pe.depositAmount ?? undefined,
+    };
   }, []);
 
-  // Persist whenever customItems changes
+  // Load personal events from API on mount
   useEffect(() => {
-    AsyncStorage.setItem(CUSTOM_ITEMS_KEY, JSON.stringify(customItems));
-  }, [customItems]);
+    const now = new Date();
+    const from = toISODate(startOfMonth(now));
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+    const to = toISODate(nextMonth);
+    personalScheduleApi.list(from, to).then((events) => {
+      const map: Record<string, PersonalTimelineItem[]> = {};
+      for (const pe of events) {
+        (map[pe.date] ??= []).push(apiEventToItem(pe));
+      }
+      setCustomItems(map);
+    }).catch(() => {});
+  }, [apiEventToItem]);
 
   const [reservationSheetOpen, setReservationSheetOpen] = useState(false);
   const [reservationSheetEditing, setReservationSheetEditing] = useState<PersonalTimelineItem | null>(null);
@@ -854,6 +877,8 @@ const ArtistReservationScreen = () => {
         try {
           if (isAppLinked) {
             await reservationApi.changeStatus(id, 'cancelled');
+          } else {
+            await personalScheduleApi.remove(id);
           }
           setCustomItems((prev) => {
             const next = { ...prev };
@@ -895,26 +920,52 @@ const ArtistReservationScreen = () => {
     }, 220);
   }, [items, statusOverride]);
 
-  const handleSubmitReservation = useCallback((next: PersonalTimelineItem) => {
+  const handleSubmitReservation = useCallback(async (next: PersonalTimelineItem) => {
     const iso = toISODate(selectedDate);
-    easeLayoutAnim();
-    setCustomItems((prev) => {
-      const cur = prev[iso] ?? [];
-      const exists = cur.some((c) => c.id === next.id);
-      const nextArr = exists
-          ? cur.map((c) => (c.id === next.id ? next : c))
-          : [...cur, next];
-      return { ...prev, [iso]: nextArr };
-    });
+    const isEditMode = reservationSheetEditing !== null;
+    const apiDto = {
+      date: iso,
+      startHour: next.startHour,
+      durationH: next.durationH,
+      title: next.title,
+      subtitle: next.subtitle || undefined,
+      kind: next.kind,
+      customerName: next.customerName,
+      bodyPart: next.bodyPart,
+      memo: next.memo,
+      depositStatus: next.depositStatus === 'pending' ? 'none' as const : (next.depositStatus as any),
+      depositAmount: next.depositAmount,
+    };
+    try {
+      let saved: PersonalTimelineItem;
+      if (isEditMode && !next.id.startsWith('pi-')) {
+        const updated = await personalScheduleApi.update(next.id, apiDto);
+        saved = apiEventToItem(updated);
+      } else {
+        const created = await personalScheduleApi.create(apiDto);
+        saved = apiEventToItem(created);
+      }
+      easeLayoutAnim();
+      setCustomItems((prev) => {
+        const cur = prev[iso] ?? [];
+        const exists = cur.some((c) => c.id === next.id);
+        const nextArr = exists
+            ? cur.map((c) => (c.id === next.id ? saved : c))
+            : [...cur, saved];
+        return { ...prev, [iso]: nextArr };
+      });
+      toast(
+          isEditMode
+              ? t('reservation.toastUpdated' as any)
+              : t('reservation.toastAdded' as any),
+          { variant: 'success' },
+      );
+    } catch {
+      toast(t('reservation.toastCancelError' as any), { variant: 'error' });
+    }
     setReservationSheetOpen(false);
     setReservationSheetEditing(null);
-    toast(
-        reservationSheetEditing
-            ? t('reservation.toastUpdated' as any)
-            : t('reservation.toastAdded' as any),
-        { variant: 'success' },
-    );
-  }, [selectedDate, reservationSheetEditing, toast, t]);
+  }, [selectedDate, reservationSheetEditing, toast, t, apiEventToItem]);
 
   /* Shop registration */
   const handleShopRegister = useCallback((name: string, address: string, lat?: number, lng?: number) => {

@@ -17,7 +17,7 @@ import {
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { usePagedApi, useApi } from '../../hooks/useApi';
 import { artistApi, favoriteApi, reviewApi, type ReviewByArtist } from '../../../data/api';
-import { toTattoo } from '../../../data/api/mappers';
+import { toTattoo, toArtist } from '../../../data/api/mappers';
 import { Tattoo } from '../../../domain/entities/types';
 import { artistTagLabels } from '../../../domain/entities/artistTags';
 import { translateGenre, translateTag } from '../../utils/tagTranslations';
@@ -45,11 +45,11 @@ const ArtistProfileScreen = () => {
 
   // 비기너 상세 등 부분 객체로 진입한 경우를 대비해 풀 데이터를 fetch
   const { data: artistFull } = useApi(
-    () => artistApi.detail(artistParam.id),
+    () => artistApi.detail(artistParam.id).then(toArtist),
     [artistParam.id],
   );
   // fetch 완료 전에는 route.params 데이터를 fallback으로 사용
-  const artist = (artistFull ?? artistParam) as typeof artistParam;
+  const artist = artistFull ?? artistParam;
 
   const [activeTab, setActiveTab] = useState<TabType>('works');
   const [activeGenreKey, setActiveGenreKey] = useState('all');
@@ -237,7 +237,12 @@ const ArtistProfileScreen = () => {
             <LocationPinIcon size={18} color={COLORS.gold} />
             <View style={styles.infoTabTextGroup}>
               <Text style={styles.infoTabLabel}>{t('artistProfile.regionLabel' as any)}</Text>
-              <Text style={styles.infoTabValue}>{artist.city} · {artist.district}</Text>
+              <Text style={styles.infoTabValue}>
+                {[artist.city, artist.district].filter(Boolean).join(' · ') || '—'}
+              </Text>
+              {!!artist.detailAddress && (
+                <Text style={styles.infoTabSub}>{artist.detailAddress}</Text>
+              )}
             </View>
           </View>
           {!!artist.availableHours && (
@@ -540,7 +545,9 @@ const ArtistProfileScreen = () => {
                     <LocationPinIcon size={16} color={COLORS.gold} />
                     <View style={styles.bottomInfoTextGroup}>
                       <Text style={styles.bottomInfoLabel}>{t('artistProfile.regionLabel' as any)}</Text>
-                      <Text style={styles.bottomInfoValue}>{artist.city} · {artist.district}</Text>
+                      <Text style={styles.bottomInfoValue}>
+                        {[artist.city, artist.district].filter(Boolean).join(' · ') || '—'}
+                      </Text>
                     </View>
                   </View>
                   <View style={styles.bottomInfoItem}>
@@ -573,7 +580,7 @@ const ArtistProfileScreen = () => {
 
         <ReportSheet
             visible={reportVisible}
-            targetName={artist.nickname}
+            targetName={artist.nickname ?? ''}
             onClose={() => setReportVisible(false)}
             onSubmit={handleReportSubmit}
             onViewPolicy={() => navigation.navigate('SafetyPolicy')}
@@ -1179,6 +1186,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 20,
+  },
+  infoTabSub: {
+    color: COLORS.gray,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
   },
 
   /* ── Selected Master badge on portfolio items ── */

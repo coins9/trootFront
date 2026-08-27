@@ -114,7 +114,7 @@ const ReportSheetInner = ({ visible, targetName, onClose, onSubmit, onViewPolicy
 
           <ScrollView showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled">
             <Text style={styles.target} numberOfLines={1}>
-              {t('report.subtitle', { name: targetName })}
+              {t('report.subtitle', { name: targetName ?? '' })}
             </Text>
 
             <View style={styles.noticeBox}>
