@@ -11,7 +11,7 @@ import { useTranslation } from '../../store/languageStore';
 import {
   BackArrowIcon, ShareIcon, BookmarkIcon, LocationPinIcon,
   ChevronDownIcon, ChevronUpIcon, TattooPlaceholderIcon,
-  PersonSilhouette, WarningTriangleIcon, CalendarIcon, CommentIcon,
+  WarningTriangleIcon, CalendarIcon, CommentIcon,
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import ModelApplicationBottomSheet from '../../components/shopMatching/ModelApplicationBottomSheet';
@@ -209,51 +209,6 @@ const BeginnerModelDetailScreen = () => {
             </View>
           </View>
 
-          {/* ── 타투이스트 프로필 ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('shop.tattooistLabel')}</Text>
-
-            <TouchableOpacity
-                style={styles.artistCard}
-                activeOpacity={0.8}
-                onPress={() => {
-                  if (post.artist.id) {
-                    navigation.navigate('ArtistProfile', {
-                      artist: {
-                        id: post.artist.id,
-                        nickname: post.artist.nickname,
-                        profileImage: post.artist.profileImage,
-                      } as any,
-                    });
-                  }
-                }}
-            >
-              {/* 아바타 — 그림자 분리 */}
-              <View style={styles.artistAvatarOuter}>
-                <View style={styles.artistAvatar}>
-                  {post.artist.profileImage ? (
-                      <Image
-                          source={{ uri: post.artist.profileImage }}
-                          style={styles.imgFill}
-                          resizeMode="cover"
-                      />
-                  ) : (
-                      <PersonSilhouette size={40} color="#3a3a3a" />
-                  )}
-                </View>
-              </View>
-
-              <View style={styles.artistInfo}>
-                {/* '타투이스트' 역할 레이블 */}
-                <Text style={styles.artistRoleLabel}>{t('booking.tattooist' as any)}</Text>
-                <Text style={styles.artistName}>{post.artist.nickname}</Text>
-                {!!post.artist.experience && (
-                    <Text style={styles.artistExp}>{post.artist.experience}</Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
-
           {/* ── 상세 소개 ── */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('shop.introLabel')}</Text>
@@ -402,27 +357,6 @@ const styles = StyleSheet.create({
 
   section: { paddingHorizontal: 20, paddingTop: 24, gap: 12 },
   sectionTitle: { color: COLORS.white, fontSize: 15, fontWeight: '700', lineHeight: 20 },
-
-  artistCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: COLORS.card,
-    borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 14,
-  },
-  /* 그림자 레이어 — overflow:hidden과 같은 View에 두지 않기 위해 분리 */
-  artistAvatarOuter: {
-    width: 54, height: 54, borderRadius: 27,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
-    elevation: 4,
-  },
-  artistAvatar: {
-    width: 54, height: 54, borderRadius: 27, overflow: 'hidden',
-    backgroundColor: COLORS.elevated, justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1.5, borderColor: COLORS.border,
-  },
-  imgFill: { width: '100%', height: '100%' },
-  artistInfo: { gap: 2, flexShrink: 1 },
-  artistRoleLabel: { color: COLORS.gray, fontSize: 11, lineHeight: 15, letterSpacing: 0.3 },
-  artistName: { color: COLORS.white, fontSize: 15, fontWeight: '700', lineHeight: 21 },
-  artistExp: { color: COLORS.gold, fontSize: 12, lineHeight: 17 },
 
   description: { color: COLORS.gray, fontSize: 14, lineHeight: 22 },
   expandBtn: {

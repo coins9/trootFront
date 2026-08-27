@@ -437,3 +437,36 @@ export const DISTRICTS: Record<string, string[]> = {
   '대구광역시': ['중구', '수성구', '달서구', '북구'],
   '인천광역시': ['남동구', '연수구', '부평구', '계양구'],
 };
+
+export const CITIES_EN: Record<string, string> = {
+  '서울': 'Seoul',
+  '경기도': 'Gyeonggi',
+  '부산광역시': 'Busan',
+  '대구광역시': 'Daegu',
+  '인천광역시': 'Incheon',
+  '광주광역시': 'Gwangju',
+  '울산광역시': 'Ulsan',
+  '세종특별자치시': 'Sejong',
+};
+
+export const DISTRICTS_EN: Record<string, Record<string, string>> = {
+  '서울': {
+    '강남구': 'Gangnam-gu', '서초구': 'Seocho-gu', '송파구': 'Songpa-gu',
+    '마포구': 'Mapo-gu', '용산구': 'Yongsan-gu', '성동구': 'Seongdong-gu',
+    '노원구': 'Nowon-gu', '부산진구': 'Busanjin-gu', '해운대구': 'Haeundae-gu',
+  },
+  '경기도': {
+    '수원시': 'Suwon', '성남시': 'Seongnam', '고양시': 'Goyang',
+    '용인시': 'Yongin', '부천시': 'Bucheon', '안산시': 'Ansan',
+  },
+  '부산광역시': {
+    '해운대구': 'Haeundae-gu', '수영구': 'Suyeong-gu', '부산진구': 'Busanjin-gu',
+    '중구': 'Jung-gu', '동래구': 'Dongnae-gu',
+  },
+  '대구광역시': {
+    '중구': 'Jung-gu', '수성구': 'Suseong-gu', '달서구': 'Dalseo-gu', '북구': 'Buk-gu',
+  },
+  '인천광역시': {
+    '남동구': 'Namdong-gu', '연수구': 'Yeonsu-gu', '부평구': 'Bupyeong-gu', '계양구': 'Gyeyang-gu',
+  },
+};

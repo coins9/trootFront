@@ -70,29 +70,26 @@ export function usePagedApi<T>(
   const alive = useRef(true);
   const loaderRef = useRef(loader);
   loaderRef.current = loader;
+  const reqGen = useRef(0);
 
   const load = useCallback(async (reset: boolean) => {
-    if (reset) setLoading(true);
+    const gen = ++reqGen.current;
+    if (reset) { setItems([]); setLoading(true); }
     else setLoadingMore(true);
     setError(null);
 
     try {
       const page = await loaderRef.current(reset ? undefined : cursor ?? undefined);
-      if (!alive.current) return;
+      if (!alive.current || gen !== reqGen.current) return;
 
-      setItems((prev) => {
-        if (!reset) return [...prev, ...page.items];
-        // 빈 응답으로 기존 목록이 사라지는 것을 방지 — 기존 데이터가 있고 새 응답이 비어 있으면 보존
-        return page.items.length > 0 || prev.length === 0 ? page.items : prev;
-      });
+      setItems((prev) => reset ? page.items : [...prev, ...page.items]);
       setCursor(page.nextCursor);
       setHasNext(page.hasNext);
     } catch (e) {
-      if (!alive.current) return;
+      if (!alive.current || gen !== reqGen.current) return;
       setError(e instanceof ApiError ? e.userMessage : t('common.loadListFailed'));
-      // 오류 시 기존 아이템 보존 (네트워크 오류로 목록이 사라지는 현상 방지)
     } finally {
-      if (alive.current) {
+      if (alive.current && gen === reqGen.current) {
         setLoading(false);
         setLoadingMore(false);
       }

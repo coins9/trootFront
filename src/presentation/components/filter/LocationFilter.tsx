@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import { CheckCircleIcon } from '../icons';
-import { CITIES, DISTRICTS } from '../../../data/mock/mockData';
+import { CITIES, DISTRICTS, CITIES_EN, DISTRICTS_EN } from '../../../data/mock/mockData';
 import { OVERSEAS_COUNTRY_GROUPS } from '../../../domain/entities/overseasCountries';
 import { useTranslation } from '../../store/languageStore';
 
@@ -27,8 +27,13 @@ const LocationFilter = memo(({
   onSelect,
   onSelectOverseas,
 }: LocationFilterProps) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const districts = selectedCity ? (DISTRICTS[selectedCity] ?? []) : [];
+
+  const cityLabel = (city: string) =>
+    language === 'en' ? (CITIES_EN[city] ?? city) : city;
+  const districtLabel = (city: string, dist: string) =>
+    language === 'en' ? (DISTRICTS_EN[city]?.[dist] ?? dist) : dist;
 
   const handleCityPress = useCallback((city: string) => {
     if (selectedCity === city) {
@@ -107,7 +112,7 @@ const LocationFilter = memo(({
                       style={[styles.listItemText, isSelected && styles.listItemTextActive]}
                       numberOfLines={1}
                     >
-                      {city}
+                      {cityLabel(city)}
                     </Text>
                     {isSelected && <CheckCircleIcon size={20} color={COLORS.gold} />}
                   </TouchableOpacity>
@@ -132,7 +137,7 @@ const LocationFilter = memo(({
                         style={[styles.listItemText, isSelected && styles.listItemTextActive]}
                         numberOfLines={1}
                       >
-                        {dist}
+                        {districtLabel(selectedCity, dist)}
                       </Text>
                       {isSelected && <CheckCircleIcon size={20} color={COLORS.gold} />}
                     </TouchableOpacity>
@@ -150,19 +155,22 @@ const LocationFilter = memo(({
         <ScrollView showsVerticalScrollIndicator={false} bounces={false} style={styles.overseasScroll}>
           {OVERSEAS_COUNTRY_GROUPS.map((group) => (
             <View key={group.region} style={styles.countryGroup}>
-              <Text style={styles.countryGroupLabel}>{group.region}</Text>
+              <Text style={styles.countryGroupLabel}>
+                {language === 'en' ? group.regionEn : group.region}
+              </Text>
               <View style={styles.countryRow}>
                 {group.countries.map((country) => {
                   const isSelected = selectedCountryCode === country.code;
+                  const displayName = language === 'en' ? country.nameEn : country.name;
                   return (
                     <TouchableOpacity
                       key={country.code}
                       style={[styles.countryChip, isSelected && styles.countryChipActive]}
-                      onPress={() => handleCountryPress(country.code, country.name)}
+                      onPress={() => handleCountryPress(country.code, displayName)}
                       activeOpacity={0.75}
                     >
                       <Text style={[styles.countryChipText, isSelected && styles.countryChipTextActive]}>
-                        {country.name}
+                        {displayName}
                       </Text>
                     </TouchableOpacity>
                   );

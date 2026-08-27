@@ -198,6 +198,17 @@ const TattooSupplyDetailScreen = () => {
             ) : (
                 <Text style={styles.priceHidden}>{t('supplies.detail.priceInquiry')}</Text>
             )}
+
+            {typeof supply.stock === 'number' && (
+                <View style={styles.stockRow}>
+                  <Text style={styles.stockLabel}>{t('supplies.detail.stock' as any)}</Text>
+                  <Text style={[styles.stockValue, supply.stock === 0 && styles.stockOut]}>
+                    {supply.stock > 0
+                      ? `${supply.stock.toLocaleString()}${language === 'ko' ? '개' : ' units'}`
+                      : t('supplies.detail.outOfStock' as any)}
+                  </Text>
+                </View>
+            )}
           </View>
 
           {/* ── Description ── */}
@@ -289,6 +300,10 @@ const styles = StyleSheet.create({
   priceUnit: { fontSize: 15, fontWeight: '600', color: COLORS.white },
   priceNote: { fontSize: 12, color: COLORS.gray, fontWeight: '400' },
   priceHidden: { color: COLORS.gold, fontSize: 18, fontWeight: '700', lineHeight: 24, marginTop: 16 },
+  stockRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+  stockLabel: { color: COLORS.gray, fontSize: 13, lineHeight: 18 },
+  stockValue: { color: COLORS.white, fontSize: 13, fontWeight: '600', lineHeight: 18 },
+  stockOut: { color: '#FF5252' },
 
   /* Section */
   section: { paddingHorizontal: 20, paddingTop: 22 },

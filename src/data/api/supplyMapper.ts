@@ -37,5 +37,6 @@ export const toTattooSupply = (product: SupplyProduct, language: 'ko' | 'en'): T
     externalUrl: product.externalUrl ?? undefined,
     isBookmarked: product.isBookmarked ?? false,
     popularityScore: product.likeCount ?? product.soldCount,
+    stock: product.stock,
   };
 };

@@ -26,7 +26,7 @@ import {
 import { useApi } from '../../hooks/useApi';
 import {
   reservationApi, studioApi, personalScheduleApi,
-  type Studio, type StudioScheduleEntry, type PersonalEvent,
+  type Studio, type StudioScheduleEntry, type StudioDaySummary, type PersonalEvent,
 } from '../../../data/api';
 import { MultiDayEvent } from '../../../domain/entities/artistScheduleTypes';
 import ReservationDetailModal, {
@@ -596,6 +596,9 @@ const ArtistReservationScreen = () => {
   const [studioLoading, setStudioLoading] = useState(true);
   const [shopSchedule, setShopSchedule] = useState<StudioScheduleEntry[]>([]);
   const [shopScheduleLoading, setShopScheduleLoading] = useState(false);
+  const [shopSelectedDate, setShopSelectedDate] = useState<Date>(today);
+  const [shopMonthStart, setShopMonthStart] = useState<Date>(startOfMonth(today));
+  const [shopDaySummaries, setShopDaySummaries] = useState<Record<string, StudioDaySummary>>({});
   const [dayPopupDate, setDayPopupDate] = useState<Date | null>(null);
   const [customItems, setCustomItems] = useState<Record<string, PersonalTimelineItem[]>>({});
 
@@ -652,21 +655,37 @@ const ArtistReservationScreen = () => {
         .finally(() => setStudioLoading(false));
   }, []);
 
-  // 🚨 2. 샵 일정 Silent Reload를 위한 isSilent 옵션 추가
-  const loadShopSchedule = useCallback((isSilent = false) => {
+  // 월간 요약 (캘린더 점 표시용)
+  const loadShopRange = useCallback((ms: Date) => {
+    if (!studio) return;
+    const from = toISODate(ms);
+    const lastDay = new Date(ms.getFullYear(), ms.getMonth() + 1, 0);
+    const to = toISODate(lastDay);
+    studioApi.scheduleRange(studio.id, from, to)
+        .then((days) => {
+          setShopDaySummaries(Object.fromEntries(days.map((d) => [d.date, d])));
+        })
+        .catch(() => {});
+  }, [studio]);
+
+  // 특정 날짜 팀원별 상세
+  const loadShopDay = useCallback((date: Date, isSilent = false) => {
     if (!studio) return;
     if (!isSilent) setShopScheduleLoading(true);
-    studioApi.schedule(studio.id, toISODate(today))
+    studioApi.schedule(studio.id, toISODate(date))
         .then(setShopSchedule)
         .catch(() => setShopSchedule([]))
-        .finally(() => {
-          if (!isSilent) setShopScheduleLoading(false);
-        });
-  }, [studio, today]);
+        .finally(() => { if (!isSilent) setShopScheduleLoading(false); });
+  }, [studio]);
 
+  // 탭 진입 시 초기 로드 (월간 + 오늘 상세)
   useEffect(() => {
-    if (topTab === 'shop_schedule' && studio) loadShopSchedule(false);
-  }, [topTab, studio, loadShopSchedule]);
+    if (topTab === 'shop_schedule' && studio) {
+      loadShopRange(shopMonthStart);
+      loadShopDay(shopSelectedDate);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topTab, studio]);
 
   const monthStart = useMemo(() => startOfMonth(selectedDate), [selectedDate]);
   const isSelectedToday = isSameDate(selectedDate, today);
@@ -695,9 +714,10 @@ const ArtistReservationScreen = () => {
         }
         reloadSchedule();
         if (topTab === 'shop_schedule' && studio) {
-          loadShopSchedule(true);
+          loadShopRange(shopMonthStart);
+          loadShopDay(shopSelectedDate, true);
         }
-      }, [reloadSchedule, topTab, studio, loadShopSchedule])
+      }, [reloadSchedule, topTab, studio, loadShopRange, loadShopDay, shopMonthStart, shopSelectedDate])
   );
 
   // Reservation[] → 날짜별 PersonalTimelineItem 맵
@@ -891,14 +911,16 @@ const ArtistReservationScreen = () => {
           setDetail(null);
           toast(t('reservation.toastCancelled' as any), { variant: 'success' });
           reloadSchedule();
-          // 샵 일정에도 즉시 반영
-          if (studio) loadShopSchedule(true);
+          if (studio) {
+            loadShopRange(shopMonthStart);
+            loadShopDay(shopSelectedDate, true);
+          }
         } catch {
           toast(t('reservation.toastCancelError' as any), { variant: 'error' });
         }
       },
     });
-  }, [selectedDate, scheduleByDate, toast, t, reloadSchedule, studio, loadShopSchedule]);
+  }, [selectedDate, scheduleByDate, toast, t, reloadSchedule, studio, loadShopRange, loadShopDay, shopMonthStart, shopSelectedDate]);
 
   /* FAB → 새 예약 등록 시트 오픈 */
   const handleFab = useCallback(() => {
@@ -966,6 +988,54 @@ const ArtistReservationScreen = () => {
     setReservationSheetOpen(false);
     setReservationSheetEditing(null);
   }, [selectedDate, reservationSheetEditing, toast, t, apiEventToItem]);
+
+  // 샵 캘린더 월간 요약 맵
+  const shopMonthlyMap = useMemo<Record<string, MonthlyCellSummary>>(() => {
+    const toneList: MonthlyCellEvent['tone'][] = ['gold', 'blue', 'purple', 'red'];
+    const map: Record<string, MonthlyCellSummary> = {};
+    Object.entries(shopDaySummaries).forEach(([date, data]) => {
+      map[date] = {
+        events: data.members.slice(0, 2).map((m, i) => ({
+          time: String(m.count),
+          label: m.nickname,
+          tone: toneList[i % toneList.length],
+        })),
+        hasEvent: data.totalCount > 0,
+      };
+    });
+    return map;
+  }, [shopDaySummaries]);
+
+  const handleShopDateSelect = useCallback((d: Date) => {
+    easeLayoutAnim();
+    setShopSelectedDate(d);
+    loadShopDay(d);
+  }, [loadShopDay]);
+
+  const shopGoPrev = useCallback(() => {
+    setShopMonthStart((ms) => {
+      const next = new Date(ms.getFullYear(), ms.getMonth() - 1, 1);
+      loadShopRange(next);
+      return next;
+    });
+  }, [loadShopRange]);
+
+  const shopGoNext = useCallback(() => {
+    setShopMonthStart((ms) => {
+      const next = new Date(ms.getFullYear(), ms.getMonth() + 1, 1);
+      loadShopRange(next);
+      return next;
+    });
+  }, [loadShopRange]);
+
+  const shopGoToday = useCallback(() => {
+    easeLayoutAnim();
+    const ms = startOfMonth(today);
+    setShopMonthStart(ms);
+    setShopSelectedDate(today);
+    loadShopRange(ms);
+    loadShopDay(today);
+  }, [today, loadShopRange, loadShopDay]);
 
   /* Shop registration */
   const handleShopRegister = useCallback((name: string, address: string, lat?: number, lng?: number) => {
@@ -1125,14 +1195,34 @@ const ArtistReservationScreen = () => {
               </View>
           ) : topTab === 'shop_schedule' && studio ? (
               <View style={styles.shopWrap}>
+                {/* 월간 캘린더 네비게이션 */}
+                <DateHeader
+                    label={formatMonth(shopMonthStart)}
+                    onPrev={shopGoPrev}
+                    onNext={shopGoNext}
+                    onToday={shopGoToday}
+                />
+
+                {/* 팀원 일정 월간 캘린더 */}
+                <CalendarView
+                    monthStart={shopMonthStart}
+                    selectedDate={shopSelectedDate}
+                    today={today}
+                    onSelect={handleShopDateSelect}
+                    summaryMap={shopMonthlyMap}
+                    multiEvents={[]}
+                />
+
+                {/* 선택된 날짜 팀원별 상세 */}
                 <View style={styles.shopScheduleHeader}>
                   <Text style={styles.shopScheduleTitle}>
-                    {studio.name} {t('reservation.shopTodaySchedule' as any)}
+                    {formatDateLabel(shopSelectedDate, language)}
                   </Text>
                   <Text style={styles.shopScheduleSub}>
-                    {formatDateLabel(today, language)} · {studio.address}
+                    {studio.name} · {studio.address}
                   </Text>
                 </View>
+
                 {shopScheduleLoading ? (
                     <ActivityIndicator size="large" color={COLORS.gold} style={{ marginTop: 20 }} />
                 ) : shopSchedule.length === 0 ? (
@@ -1142,58 +1232,72 @@ const ArtistReservationScreen = () => {
                       </Text>
                     </View>
                 ) : (
-                    shopSchedule.map((entry) => (
-                        <View key={entry.memberId} style={styles.shopColCard}>
-                          <View style={styles.shopColHeader}>
-                            <Text style={styles.shopColName}>{entry.nickname}</Text>
-                            {entry.bedName ? (
-                                <Text style={styles.shopColBed}>{entry.bedName}</Text>
-                            ) : null}
-                            <View style={styles.shopColCount}>
-                              <Text style={styles.shopColCountText}>
-                                {t('reservation.countSuffix' as any).replace('{{count}}', String(entry.reservations.length))}
-                              </Text>
+                    shopSchedule.map((entry) => {
+                      const allItems = [
+                        ...entry.reservations.map((r) => {
+                          const d = new Date(r.scheduledAt);
+                          const startH = d.getHours() + d.getMinutes() / 60;
+                          return { id: r.id, startH, endH: startH + r.durationMinutes / 60, customerName: r.customerName, bodyPart: r.bodyPart, status: r.status, isPersonal: false };
+                        }),
+                        ...entry.personalEvents.map((pe) => ({
+                          id: pe.id, startH: pe.startHour, endH: pe.startHour + pe.durationH,
+                          customerName: pe.customerName, bodyPart: pe.bodyPart ?? pe.title, status: pe.status, isPersonal: true,
+                        })),
+                      ].sort((a, b) => a.startH - b.startH);
+
+                      return (
+                          <View key={entry.memberId} style={styles.shopColCard}>
+                            <View style={styles.shopColHeader}>
+                              <Text style={styles.shopColName}>{entry.nickname}</Text>
+                              {entry.bedName ? (
+                                  <Text style={styles.shopColBed}>{entry.bedName}</Text>
+                              ) : null}
+                              <View style={styles.shopColCount}>
+                                <Text style={styles.shopColCountText}>
+                                  {t('reservation.countSuffix' as any).replace('{{count}}', String(allItems.length))}
+                                </Text>
+                              </View>
                             </View>
-                          </View>
-                          {entry.reservations.length === 0 ? (
-                              <Text style={styles.shopColEmpty}>{t('reservation.shopColEmpty' as any)}</Text>
-                          ) : (
-                              <View style={styles.shopColList}>
-                                {entry.reservations.map((r) => {
-                                  const d = new Date(r.scheduledAt);
-                                  const startH = d.getHours() + d.getMinutes() / 60;
-                                  const endH = startH + r.durationMinutes / 60;
-                                  return (
-                                      <View key={r.id} style={styles.shopColItem}>
+                            {allItems.length === 0 ? (
+                                <Text style={styles.shopColEmpty}>{t('reservation.shopColEmpty' as any)}</Text>
+                            ) : (
+                                <View style={styles.shopColList}>
+                                  {allItems.map((item) => (
+                                      <View key={item.id} style={styles.shopColItem}>
                                         <Text style={styles.shopColTime}>
-                                          {formatHalfHour(startH)} - {formatHalfHour(endH)}
+                                          {formatHalfHour(item.startH)} - {formatHalfHour(item.endH)}
                                         </Text>
                                         <View style={{ flex: 1 }}>
                                           <Text style={styles.shopColCustomer} numberOfLines={1}>
-                                            {r.customerName ?? t('reservation.customerUnregistered' as any)}
+                                            {item.customerName ?? t('reservation.customerUnregistered' as any)}
                                           </Text>
                                           <Text style={styles.shopColKind} numberOfLines={1}>
-                                            {r.bodyPart ?? t('reservation.defaultBodyPart' as any)}
+                                            {item.bodyPart ?? t('reservation.defaultBodyPart' as any)}
                                           </Text>
                                         </View>
                                         <View style={[
                                           styles.shopColChip,
-                                          r.status === 'requested' && styles.shopColChipConsult,
+                                          item.isPersonal && styles.shopColChipConsult,
+                                          item.status === 'requested' && styles.shopColChipConsult,
                                         ]}>
                                           <Text style={[
                                             styles.shopColChipText,
-                                            r.status === 'requested' && styles.shopColChipTextConsult,
+                                            (item.isPersonal || item.status === 'requested') && styles.shopColChipTextConsult,
                                           ]}>
-                                            {r.status === 'requested' ? t('reservation.shopConsult' as any) : t('reservation.shopProcedure' as any)}
+                                            {item.isPersonal
+                                                ? t('reservation.shopPersonal' as any)
+                                                : item.status === 'requested'
+                                                    ? t('reservation.shopConsult' as any)
+                                                    : t('reservation.shopProcedure' as any)}
                                           </Text>
                                         </View>
                                       </View>
-                                  );
-                                })}
-                              </View>
-                          )}
-                        </View>
-                    ))
+                                  ))}
+                                </View>
+                            )}
+                          </View>
+                      );
+                    })
                 )}
               </View>
           ) : (

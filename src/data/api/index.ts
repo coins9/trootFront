@@ -251,6 +251,12 @@ export interface PersonalEvent {
   createdAt: string;
 }
 
+export interface StudioDaySummary {
+  date: string;
+  totalCount: number;
+  members: { memberId: string; nickname: string; count: number }[];
+}
+
 export interface StudioScheduleEntry {
   memberId: string;
   nickname: string;
@@ -290,6 +296,8 @@ export const studioApi = {
     api.post<{ inviteCode: string; inviteCodeExpiresAt: string }>(
       `/app/studios/${studioId}/invite-code/refresh`,
     ),
+  scheduleRange: (studioId: string, from: string, to: string) =>
+    api.get<StudioDaySummary[]>(`/app/studios/${studioId}/schedule/range${qs({ from, to })}`),
   schedule: (studioId: string, date: string) =>
     api.get<StudioScheduleEntry[]>(`/app/studios/${studioId}/schedule${qs({ date })}`),
 };

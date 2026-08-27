@@ -674,8 +674,10 @@ export const en: TranslationSchema = {
     },
     sort: {
       popular: 'Popular',
-      price: 'Cheapest',
+      price: 'Price',
       recent: 'Latest',
+      priceAsc: 'Price: Low to High',
+      priceDesc: 'Price: High to Low',
     },
     seller: 'Seller',
     noProducts: 'No products yet.',
@@ -687,6 +689,8 @@ export const en: TranslationSchema = {
       linkCopied: 'Share link copied.',
       listPrice: '(list price)',
       priceInquiry: 'Price on request',
+      stock: 'Stock',
+      outOfStock: 'Out of stock',
     },
     inquiryTitle: 'Purchase Inquiry',
     inquirySelectedOption: 'Selected option',
@@ -736,6 +740,7 @@ export const en: TranslationSchema = {
     latestReviews: 'Latest Reviews',
     moreReviews: 'More',
     regionLabel: 'Region',
+    detailAddressLabel: 'Detailed Address',
     consultLabel: 'Available Hours',
     dayOffLabel: 'Day Off',
     following: 'Following',
@@ -934,9 +939,10 @@ export const en: TranslationSchema = {
     today: 'Today',
     goToday: 'Go Today',
     evEmpty: 'No bookings on this day.',
-    shopColEmpty: 'No bookings today.',
+    shopColEmpty: 'No bookings on this day.',
     shopConsult: 'Consult',
     shopProcedure: 'Procedure',
+    shopPersonal: 'Personal',
     calBreak: 'Closed',
     bookingStatus: {
       waiting: 'Pending',
@@ -1402,6 +1408,7 @@ export const en: TranslationSchema = {
     detailLabel: 'Details (optional)',
     detailPlaceholder: 'Providing details helps us review your report faster.',
     submit: 'Submit Report',
+    duplicateError: 'You have already reported this artist.',
   },
 
   safetyPolicy: {

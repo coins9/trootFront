@@ -1,59 +1,66 @@
 export interface OverseasCountry {
   code: string;
   name: string;
+  nameEn: string;
 }
 
 export interface OverseasRegionGroup {
   region: string;
+  regionEn: string;
   countries: OverseasCountry[];
 }
 
 export const OVERSEAS_COUNTRY_GROUPS: OverseasRegionGroup[] = [
   {
     region: '동북아시아',
+    regionEn: 'Northeast Asia',
     countries: [
-      { code: 'JP', name: '일본' },
-      { code: 'HK', name: '홍콩' },
-      { code: 'TW', name: '대만' },
-      { code: 'CN', name: '중국' },
+      { code: 'JP', name: '일본', nameEn: 'Japan' },
+      { code: 'HK', name: '홍콩', nameEn: 'Hong Kong' },
+      { code: 'TW', name: '대만', nameEn: 'Taiwan' },
+      { code: 'CN', name: '중국', nameEn: 'China' },
     ],
   },
   {
     region: '동남아시아',
+    regionEn: 'Southeast Asia',
     countries: [
-      { code: 'TH', name: '태국' },
-      { code: 'VN', name: '베트남' },
-      { code: 'ID', name: '인도네시아' },
-      { code: 'PH', name: '필리핀' },
-      { code: 'SG', name: '싱가포르' },
-      { code: 'MY', name: '말레이시아' },
+      { code: 'TH', name: '태국', nameEn: 'Thailand' },
+      { code: 'VN', name: '베트남', nameEn: 'Vietnam' },
+      { code: 'ID', name: '인도네시아', nameEn: 'Indonesia' },
+      { code: 'PH', name: '필리핀', nameEn: 'Philippines' },
+      { code: 'SG', name: '싱가포르', nameEn: 'Singapore' },
+      { code: 'MY', name: '말레이시아', nameEn: 'Malaysia' },
     ],
   },
   {
     region: '유럽',
+    regionEn: 'Europe',
     countries: [
-      { code: 'GB', name: '영국' },
-      { code: 'DE', name: '독일' },
-      { code: 'FR', name: '프랑스' },
-      { code: 'NL', name: '네덜란드' },
-      { code: 'ES', name: '스페인' },
-      { code: 'IT', name: '이탈리아' },
-      { code: 'SE', name: '스웨덴' },
-      { code: 'PL', name: '폴란드' },
+      { code: 'GB', name: '영국', nameEn: 'UK' },
+      { code: 'DE', name: '독일', nameEn: 'Germany' },
+      { code: 'FR', name: '프랑스', nameEn: 'France' },
+      { code: 'NL', name: '네덜란드', nameEn: 'Netherlands' },
+      { code: 'ES', name: '스페인', nameEn: 'Spain' },
+      { code: 'IT', name: '이탈리아', nameEn: 'Italy' },
+      { code: 'SE', name: '스웨덴', nameEn: 'Sweden' },
+      { code: 'PL', name: '폴란드', nameEn: 'Poland' },
     ],
   },
   {
     region: '북미',
+    regionEn: 'North America',
     countries: [
-      { code: 'US', name: '미국' },
-      { code: 'CA', name: '캐나다' },
+      { code: 'US', name: '미국', nameEn: 'USA' },
+      { code: 'CA', name: '캐나다', nameEn: 'Canada' },
     ],
   },
   {
     region: '오세아니아',
+    regionEn: 'Oceania',
     countries: [
-      { code: 'AU', name: '호주' },
-      { code: 'NZ', name: '뉴질랜드' },
+      { code: 'AU', name: '호주', nameEn: 'Australia' },
+      { code: 'NZ', name: '뉴질랜드', nameEn: 'New Zealand' },
     ],
   },
 ];

@@ -8,7 +8,7 @@ export type SupplyCategory =
   | '가구·인테리어'
   | '기타';
 
-export type SupplySort = '인기순' | '최신순' | '가격순';
+export type SupplySort = '인기순' | '최신순' | '가격 낮은순' | '가격 높은순';
 
 export interface SupplyOptionGroup {
   label: string;
@@ -39,6 +39,7 @@ export interface TattooSupply {
   isNew?: boolean;
   isBookmarked: boolean;
   popularityScore: number;
+  stock?: number;
   externalUrl?: string;
 }
 
@@ -52,7 +53,7 @@ export const SUPPLY_CATEGORIES: SupplyCategory[] = [
   '가구·인테리어', '기타',
 ];
 
-export const SUPPLY_SORTS: SupplySort[] = ['인기순', '최신순', '가격순'];
+export const SUPPLY_SORTS: SupplySort[] = ['인기순', '최신순', '가격 낮은순', '가격 높은순'];
 
 export const formatSupplyInquiryMessage = (supply: TattooSupply): string => {
   const lines = [
@@ -75,10 +76,10 @@ export const applySupplySort = (list: TattooSupply[], sort: SupplySort): TattooS
   switch (sort) {
     case '인기순':
       return copy.sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0));
-
-    case '가격순':
+    case '가격 낮은순':
       return copy.sort((a, b) => (a.price || 0) - (b.price || 0));
-
+    case '가격 높은순':
+      return copy.sort((a, b) => (b.price || 0) - (a.price || 0));
     case '최신순':
     default:
       return copy;

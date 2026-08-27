@@ -55,13 +55,15 @@ const CATEGORY_T_KEY: Record<SupplyCategory, string> = {
 const SORT_T_KEY: Record<SupplySort, string> = {
   '인기순': 'popular',
   '최신순': 'recent',
-  '가격순': 'price',
+  '가격 낮은순': 'priceAsc',
+  '가격 높은순': 'priceDesc',
 };
 
-const SORT_BY_LABEL: Record<SupplySort, 'popular' | 'price_asc' | 'recent'> = {
+const SORT_BY_LABEL: Record<SupplySort, 'popular' | 'price_asc' | 'price_desc' | 'recent'> = {
   '인기순': 'popular',
   '최신순': 'recent',
-  '가격순': 'price_asc',
+  '가격 낮은순': 'price_asc',
+  '가격 높은순': 'price_desc',
 };
 
 const TattooSuppliesScreen = () => {
@@ -71,6 +73,7 @@ const TattooSuppliesScreen = () => {
   const settings = usePublicSettings();
   const [category, setCategory] = useState<SupplyCategory>('머신 & 장비');
   const [sort, setSort] = useState<SupplySort>('최신순');
+  const [priceDropdownVisible, setPriceDropdownVisible] = useState(false);
   const [bookmarkOverride, setBookmarkOverride] = useState<Map<string, boolean>>(new Map());
   const [searchVisible, setSearchVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -166,23 +169,65 @@ const TattooSuppliesScreen = () => {
         </ScrollView>
 
         <View style={styles.filterRow}>
-          {SUPPLY_SORTS.map((s) => {
+          {(['인기순', '최신순'] as const).map((s) => {
             const isActive = s === sort;
             return (
                 <TouchableOpacity
                     key={s}
-                    onPress={() => setSort(s)}
+                    onPress={() => { setSort(s); setPriceDropdownVisible(false); }}
                     activeOpacity={0.8}
                     style={[styles.filterBtn, isActive && styles.filterBtnActive]}
                 >
-                  <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{t(`supplies.sort.${SORT_T_KEY[s]}` as any)}</Text>
-                  <ChevronDownIcon
-                      size={12}
-                      color={isActive ? COLORS.gold : COLORS.gray}
-                  />
+                  <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                    {t(`supplies.sort.${SORT_T_KEY[s]}` as any)}
+                  </Text>
                 </TouchableOpacity>
             );
           })}
+
+          {/* 가격순 드롭다운 */}
+          <View style={styles.priceDropdownWrapper}>
+            <TouchableOpacity
+                onPress={() => setPriceDropdownVisible((v) => !v)}
+                activeOpacity={0.8}
+                style={[
+                  styles.filterBtn,
+                  (sort === '가격 낮은순' || sort === '가격 높은순') && styles.filterBtnActive,
+                ]}
+            >
+              <Text style={[
+                styles.filterText,
+                (sort === '가격 낮은순' || sort === '가격 높은순') && styles.filterTextActive,
+              ]}>
+                {sort === '가격 낮은순'
+                  ? t('supplies.sort.priceAsc' as any)
+                  : sort === '가격 높은순'
+                    ? t('supplies.sort.priceDesc' as any)
+                    : t('supplies.sort.price' as any)}
+              </Text>
+              <ChevronDownIcon
+                  size={12}
+                  color={(sort === '가격 낮은순' || sort === '가격 높은순') ? COLORS.gold : COLORS.gray}
+              />
+            </TouchableOpacity>
+
+            {priceDropdownVisible && (
+                <View style={styles.priceDropdown}>
+                  {(['가격 낮은순', '가격 높은순'] as const).map((s) => (
+                      <TouchableOpacity
+                          key={s}
+                          onPress={() => { setSort(s); setPriceDropdownVisible(false); }}
+                          activeOpacity={0.8}
+                          style={[styles.priceDropdownItem, sort === s && styles.priceDropdownItemActive]}
+                      >
+                        <Text style={[styles.priceDropdownText, sort === s && styles.priceDropdownTextActive]}>
+                          {t(`supplies.sort.${SORT_T_KEY[s]}` as any)}
+                        </Text>
+                      </TouchableOpacity>
+                  ))}
+                </View>
+            )}
+          </View>
         </View>
       </View>
   );
@@ -246,11 +291,17 @@ const styles = StyleSheet.create({
   categoryChipActive: { borderColor: COLORS.white, backgroundColor: COLORS.card },
   categoryText: { color: COLORS.gray, fontSize: 13, fontWeight: '500', lineHeight: 18 },
   categoryTextActive: { color: COLORS.white, fontWeight: '700' },
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
+  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center' },
   filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8, borderWidth: 1, borderColor: COLORS.chipBorder, backgroundColor: COLORS.elevated },
   filterBtnActive: { borderColor: COLORS.gold },
   filterText: { color: COLORS.gray, fontSize: 13, lineHeight: 18 },
   filterTextActive: { color: COLORS.gold, fontWeight: '600' },
+  priceDropdownWrapper: { position: 'relative' },
+  priceDropdown: { position: 'absolute', top: 42, left: 0, zIndex: 100, backgroundColor: COLORS.card, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden', minWidth: 110 },
+  priceDropdownItem: { paddingHorizontal: 14, paddingVertical: 11 },
+  priceDropdownItemActive: { backgroundColor: 'rgba(251,192,45,0.08)' },
+  priceDropdownText: { color: COLORS.gray, fontSize: 13, lineHeight: 18 },
+  priceDropdownTextActive: { color: COLORS.gold, fontWeight: '600' },
   emptyState: { paddingVertical: 80, alignItems: 'center', gap: 14 },
   emptyText: { color: COLORS.gray, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   retryBtn: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 8, borderWidth: 1, borderColor: COLORS.gold },

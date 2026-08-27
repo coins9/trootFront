@@ -16,7 +16,7 @@ import {
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { usePagedApi, useApi } from '../../hooks/useApi';
-import { artistApi, favoriteApi, reviewApi, type ReviewByArtist } from '../../../data/api';
+import { artistApi, favoriteApi, reviewApi, reportApi, type ReviewByArtist } from '../../../data/api';
 import { toTattoo, toArtist } from '../../../data/api/mappers';
 import { Tattoo } from '../../../domain/entities/types';
 import { artistTagLabels } from '../../../domain/entities/artistTags';
@@ -91,9 +91,32 @@ const ArtistProfileScreen = () => {
 
   const [reportVisible, setReportVisible] = useState(false);
 
-  const handleReportSubmit = useCallback((_reason: ReportReason, _detail: string) => {
-    toast(t('artistProfile.reported' as any), { variant: 'success' });
-  }, [toast, t]);
+  const REASON_MAP: Record<ReportReason, 'price_deception' | 'design_theft' | 'proxy_artist' | 'false_info' | 'etc'> = {
+    '가격 기망 (앱 표기가와 현장가 상이)': 'price_deception',
+    '도안 · 포트폴리오 도용': 'design_theft',
+    '등록된 타투이스트와 다른 사람이 시술 (대리 · 수강생)': 'proxy_artist',
+    '허위 · 과장 정보': 'false_info',
+    '기타': 'etc',
+  };
+
+  const handleReportSubmit = useCallback(async (reason: ReportReason, detail: string) => {
+    try {
+      await reportApi.create({
+        targetType: 'artist',
+        targetId: artist.id,
+        targetUserId: artist.userId,
+        reason: REASON_MAP[reason],
+        detail: detail || undefined,
+      });
+      toast(t('artistProfile.reported' as any), { variant: 'success' });
+    } catch (err: any) {
+      if (err?.statusCode === 409) {
+        toast(t('report.duplicateError' as any), { variant: 'error' });
+      } else {
+        toast(t('common.error' as any), { variant: 'error' });
+      }
+    }
+  }, [artist.id, artist.userId, toast, t]);
 
   // 🚨 2. 리로드(reload) 함수 추출
   const { data: reviewPage, reload: reloadReviews } = useApi(
@@ -240,11 +263,17 @@ const ArtistProfileScreen = () => {
               <Text style={styles.infoTabValue}>
                 {[artist.city, artist.district].filter(Boolean).join(' · ') || '—'}
               </Text>
-              {!!artist.detailAddress && (
-                <Text style={styles.infoTabSub}>{artist.detailAddress}</Text>
-              )}
             </View>
           </View>
+          {!!artist.detailAddress && (
+              <View style={styles.infoTabItem}>
+                <LocationPinIcon size={18} color={COLORS.gold} />
+                <View style={styles.infoTabTextGroup}>
+                  <Text style={styles.infoTabLabel}>{t('artistProfile.detailAddressLabel' as any)}</Text>
+                  <Text style={styles.infoTabValue}>{artist.detailAddress}</Text>
+                </View>
+              </View>
+          )}
           {!!artist.availableHours && (
               <View style={styles.infoTabItem}>
                 <ClockIcon size={18} color={COLORS.gold} />
@@ -548,6 +577,9 @@ const ArtistProfileScreen = () => {
                       <Text style={styles.bottomInfoValue}>
                         {[artist.city, artist.district].filter(Boolean).join(' · ') || '—'}
                       </Text>
+                      {!!artist.detailAddress && (
+                        <Text style={styles.bottomInfoSub}>{artist.detailAddress}</Text>
+                      )}
                     </View>
                   </View>
                   <View style={styles.bottomInfoItem}>
@@ -1124,6 +1156,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     lineHeight: 17,
+  },
+  bottomInfoSub: {
+    color: COLORS.gray,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 2,
   },
   clockDot: {
     width: 16,
