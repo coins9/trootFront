@@ -143,7 +143,7 @@ const ShopShareCard = memo(({ shop, onPress, onBookmark }: Props) => {
           </View>
           <View style={styles.hostTextGroup}>
             <Text style={styles.hostName}>{shop.host.nickname}</Text>
-            <Text style={styles.hostRole}>{shop.host.role}</Text>
+            <Text style={styles.hostRole}>{t('shop.card.hostRoleLabel')}</Text>
           </View>
         </View>
         <View style={styles.statsRow}>

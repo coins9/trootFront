@@ -200,6 +200,8 @@ export const en: TranslationSchema = {
     bannerSubtitle: 'Consult with top tattoo artists right now',
     bannerCta: 'View now',
     sponsored: 'Sponsored',
+    adCategoryDesign: 'Design Ad',
+    adViewDetail: 'View Details',
   },
 
   filter: {
@@ -381,6 +383,10 @@ export const en: TranslationSchema = {
     },
     card: {
       newBadge: 'New',
+      photoZoneLabel: 'Photo Zone',
+      equipped: 'Available',
+      notEquipped: 'None',
+      hostRoleLabel: 'Host',
       areaPyeong: 'Area',
       bedCount: 'Beds',
       lighting: 'Lighting',
@@ -471,6 +477,11 @@ export const en: TranslationSchema = {
     shareMessageLabel: 'Message',
     shareDateLabel: 'Preferred date',
     sharePeriodLabel: 'Duration',
+    shareDatePlaceholderEx: 'e.g. 2026-08-15 ~ 08-20 (5 days)',
+    sharePortfolioLabel: 'Guest portfolio',
+    sharePortfolioPlaceholder: 'Share your Instagram/portfolio link',
+    sharePreInquiryLabel: 'Advance inquiry',
+    sharePreInquiryPlaceholder: "Write anything you'd like to confirm with the host in advance.",
     opt: {
       all: 'All',
       regionGangnam: 'Seoul · Gangnam/Seocho',
@@ -1286,6 +1297,10 @@ export const en: TranslationSchema = {
     fieldDescription: 'Description',
     fieldExternalUrl: 'External Purchase Link',
     fieldExternalUrlPlaceholder: 'Smart Store, etc. (optional)',
+    fieldSubtitle: 'One-line description (subtitle)',
+    fieldSubtitlePlaceholder: 'Key description shown in listings (e.g. best beginner machine)',
+    fieldOpenChat: '1:1 Inquiry Link (Open Chat)',
+    fieldStoreLink: 'Purchase Link (External Store)',
     externalUrlHint: 'Adding a link connects the purchase button to that page.',
     productUpdated: 'Product updated',
     productCreated: 'Product listed',

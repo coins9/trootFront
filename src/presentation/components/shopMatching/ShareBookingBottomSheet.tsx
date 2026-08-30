@@ -197,7 +197,7 @@ const ShareBookingBottomSheet = memo(({
                 style={styles.textInput}
                 value={form.scheduleText}
                 onChangeText={(t) => update('scheduleText', t)}
-                placeholder="예: 2026-08-15 ~ 08-20 (5일)"
+                placeholder={t('shop.shareDatePlaceholderEx')}
                 placeholderTextColor={COLORS.gray2}
               />
             </View>
@@ -245,14 +245,14 @@ const ShareBookingBottomSheet = memo(({
             {/* 4. 포트폴리오 */}
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
-                <Text style={styles.fieldLabel}>게스트 포트폴리오</Text>
-                <Text style={styles.optional}>선택</Text>
+                <Text style={styles.fieldLabel}>{t('shop.sharePortfolioLabel')}</Text>
+                <Text style={styles.optional}>{t('common.optional')}</Text>
               </View>
               <TextInput
                 style={styles.textInput}
                 value={form.portfolioUrl}
                 onChangeText={(t) => update('portfolioUrl', t)}
-                placeholder="작업물을 확인할 수 있는 인스타그램/포트폴리오 링크를 남겨주세요"
+                placeholder={t('shop.sharePortfolioPlaceholder')}
                 placeholderTextColor={COLORS.gray2}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -263,14 +263,14 @@ const ShareBookingBottomSheet = memo(({
             {/* 5. 사전 문의 사항 */}
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
-                <Text style={styles.fieldLabel}>사전 문의 사항</Text>
-                <Text style={styles.optional}>선택</Text>
+                <Text style={styles.fieldLabel}>{t('shop.sharePreInquiryLabel')}</Text>
+                <Text style={styles.optional}>{t('common.optional')}</Text>
               </View>
               <TextInput
                 style={styles.textArea}
                 value={form.message}
                 onChangeText={(t) => update('message', t)}
-                placeholder="호스트에게 미리 확인하고 싶은 내용을 자유롭게 작성해 주세요."
+                placeholder={t('shop.sharePreInquiryPlaceholder')}
                 placeholderTextColor={COLORS.gray2}
                 multiline
                 textAlignVertical="top"

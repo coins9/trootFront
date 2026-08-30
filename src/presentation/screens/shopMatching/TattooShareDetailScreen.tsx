@@ -84,7 +84,11 @@ const TattooShareDetailScreen = () => {
   }
 
   if (shop.hasPhotoZone !== undefined) {
-    specs.push({ Icon: CameraSolidIcon, label: '촬영존', value: shop.hasPhotoZone ? '구비됨' : '없음' });
+    specs.push({
+      Icon: CameraSolidIcon,
+      label: t('shop.card.photoZoneLabel' as any),
+      value: shop.hasPhotoZone ? t('shop.card.equipped' as any) : t('shop.card.notEquipped' as any),
+    });
   }
 
   const handlePageScroll = useCallback((e: { nativeEvent: { contentOffset: { x: number } } }) => {

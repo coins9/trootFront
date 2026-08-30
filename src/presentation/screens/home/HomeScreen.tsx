@@ -34,7 +34,7 @@ type FeedRow = { key: string; left: Tattoo; right?: Tattoo };
 type HomeNavProp = NativeStackNavigationProp<RootStackParamList>;
 
 const HomeScreen = () => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const navigation = useNavigation<HomeNavProp>();
   const settings = usePublicSettings();
   const [bottomSheetType, setBottomSheetType] = useState<FilterType | null>(null);
@@ -107,7 +107,7 @@ const HomeScreen = () => {
           .filter((a) => a.type === 'banner' && a.artwork != null)
           .map((a) => ({
             id: a.campaignId,
-            category: '도안 광고' as const,
+            category: t('home.adCategoryDesign'),
             title: a.artwork!.title,
             subtitle: a.artwork!.description ?? '',
             advertiserName: a.artwork!.artist?.pageName ?? '',
@@ -116,15 +116,17 @@ const HomeScreen = () => {
               a.artwork!.artist?.regionSido ??
               undefined,
             priceLabel: a.artwork!.priceKrw
-              ? `${Math.floor(a.artwork!.priceKrw / 10000)}만원~`
+              ? (language === 'ko'
+                  ? `${Math.floor(a.artwork!.priceKrw / 10000)}만원~`
+                  : `₩${a.artwork!.priceKrw.toLocaleString()}~`)
               : undefined,
             imageUri: a.artwork!.thumbnail ?? a.artwork!.images[0] ?? '',
-            ctaLabel: '상세 보기',
+            ctaLabel: t('home.adViewDetail'),
             targetType: 'tattoo' as const,
             targetId: a.artwork!.id,
             isSponsored: true as const,
           })),
-      [adArtworks],
+      [adArtworks, t, language],
   );
 
   const campaignByArtworkId = useMemo(() => {

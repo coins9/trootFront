@@ -214,10 +214,10 @@ const ProductFormScreen = () => {
                       <Text style={s.label}>{t('vendor.fieldName')} <Text style={s.req}>*</Text></Text>
                       <TextInput style={s.input} placeholder={t('vendor.fieldNamePlaceholder')} placeholderTextColor={COLORS.gray2} value={name} onChangeText={setName} />
 
-                      <Text style={s.label}>한 줄 설명 (부제목) <Text style={s.req}>*</Text></Text>
+                      <Text style={s.label}>{t('vendor.fieldSubtitle' as any)} <Text style={s.req}>*</Text></Text>
                       <TextInput
                           style={s.input}
-                          placeholder="리스트에 노출될 핵심 설명을 적어주세요 (예: 입문용 최고의 머신)"
+                          placeholder={t('vendor.fieldSubtitlePlaceholder' as any)}
                           placeholderTextColor={COLORS.gray2}
                           value={subtitle}
                           onChangeText={setSubtitle}
@@ -263,11 +263,11 @@ const ProductFormScreen = () => {
                   </View>
                 </View>
 
-                <Text style={s.label}>1:1 문의 링크 (오픈채팅)</Text>
+                <Text style={s.label}>{t('vendor.fieldOpenChat' as any)}</Text>
                 <TextInput style={s.input} placeholder="https://open.kakao.com/..." placeholderTextColor={COLORS.gray2} value={openChatUrl} onChangeText={setOpenChatUrl} autoCapitalize="none" keyboardType="url" />
                 {!!openChatUrl && !openChatValid && <Text style={s.hintError}>{t('vendor.invalidOpenChatUrl')}</Text>}
 
-                <Text style={s.label}>구매 링크 (외부 스토어)</Text>
+                <Text style={s.label}>{t('vendor.fieldStoreLink' as any)}</Text>
                 <TextInput style={s.input} placeholder="https://smartstore.naver.com/..." placeholderTextColor={COLORS.gray2} value={storeUrl} onChangeText={setStoreUrl} autoCapitalize="none" keyboardType="url" />
                 {!!storeUrl && !storeUrlValid && <Text style={s.hintError}>{t('vendor.invalidStoreUrl')}</Text>}
 

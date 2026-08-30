@@ -197,6 +197,8 @@ export const ko = {
     bannerSubtitle: '지금 인기 아티스트와 상담해보세요',
     bannerCta: '바로 보기',
     sponsored: '스폰서 작품',
+    adCategoryDesign: '도안 광고',
+    adViewDetail: '상세 보기',
   },
 
   filter: {
@@ -378,6 +380,10 @@ export const ko = {
     },
     card: {
       newBadge: '신규',
+      photoZoneLabel: '촬영존',
+      equipped: '구비됨',
+      notEquipped: '없음',
+      hostRoleLabel: '호스트',
       areaPyeong: '평수',
       bedCount: '베드 수',
       lighting: '조명',
@@ -468,6 +474,11 @@ export const ko = {
     shareMessageLabel: '문의 내용',
     shareDateLabel: '희망 날짜',
     sharePeriodLabel: '이용 기간',
+    shareDatePlaceholderEx: '예: 2026-08-15 ~ 08-20 (5일)',
+    sharePortfolioLabel: '게스트 포트폴리오',
+    sharePortfolioPlaceholder: '작업물을 확인할 수 있는 인스타그램/포트폴리오 링크를 남겨주세요',
+    sharePreInquiryLabel: '사전 문의 사항',
+    sharePreInquiryPlaceholder: '호스트에게 미리 확인하고 싶은 내용을 자유롭게 작성해 주세요.',
     opt: {
       all: '전체',
       regionGangnam: '서울 · 강남/서초',
@@ -1283,6 +1294,10 @@ export const ko = {
     fieldDescription: '상품 설명',
     fieldExternalUrl: '외부 구매 링크',
     fieldExternalUrlPlaceholder: '스마트스토어 등 (선택)',
+    fieldSubtitle: '한 줄 설명 (부제목)',
+    fieldSubtitlePlaceholder: '리스트에 노출될 핵심 설명을 적어주세요 (예: 입문용 최고의 머신)',
+    fieldOpenChat: '1:1 문의 링크 (오픈채팅)',
+    fieldStoreLink: '구매 링크 (외부 스토어)',
     externalUrlHint: '링크를 넣으면 구매 버튼이 해당 페이지로 연결됩니다.',
     productUpdated: '상품이 수정되었습니다',
     productCreated: '상품이 등록되었습니다',
