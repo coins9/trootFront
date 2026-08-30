@@ -151,7 +151,6 @@ const BookingBottomSheet = memo(({
   const valid = isBookingFormValid(form);
 
   return (
-    <>
     <Modal
       visible={visible}
       transparent
@@ -161,7 +160,7 @@ const BookingBottomSheet = memo(({
     >
       <KeyboardAvoidingView
         style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <TouchableWithoutFeedback onPress={handleClose}>
           <View style={styles.backdrop} />
@@ -252,10 +251,12 @@ const BookingBottomSheet = memo(({
             bottomInset={insets.bottom}
           />
         </Animated.View>
+
+        {/* 확정 다이얼로그 — 부모 Modal 위에 Modal 을 겹치면 iOS 가 멈추므로
+            같은 Modal 내부에서 inline(View 오버레이)으로 렌더 */}
+        <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} inline />
       </KeyboardAvoidingView>
     </Modal>
-    <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
-    </>
   );
 });
 

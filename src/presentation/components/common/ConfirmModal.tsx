@@ -23,6 +23,13 @@ export interface ConfirmConfig {
 interface Props {
   config: ConfirmConfig | null;
   onDismiss: () => void;
+  /**
+   * 이미 열린 다른 Modal 위에 띄울 때 사용.
+   * iOS 는 Modal 위에 Modal 을 present 하면 멈추므로(데드락),
+   * inline 모드는 <Modal> 대신 absolute-fill <View> 로 렌더한다.
+   * 이 경우 부모 Modal 내부에 배치해야 한다.
+   */
+  inline?: boolean;
 }
 
 const iconFor = (v: ConfirmVariant) => {
@@ -40,7 +47,7 @@ const colorFor = (v: ConfirmVariant) => {
   }
 };
 
-const ConfirmModal = memo(({ config, onDismiss }: Props) => {
+const ConfirmModal = memo(({ config, onDismiss, inline = false }: Props) => {
   const { t } = useTranslation();
   const visible = config !== null;
   const scale = useRef(new Animated.Value(0.92)).current;
@@ -74,6 +81,54 @@ const ConfirmModal = memo(({ config, onDismiss }: Props) => {
     onDismiss();
   };
 
+  const content = (
+    <Pressable style={styles.backdrop} onPress={handleCancel}>
+      <Animated.View style={{ opacity, transform: [{ scale }] }}>
+        <Pressable onPress={() => {}}>
+          <View style={styles.card}>
+            <View style={[
+              styles.iconWrap,
+              { backgroundColor: `${accent}22`, borderColor: `${accent}66` },
+            ]}>
+              <Icon size={28} color={accent} strokeWidth={1.8} />
+            </View>
+            <Text style={styles.title}>{config.title}</Text>
+            <Text style={styles.message}>{config.message}</Text>
+
+            <View style={styles.actions}>
+              <TouchableOpacity
+                onPress={handleCancel}
+                activeOpacity={0.85}
+                style={[styles.btn, styles.btnCancel]}
+              >
+                <Text style={styles.btnCancelText}>
+                  {config.cancelLabel ?? t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirm}
+                activeOpacity={0.85}
+                style={[
+                  styles.btn,
+                  isDanger ? styles.btnDanger : styles.btnPrimary,
+                ]}
+              >
+                <Text style={isDanger ? styles.btnDangerText : styles.btnPrimaryText}>
+                  {config.confirmLabel ?? t('common.confirm')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
+      </Animated.View>
+    </Pressable>
+  );
+
+  // inline: 부모 Modal 위에 Modal 을 겹치면 iOS 가 멈추므로 View 오버레이로 렌더
+  if (inline) {
+    return <View style={styles.inlineRoot}>{content}</View>;
+  }
+
   return (
     <Modal
       visible={visible}
@@ -83,46 +138,7 @@ const ConfirmModal = memo(({ config, onDismiss }: Props) => {
       statusBarTranslucent
       hardwareAccelerated
     >
-      <Pressable style={styles.backdrop} onPress={handleCancel}>
-        <Animated.View style={{ opacity, transform: [{ scale }] }}>
-          <Pressable onPress={() => {}}>
-            <View style={styles.card}>
-              <View style={[
-                styles.iconWrap,
-                { backgroundColor: `${accent}22`, borderColor: `${accent}66` },
-              ]}>
-                <Icon size={28} color={accent} strokeWidth={1.8} />
-              </View>
-              <Text style={styles.title}>{config.title}</Text>
-              <Text style={styles.message}>{config.message}</Text>
-
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  onPress={handleCancel}
-                  activeOpacity={0.85}
-                  style={[styles.btn, styles.btnCancel]}
-                >
-                  <Text style={styles.btnCancelText}>
-                    {config.cancelLabel ?? t('common.cancel')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleConfirm}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.btn,
-                    isDanger ? styles.btnDanger : styles.btnPrimary,
-                  ]}
-                >
-                  <Text style={isDanger ? styles.btnDangerText : styles.btnPrimaryText}>
-                    {config.confirmLabel ?? t('common.confirm')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Pressable>
-        </Animated.View>
-      </Pressable>
+      {content}
     </Modal>
   );
 });
@@ -130,6 +146,12 @@ ConfirmModal.displayName = 'ConfirmModal';
 export default ConfirmModal;
 
 const styles = StyleSheet.create({
+  inlineRoot: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 999,
+    elevation: 999,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: COLORS.overlay,
