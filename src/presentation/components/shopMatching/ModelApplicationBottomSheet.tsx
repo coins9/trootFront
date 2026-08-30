@@ -134,7 +134,7 @@ const ModelApplicationBottomSheet = memo(({
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={handleClose}>
       <KeyboardAvoidingView
         style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <TouchableWithoutFeedback onPress={handleClose}>
           <View style={styles.backdrop} />
@@ -250,48 +250,6 @@ const ModelApplicationBottomSheet = memo(({
               </TouchableOpacity>
             </View>
 
-            {/* 캘린더 모달 */}
-            <Modal
-              visible={showCalendar}
-              transparent
-              animationType="fade"
-              onRequestClose={() => setShowCalendar(false)}
-            >
-              <TouchableWithoutFeedback onPress={() => setShowCalendar(false)}>
-                <View style={styles.calendarOverlay}>
-                  <TouchableWithoutFeedback>
-                    <View style={styles.calendarBox}>
-                      <Calendar
-                        onDayPress={(day: any) => {
-                          update('desiredDate', day.dateString);
-                          setShowCalendar(false);
-                        }}
-                        markedDates={
-                          form.desiredDate
-                            ? { [form.desiredDate]: { selected: true, selectedColor: COLORS.gold } }
-                            : {}
-                        }
-                        theme={{
-                          backgroundColor: COLORS.sheet,
-                          calendarBackground: COLORS.sheet,
-                          textSectionTitleColor: COLORS.gray,
-                          selectedDayBackgroundColor: COLORS.gold,
-                          selectedDayTextColor: COLORS.black,
-                          todayTextColor: COLORS.gold,
-                          dayTextColor: COLORS.white,
-                          textDisabledColor: COLORS.gray3,
-                          arrowColor: COLORS.gold,
-                          monthTextColor: COLORS.white,
-                          textMonthFontWeight: '700',
-                        }}
-                        minDate={new Date().toISOString().split('T')[0]}
-                      />
-                    </View>
-                  </TouchableWithoutFeedback>
-                </View>
-              </TouchableWithoutFeedback>
-            </Modal>
-
             {/* 3. 작업 부위 상태 */}
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
@@ -402,6 +360,42 @@ const ModelApplicationBottomSheet = memo(({
             >
               <Text style={styles.toastText}>{t('common.copiedToChat')}</Text>
             </Animated.View>
+          )}
+
+          {/* 캘린더 — 중첩 Modal 대신 시트 내부 오버레이 (Android 튕김 방지) */}
+          {showCalendar && (
+            <View style={styles.calendarOverlay}>
+              <TouchableWithoutFeedback onPress={() => setShowCalendar(false)}>
+                <View style={StyleSheet.absoluteFill} />
+              </TouchableWithoutFeedback>
+              <View style={styles.calendarBox}>
+                <Calendar
+                  onDayPress={(day: { dateString: string }) => {
+                    update('desiredDate', day.dateString);
+                    setShowCalendar(false);
+                  }}
+                  markedDates={
+                    form.desiredDate
+                      ? { [form.desiredDate]: { selected: true, selectedColor: COLORS.gold } }
+                      : {}
+                  }
+                  theme={{
+                    backgroundColor: COLORS.sheet,
+                    calendarBackground: COLORS.sheet,
+                    textSectionTitleColor: COLORS.gray,
+                    selectedDayBackgroundColor: COLORS.gold,
+                    selectedDayTextColor: COLORS.black,
+                    todayTextColor: COLORS.gold,
+                    dayTextColor: COLORS.white,
+                    textDisabledColor: COLORS.gray3,
+                    arrowColor: COLORS.gold,
+                    monthTextColor: COLORS.white,
+                    textMonthFontWeight: '700',
+                  }}
+                  minDate={new Date().toISOString().split('T')[0]}
+                />
+              </View>
+            </View>
           )}
         </Animated.View>
       </KeyboardAvoidingView>
@@ -594,16 +588,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   calendarOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'center',
     paddingHorizontal: 20,
+    zIndex: 50,
   },
   calendarBox: {
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
+    backgroundColor: COLORS.sheet,
   },
 
   dropdownBtn: {

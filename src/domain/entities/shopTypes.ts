@@ -50,16 +50,9 @@ export interface TattooShareShop {
  * 부스 쉐어 필터
  * ───────────────────────────────────────────────────── */
 
-export type ShareRegion =
-    | '전체'
-    | '서울 · 강남/서초'
-    | '서울 · 홍대/합정/망원'
-    | '서울 · 이태원/용산'
-    | '서울 · 건대/성수'
-    | '서울 · 기타'
-    | '경기/인천'
-    | '부산/경상'
-    | '그 외 지역';
+// 지역은 서울 25개 구 + 광역시 구 + 경기 주요시 + 제주 + 도 단위로 확장됨.
+// 값 목록/라벨/매칭은 shopRegions.ts 에서 관리. (하위호환 위해 string 으로 유지)
+export type ShareRegion = string;
 
 export type ShareLighting =
     | '전체'
@@ -90,17 +83,8 @@ export const INITIAL_SHARE_FILTER: ShareFilterState = {
   sort: '최신순',
 };
 
-export const SHARE_REGION_OPTIONS: ShareRegion[] = [
-  '전체',
-  '서울 · 강남/서초',
-  '서울 · 홍대/합정/망원',
-  '서울 · 이태원/용산',
-  '서울 · 건대/성수',
-  '서울 · 기타',
-  '경기/인천',
-  '부산/경상',
-  '그 외 지역',
-];
+// shopRegions.ts 의 확장 지역 목록을 그대로 사용
+export { SHOP_REGION_OPTIONS as SHARE_REGION_OPTIONS } from './shopRegions';
 
 export const SHARE_LIGHTING_OPTIONS: ShareLighting[] = [
   '전체',
@@ -128,29 +112,7 @@ export const SHARE_SORT_OPTIONS: ShareSort[] = [
 
 /* ── 매칭 헬퍼 ── */
 
-const REGION_KEYWORDS: Record<Exclude<ShareRegion, '전체'>, RegExp> = {
-  '서울 · 강남/서초': /강남|서초/,
-  '서울 · 홍대/합정/망원': /홍대|마포|합정|망원|서교/,
-  '서울 · 이태원/용산': /이태원|용산/,
-  '서울 · 건대/성수': /건대|성수|광진|화양/,
-  '서울 · 기타': /서울/,
-  '경기/인천': /경기|인천|수원|성남|고양|용인|부천|안산|남동|연수|부평|계양/,
-  '부산/경상': /부산|해운대|수영|경상|대구|울산/,
-  '그 외 지역': /광주|대전|세종|전라|충청|강원|제주/,
-};
-
-export const matchRegion = (address: string, region: ShareRegion): boolean => {
-  if (region === '전체') return true;
-  if (region === '서울 · 기타') {
-    if (!/서울/.test(address)) return false;
-    // 세부 지역에 이미 포함되면 '기타' 아님
-    return !(
-        /강남|서초|홍대|마포|합정|망원|서교|이태원|용산|건대|성수|광진|화양/.test(address)
-    );
-  }
-  const re = REGION_KEYWORDS[region];
-  return re ? re.test(address) : false;
-};
+export { matchShopRegion as matchRegion } from './shopRegions';
 
 export const matchBedCount = (bedCount: number, filter: ShareBedCount): boolean => {
   switch (filter) {

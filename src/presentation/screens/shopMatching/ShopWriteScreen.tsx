@@ -1,16 +1,15 @@
-import React, { useCallback, useRef, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
     KeyboardAvoidingView, Platform, StatusBar, Image, ActivityIndicator,
 } from 'react-native';
-import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
-import Config from 'react-native-config';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import {
     BackArrowIcon, CameraAddIcon, XIcon, WarningTriangleIcon, ChevronRightIcon,
+    ChevronDownIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useImageUpload } from '../../hooks/useImageUpload';
@@ -19,13 +18,16 @@ import { RootStackParamList } from '../../../infrastructure/navigation/RootNavig
 import {
     ShopMatchingCategory,
     ShareLighting, ShareBedCount,
-    SHARE_REGION_OPTIONS,
     SharePriceType, ShareStencil
 } from '../../../domain/entities/shopTypes';
+import {
+    SHOP_REGION_OPTIONS, SHOP_REGION_WRITE_OPTIONS, shopRegionLabel, ALL_REGION_CODE,
+} from '../../../domain/entities/shopRegions';
+import ShareFilterBottomSheet from '../../components/shopMatching/ShareFilterBottomSheet';
 import { shopApi, ShopCategory } from '../../../data/api';
 import { useTranslation } from '../../store/languageStore';
 import {
-    regionLabel, lightingLabel, bedLabel, expertCareerLabel,
+    lightingLabel, bedLabel, expertCareerLabel,
     expertWorkKindLabel, writeStyleLabel, specialtyLabel,
     overseasCountryLabel,
     // 🚨 여기서 누락되었던 헬퍼 함수들을 완벽하게 임포트합니다!
@@ -46,7 +48,6 @@ const CATEGORIES: ShopMatchingCategory[] = [
 const STYLE_OPTS = ['블랙워크', '라인워크', '올드스쿨', '뉴스쿨', '이레즈미', '수채화', '미니타투', '커버업'];
 const OVERSEAS_COUNTRY_OPTS = ['일본', '미국', '프랑스', '독일', '영국', '태국', '싱가포르', '홍콩', '대만', '호주', '캐나다', '이탈리아', '기타'];
 const OVERSEAS_CURRENCY_OPTS = ['USD', 'JPY', 'EUR', 'GBP', 'THB', 'SGD', 'HKD', 'TWD', 'AUD', 'KRW'];
-const DOMESTIC_REGION_OPTS = SHARE_REGION_OPTIONS.filter((r) => r !== '전체');
 
 /* ── 칩 선택 컴포넌트 ── */
 const ChipSelect = React.memo(({
@@ -82,6 +83,38 @@ const SectionLabel = ({ label, required }: { label: string; required?: boolean }
         {required && <Text style={s.required}>*</Text>}
     </View>
 );
+
+/* ── 지역 선택 필드 (긴 목록 → 바텀시트) ── */
+const RegionSelectField = ({ value, onChange }: {
+    value: string;
+    onChange: (v: string) => void;
+}) => {
+    const { t, language } = useTranslation();
+    const [sheetVisible, setSheetVisible] = useState(false);
+    return (
+        <>
+            <TouchableOpacity
+                onPress={() => setSheetVisible(true)}
+                activeOpacity={0.8}
+                style={s.selectField}
+            >
+                <Text style={[s.selectFieldText, !value && s.selectFieldPlaceholder]}>
+                    {value ? shopRegionLabel(value, language) : t('shop.filter.selectRegion' as any)}
+                </Text>
+                <ChevronDownIcon size={14} color={COLORS.gray} />
+            </TouchableOpacity>
+            <ShareFilterBottomSheet<string>
+                visible={sheetVisible}
+                title={t('shop.filter.selectRegion' as any)}
+                options={SHOP_REGION_WRITE_OPTIONS}
+                selected={value || ALL_REGION_CODE}
+                onSelect={(v) => onChange(v === ALL_REGION_CODE ? '' : v)}
+                onClose={() => setSheetVisible(false)}
+                renderLabel={(opt) => shopRegionLabel(opt, language)}
+            />
+        </>
+    );
+};
 
 /* ─────────────────────────────────────────────────────
  * 부스 쉐어 폼
@@ -150,11 +183,9 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
             )}
 
             <SectionLabel label={t('shop.writeForm.regionLabel' as any)} required />
-            <ChipSelect
-                options={DOMESTIC_REGION_OPTS}
-                selected={form.region ? [form.region] : []}
-                onToggle={toggle('region')}
-                renderLabel={v => regionLabel(t as any, v as any)}
+            <RegionSelectField
+                value={form.region}
+                onChange={v => setForm(p => ({ ...p, region: v }))}
             />
 
             <SectionLabel label={t('shop.writeForm.priceLabel' as any) || '이용 금액'} required />
@@ -301,7 +332,6 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
     writeLang: 'ko' | 'en';
 }) => {
     const { t } = useTranslation();
-    const cityRef = useRef<GooglePlacesAutocompleteRef>(null);
     const toggle = useCallback((field: keyof OverseasBoothForm) => (v: string) => {
         setForm(p => ({ ...p, [field]: p[field] === v ? '' : v }));
     }, [setForm]);
@@ -344,35 +374,15 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
             />
 
             <SectionLabel label={t('shop.writeForm.cityLabel' as any)} required />
-            <View style={s.placesWrap}>
-                <GooglePlacesAutocomplete
-                    ref={cityRef}
-                    placeholder={t('shop.writeForm.cityPlaceholder' as any)}
-                    query={{
-                        key: Config.GOOGLE_PLACES_API_KEY ?? '',
-                        language: 'en',
-                        types: '(cities)',
-                    }}
-                    fetchDetails={false}
-                    onPress={(data) => {
-                        setForm(p => ({ ...p, city: data.description }));
-                    }}
-                    textInputProps={{
-                        placeholderTextColor: COLORS.gray2,
-                        onChangeText: v => setForm(p => ({ ...p, city: v })),
-                    }}
-                    enablePoweredByContainer={false}
-                    styles={{
-                        container: { flex: 1 },
-                        textInputContainer: { backgroundColor: 'transparent' },
-                        textInput: s.placesInput,
-                        listView: s.placesList,
-                        row: s.placesRow,
-                        description: s.placesDescription,
-                        separator: { height: 1, backgroundColor: COLORS.border },
-                    }}
-                />
-            </View>
+            <TextInput
+                style={s.input}
+                placeholder={t('shop.writeForm.cityPlaceholder' as any)}
+                placeholderTextColor={COLORS.gray2}
+                value={form.city}
+                onChangeText={v => setForm(p => ({ ...p, city: v }))}
+                autoCapitalize="words"
+                autoCorrect={false}
+            />
 
             <SectionLabel label={t('shop.writeForm.overseasPriceLabel' as any)} required />
             <View style={s.priceTypeWrap}>
@@ -504,7 +514,6 @@ const ModelRecruitForm = ({ form, setForm, writeLang }: {
     form: ModelForm; setForm: React.Dispatch<React.SetStateAction<ModelForm>>; writeLang: 'ko' | 'en';
 }) => {
     const { t } = useTranslation();
-    const toggleRegion = useCallback((v: string) => { setForm(p => ({ ...p, region: p.region === v ? '' : v })); }, [setForm]);
     const toggleStyle = useCallback((v: string) => {
         setForm(p => ({ ...p, styles: p.styles.includes(v) ? p.styles.filter(s => s !== v) : [...p.styles, v] }));
     }, [setForm]);
@@ -522,7 +531,7 @@ const ModelRecruitForm = ({ form, setForm, writeLang }: {
             />
 
             <SectionLabel label={t('shop.writeForm.regionLabel' as any)} required />
-            <ChipSelect options={DOMESTIC_REGION_OPTS} selected={form.region ? [form.region] : []} onToggle={toggleRegion} renderLabel={v => regionLabel(t as any, v as any)} />
+            <RegionSelectField value={form.region} onChange={v => setForm(p => ({ ...p, region: v }))} />
 
             <SectionLabel label={t('shop.writeForm.workStyleLabel' as any)} required />
             <ChipSelect options={STYLE_OPTS} selected={form.styles} onToggle={toggleStyle} multi renderLabel={v => writeStyleLabel(t as any, v as any)} />
@@ -564,7 +573,6 @@ const MediaExpertForm = ({ form, setForm, writeLang }: {
     form: MediaForm; setForm: React.Dispatch<React.SetStateAction<MediaForm>>; writeLang: 'ko' | 'en';
 }) => {
     const { t } = useTranslation();
-    const toggleRegion = useCallback((v: string) => { setForm(p => ({ ...p, region: p.region === v ? '' : v })); }, [setForm]);
     const toggleExp = useCallback((v: string) => { setForm(p => ({ ...p, experience: p.experience === v ? '' : v })); }, [setForm]);
     const toggleWork = useCallback((v: string) => {
         setForm(p => ({ ...p, workKinds: p.workKinds.includes(v) ? p.workKinds.filter(w => w !== v) : [...p.workKinds, v] }));
@@ -579,7 +587,7 @@ const MediaExpertForm = ({ form, setForm, writeLang }: {
             <TextInput style={s.input} placeholder={t('shop.writeForm.nicknamePlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.nickname} onChangeText={v => setForm(p => ({ ...p, nickname: v }))} maxLength={30} />
 
             <SectionLabel label={t('shop.writeForm.activeRegionLabel' as any)} required />
-            <ChipSelect options={DOMESTIC_REGION_OPTS} selected={form.region ? [form.region] : []} onToggle={toggleRegion} renderLabel={v => regionLabel(t as any, v as any)} />
+            <RegionSelectField value={form.region} onChange={v => setForm(p => ({ ...p, region: v }))} />
 
             <SectionLabel label={t('shop.writeForm.careerLabel' as any)} required />
             <ChipSelect options={EXPERIENCE_OPTS} selected={form.experience ? [form.experience] : []} onToggle={toggleExp} renderLabel={v => expertCareerLabel(t as any, v as any)} />
@@ -785,16 +793,28 @@ const ShopWriteScreen = () => {
     }, []);
 
     const isValid = useCallback((): boolean => {
+        // 제목·설명은 한글/영어 중 하나만 채워도 유효 (언어 토글 대응)
         if (category === '부스 쉐어') {
             if (boothKind === 'overseas') {
-                return !!(overseasBoothForm.title.trim() && overseasBoothForm.country && overseasBoothForm.city.trim() && overseasBoothForm.price && overseasBoothForm.currency && overseasBoothForm.bedCount && overseasBoothForm.description.trim() && overseasBoothForm.contact.trim());
+                const f = overseasBoothForm;
+                const hasTitle = !!(f.title.trim() || f.titleEn.trim());
+                const hasDesc = !!(f.description.trim() || f.descriptionEn.trim());
+                return !!(hasTitle && f.country && f.city.trim() && f.price && f.currency && f.bedCount && hasDesc && f.contact.trim());
             }
-            return !!(boothForm.title.trim() && boothForm.region && boothForm.price && boothForm.bedCount && boothForm.description.trim() && boothForm.contact.trim());
+            const b = boothForm;
+            const hasTitle = !!(b.title.trim() || b.titleEn.trim());
+            const hasDesc = !!(b.description.trim() || b.descriptionEn.trim());
+            return !!(hasTitle && b.region && b.price && b.bedCount && hasDesc && b.contact.trim());
         }
         if (category === '타투 모델 구인 (비기너)') {
-            return !!(modelForm.title.trim() && modelForm.region && modelForm.styles.length > 0 && modelForm.workPeriod.trim() && modelForm.description.trim() && modelForm.contact.trim());
+            const m = modelForm;
+            const hasTitle = !!(m.title.trim() || m.titleEn.trim());
+            const hasDesc = !!(m.description.trim() || m.descriptionEn.trim());
+            return !!(hasTitle && m.region && m.styles.length > 0 && m.workPeriod.trim() && hasDesc && m.contact.trim());
         }
-        return !!(mediaForm.specialty && mediaForm.nickname.trim() && mediaForm.region && mediaForm.experience && mediaForm.workKinds.length > 0 && mediaForm.description.trim() && mediaForm.contact.trim());
+        const md = mediaForm;
+        const hasDesc = !!(md.description.trim() || md.descriptionEn.trim());
+        return !!(md.specialty && md.nickname.trim() && md.region && md.experience && md.workKinds.length > 0 && hasDesc && md.contact.trim());
     }, [category, boothKind, boothForm, overseasBoothForm, modelForm, mediaForm]);
 
     const buildBody = useCallback(() => {
@@ -803,9 +823,9 @@ const ShopWriteScreen = () => {
                 const f = overseasBoothForm;
                 return {
                     category: 'booth_share_overseas' as ShopCategory,
-                    title: f.title.trim(),
+                    title: f.title.trim() || f.titleEn.trim(),
                     titleEn: f.titleEn.trim() || f.title.trim(),
-                    description: f.description.trim(),
+                    description: f.description.trim() || f.descriptionEn.trim(),
                     descriptionEn: f.descriptionEn.trim() || f.description.trim(),
                     region: `${f.city.trim()}, ${f.country}`,
                     images,
@@ -826,9 +846,9 @@ const ShopWriteScreen = () => {
             }
             return {
                 category: 'booth_share' as ShopCategory,
-                title: boothForm.title.trim(),
+                title: boothForm.title.trim() || boothForm.titleEn.trim(),
                 titleEn: boothForm.titleEn.trim() || null,
-                description: boothForm.description.trim(),
+                description: boothForm.description.trim() || boothForm.descriptionEn.trim(),
                 descriptionEn: boothForm.descriptionEn.trim() || null,
                 region: boothForm.region || null,
                 images,
@@ -847,9 +867,9 @@ const ShopWriteScreen = () => {
         if (category === '타투 모델 구인 (비기너)') {
             return {
                 category: 'model_recruit' as ShopCategory,
-                title: modelForm.title.trim(),
+                title: modelForm.title.trim() || modelForm.titleEn.trim(),
                 titleEn: modelForm.titleEn.trim() || null,
-                description: modelForm.description.trim(),
+                description: modelForm.description.trim() || modelForm.descriptionEn.trim(),
                 descriptionEn: modelForm.descriptionEn.trim() || null,
                 region: modelForm.region || null,
                 images,
@@ -864,7 +884,7 @@ const ShopWriteScreen = () => {
         return {
             category: 'media_expert' as ShopCategory,
             title: `[${mediaForm.specialty}] ${mediaForm.nickname.trim()}`,
-            description: mediaForm.description.trim(),
+            description: mediaForm.description.trim() || mediaForm.descriptionEn.trim(),
             descriptionEn: mediaForm.descriptionEn.trim() || null,
             region: mediaForm.region || null,
             images,
@@ -1000,13 +1020,13 @@ const ShopWriteScreen = () => {
 
             <KeyboardAvoidingView
                 style={s.flex1}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 8}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
                 <ScrollView
                     style={s.scroll}
-                    contentContainerStyle={[s.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + 60 }]}
+                    contentContainerStyle={[s.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + 220 }]}
                     keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
                     showsVerticalScrollIndicator={false}
                 >
                     {/* 이미지 섹션 */}
@@ -1243,6 +1263,21 @@ const s = StyleSheet.create({
         lineHeight: 20,
     },
     textarea: { minHeight: 110, textAlignVertical: 'top', lineHeight: 22 },
+
+    /* 지역 선택 버튼 */
+    selectField: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: COLORS.card,
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 13,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    selectFieldText: { fontSize: 14, color: COLORS.white, lineHeight: 20 },
+    selectFieldPlaceholder: { color: COLORS.gray2 },
 
     /* 칩 */
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -92,10 +92,22 @@ const isRawAsset = (a: Asset): boolean => {
 };
 
 /**
- * RAW 파일을 JPEG으로 변환 (react-native-image-resizer 사용).
+ * HEIC/HEIF 여부 판단.
+ * iOS 갤러리 기본 사진은 HEIC → fetch().blob() 업로드가 실패하거나
+ * 서버/CDN 이 렌더링하지 못한다. 스크린샷(PNG)만 성공하던 원인.
+ */
+const isHeicAsset = (a: Asset): boolean => {
+  const mimeType = (a.type ?? '').toLowerCase();
+  if (mimeType.includes('heic') || mimeType.includes('heif')) return true;
+  const ext = (a.uri ?? '').split('.').pop()?.toLowerCase() ?? '';
+  return ext === 'heic' || ext === 'heif';
+};
+
+/**
+ * 이미지를 JPEG으로 변환 (react-native-image-resizer 사용).
  * 최대 4096×4096 유지, 품질 90%, 비율 보존.
  */
-const convertRawToJpeg = async (uri: string): Promise<string> => {
+const convertToJpeg = async (uri: string): Promise<string> => {
   const result = await ImageResizer.createResizedImage(
     uri,
     4096,
@@ -112,7 +124,7 @@ const convertRawToJpeg = async (uri: string): Promise<string> => {
 
 /**
  * 에셋 목록 처리:
- * - RAW 파일 → JPEG 변환 후 포함
+ * - RAW / HEIC(HEIF) 파일 → JPEG 변환 후 포함 (iOS 갤러리 사진 호환)
  * - 일반 파일 → 그대로 포함
  * - URI 없는 항목 → 스킵
  */
@@ -120,12 +132,13 @@ const processAssets = async (assets: Asset[]): Promise<LocalImage[]> => {
   const images: LocalImage[] = [];
   for (const a of assets) {
     if (!a.uri) continue;
-    if (isRawAsset(a)) {
+    if (isRawAsset(a) || isHeicAsset(a)) {
       try {
-        const jpegUri = await convertRawToJpeg(a.uri);
+        const jpegUri = await convertToJpeg(a.uri);
         images.push({ uri: jpegUri, type: 'image/jpeg' });
       } catch {
-        // 변환 실패 시 해당 파일 스킵
+        // 변환 실패 시 원본이라도 업로드 시도 (type 은 jpeg 로 강제)
+        images.push({ uri: a.uri, type: 'image/jpeg', fileSize: a.fileSize });
       }
     } else {
       images.push({ uri: a.uri as string, type: a.type, fileSize: a.fileSize });

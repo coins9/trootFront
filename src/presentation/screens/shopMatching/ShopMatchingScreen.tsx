@@ -25,7 +25,7 @@ import {
   SHARE_REGION_OPTIONS, SHARE_LIGHTING_OPTIONS, SHARE_BED_OPTIONS,
   SHARE_OCCUPANCY_OPTIONS, SHARE_SORT_OPTIONS,
   ShareRegion, ShareLighting, ShareBedCount, ShareOccupancy, ShareSort,
-  matchLighting, matchBedCount, matchOccupancy, applyShareSort,
+  matchLighting, matchBedCount, matchOccupancy, applyShareSort, matchRegion,
   BeginnerFilterState, INITIAL_BEGINNER_FILTER,
   BEGINNER_STYLE_OPTIONS, BEGINNER_PRICE_OPTIONS, BEGINNER_SORT_OPTIONS,
   BeginnerStyle, BeginnerPriceRange, BeginnerSort,
@@ -45,11 +45,12 @@ import ScreenBanner from '../../components/common/ScreenBanner';
 import BannerCarousel from '../../components/common/BannerCarousel';
 import { useTranslation } from '../../store/languageStore';
 import {
-  regionLabel, lightingLabel, bedLabel, occupancyLabel,
+  lightingLabel, bedLabel, occupancyLabel,
   shareSortLabel, beginnerStyleLabel, beginnerPriceLabel, beginnerSortLabel,
   expertCareerLabel, expertWorkKindLabel, expertSortLabel,
   overseasCountryLabel,
 } from '../../utils/shopDisplayMap';
+import { shopRegionLabel } from '../../../domain/entities/shopRegions';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 
 type ShareFilterKind = 'region' | 'lighting' | 'bed' | 'occupancy' | 'sort';
@@ -195,7 +196,7 @@ const CATEGORY_SUBTITLES: Record<ShopMatchingCategory, 'booth' | 'model' | 'medi
 
 
 const ShopMatchingScreen = () => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const navigation = useNavigation<Nav>();
   const settings = usePublicSettings();
   const [category, setCategory] = useState<ShopMatchingCategory>('부스 쉐어');
@@ -385,7 +386,8 @@ const ShopMatchingScreen = () => {
 
   const filteredModels = useMemo(() => {
     const filtered = modelPosts.filter((p) =>
-        matchBeginnerStyle(p.tags, beginnerFilter.style)
+        matchRegion(p.location, beginnerFilter.region)
+        && matchBeginnerStyle(p.tags, beginnerFilter.style)
         && matchBeginnerPrice(p.materialFee, beginnerFilter.price),
     );
     return applyBeginnerSort(filtered, beginnerFilter.sort);
@@ -394,7 +396,8 @@ const ShopMatchingScreen = () => {
   const filteredExperts = useMemo(() => {
     const byTab = mediaPosts.filter((e) => e.specialty === expertTab);
     const filtered = byTab.filter((e) =>
-        matchExpertCareer(e.experience, expertFilter.career)
+        matchRegion(e.location, expertFilter.region)
+        && matchExpertCareer(e.experience, expertFilter.career)
         && matchExpertWorkKind(e.tags, expertFilter.workKind),
     );
     return applyExpertSort(filtered, expertFilter.sort);
@@ -402,7 +405,8 @@ const ShopMatchingScreen = () => {
 
   const filteredShops = useMemo(() => {
     const list = boothPosts.filter((s) =>
-        matchLighting(s.lighting, shareFilter.lighting)
+        matchRegion(s.address, shareFilter.region)
+        && matchLighting(s.lighting, shareFilter.lighting)
         && matchBedCount(s.bedCount, shareFilter.bedCount)
         && matchOccupancy(s.maxOccupancy, shareFilter.occupancy),
     );
@@ -412,7 +416,7 @@ const ShopMatchingScreen = () => {
   // 🚨 TS2345 방어를 위해 map 함수들 내부에 t as any 적용
   const shareFilterButtons = useMemo(() => [
     {
-      label: shareFilter.region !== '전체' ? regionLabel(t as any, shareFilter.region) : t('shop.filter.region'),
+      label: shareFilter.region !== '전체' ? shopRegionLabel(shareFilter.region, language) : t('shop.filter.region'),
       Icon: RegionIcon,
       kind: 'region' as const,
       active: shareFilter.region !== '전체',
@@ -435,7 +439,7 @@ const ShopMatchingScreen = () => {
       kind: 'occupancy' as const,
       active: shareFilter.occupancy !== '전체',
     },
-  ], [shareFilter, t]);
+  ], [shareFilter, t, language]);
 
   const overseasFilterButtons = useMemo(() => [
     {
@@ -468,24 +472,24 @@ const ShopMatchingScreen = () => {
 
   const nonShareFilters = useMemo(() => {
     const photoFilters: { label: string; Icon: React.ComponentType<any>; kind: AnyFilterKind; active: boolean }[] = [
-      { label: expertFilter.region !== '전체' ? regionLabel(t as any, expertFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
+      { label: expertFilter.region !== '전체' ? shopRegionLabel(expertFilter.region, language) : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
       { label: expertFilter.career !== '전체' ? expertCareerLabel(t as any, expertFilter.career) : t('shop.filter.career'), Icon: StarIcon, kind: 'eCareer', active: expertFilter.career !== '전체' },
       { label: expertFilter.workKind !== '전체' ? expertWorkKindLabel(t as any, expertFilter.workKind) : t('shop.filter.shootingStyle'), Icon: CalendarIcon, kind: 'eWorkKind', active: expertFilter.workKind !== '전체' },
     ];
     const videoFilters: { label: string; Icon: React.ComponentType<any>; kind: AnyFilterKind; active: boolean }[] = [
-      { label: expertFilter.region !== '전체' ? regionLabel(t as any, expertFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
+      { label: expertFilter.region !== '전체' ? shopRegionLabel(expertFilter.region, language) : t('shop.filter.region'), Icon: RegionIcon, kind: 'eRegion', active: expertFilter.region !== '전체' },
       { label: expertFilter.career !== '전체' ? expertCareerLabel(t as any, expertFilter.career) : t('shop.filter.career'), Icon: StarIcon, kind: 'eCareer', active: expertFilter.career !== '전체' },
       { label: expertFilter.workKind !== '전체' ? expertWorkKindLabel(t as any, expertFilter.workKind) : t('shop.filter.workType'), Icon: FilterSlidersIcon, kind: 'eWorkKind', active: expertFilter.workKind !== '전체' },
     ];
     const beginnerFilters: { label: string; Icon: React.ComponentType<any>; kind: AnyFilterKind; active: boolean }[] = [
-      { label: beginnerFilter.region !== '전체' ? regionLabel(t as any, beginnerFilter.region) : t('shop.filter.region'), Icon: RegionIcon, kind: 'bRegion', active: beginnerFilter.region !== '전체' },
+      { label: beginnerFilter.region !== '전체' ? shopRegionLabel(beginnerFilter.region, language) : t('shop.filter.region'), Icon: RegionIcon, kind: 'bRegion', active: beginnerFilter.region !== '전체' },
       { label: beginnerFilter.style !== '전체' ? beginnerStyleLabel(t as any, beginnerFilter.style) : t('shop.filter.style'), Icon: FilterSlidersIcon, kind: 'bStyle', active: beginnerFilter.style !== '전체' },
       { label: beginnerFilter.price !== '전체' ? beginnerPriceLabel(t as any, beginnerFilter.price) : t('shop.filter.price'), Icon: StarIcon, kind: 'bPrice', active: beginnerFilter.price !== '전체' },
     ];
     if (isEditorCategory) return expertTab === 'photo' ? photoFilters : videoFilters;
     if (isBeginnerCategory) return beginnerFilters;
     return photoFilters;
-  }, [isEditorCategory, isBeginnerCategory, expertTab, t, beginnerFilter, expertFilter]);
+  }, [isEditorCategory, isBeginnerCategory, expertTab, t, language, beginnerFilter, expertFilter]);
 
   const sortLabel = isShareCategory
       ? boothTab === 'domestic'
@@ -782,7 +786,7 @@ const ShopMatchingScreen = () => {
             selected={shareFilter.region}
             onSelect={(v) => setShareFilter((prev) => ({ ...prev, region: v }))}
             onClose={() => setActiveFilterSheet(null)}
-            renderLabel={(opt) => regionLabel(t as any, opt)}
+            renderLabel={(opt) => shopRegionLabel(opt, language)}
         />
         <ShareFilterBottomSheet<ShareLighting>
             visible={activeFilterSheet === 'lighting'}
@@ -865,7 +869,7 @@ const ShopMatchingScreen = () => {
             selected={beginnerFilter.region}
             onSelect={(v) => setBeginnerFilter((prev) => ({ ...prev, region: v }))}
             onClose={() => setActiveFilterSheet(null)}
-            renderLabel={(opt) => regionLabel(t as any, opt)}
+            renderLabel={(opt) => shopRegionLabel(opt, language)}
         />
         <ShareFilterBottomSheet<BeginnerStyle>
             visible={activeFilterSheet === 'bStyle'}
@@ -912,7 +916,7 @@ const ShopMatchingScreen = () => {
             selected={expertFilter.region}
             onSelect={(v) => setExpertFilter((prev) => ({ ...prev, region: v }))}
             onClose={() => setActiveFilterSheet(null)}
-            renderLabel={(opt) => regionLabel(t as any, opt)}
+            renderLabel={(opt) => shopRegionLabel(opt, language)}
         />
         <ShareFilterBottomSheet<ExpertCareer>
             visible={activeFilterSheet === 'eCareer'}

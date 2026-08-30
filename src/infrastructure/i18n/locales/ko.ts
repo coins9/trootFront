@@ -386,7 +386,7 @@ export const ko = {
       privateNo: '없음',
       maxOccupancy: '최대 수용 인원',
       currentNeeded: '현재 / 필요 인원',
-      pricePerDayFmt: '일 {{price}}원',
+      pricePerDayFmt: '{{price}}원 / 일',
       materialFeeSuffix: '(재료비)',
       estimatedPrice: '예상 금액 (건당)',
       priceFlexNote: '(위치/거리 변동 포함)',
