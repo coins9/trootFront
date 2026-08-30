@@ -192,6 +192,12 @@ const HomeScreen = () => {
     } catch {}
   }, []);
 
+  // 작품이 로드/리로드(포커스 시 reload 포함)될 때마다 서버의 실제 찜 상태를 동기화.
+  // (기존엔 onMomentumScrollEnd 에서만 호출돼 첫 진입/복귀 시 찜이 꺼져 보였음)
+  useEffect(() => {
+    syncFavorites(artworks.map((a) => a.id));
+  }, [artworks, syncFavorites]);
+
   const feed = useMemo<FeedRow[]>(() => {
     const tattoos = artworks.map((a) => toTattoo(a, favorites[a.id] ?? false));
     const rows: FeedRow[] = [];

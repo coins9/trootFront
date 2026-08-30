@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, Image, TouchableOpacity, StyleSheet,
   Dimensions, StatusBar, Share, // 🚨 Share 모듈 추가
@@ -37,6 +37,16 @@ const TattooDetailScreen = () => {
   const { toast } = useToast(); // 🚨 토스트 훅 초기화
   const [liked, setLiked] = useState(tattoo.isBookmarked ?? false); // 초기값 안전하게 처리
   const [likeLoading, setLikeLoading] = useState(false);
+
+  // route param(isBookmarked)은 리스트에서 캡처된 값이라 오래됐을 수 있다.
+  // 진입 시 서버의 실제 찜 상태로 동기화 → 다른 화면 갔다와도 정확히 표시.
+  useEffect(() => {
+    let alive = true;
+    favoriteApi.check('artwork', [tattoo.id])
+      .then((m) => { if (alive) setLiked(!!m[tattoo.id]); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [tattoo.id]);
   const [activeImage, setActiveImage] = useState(0);
   const [bookingVisible, setBookingVisible] = useState(false);
   const [zoomIndex, setZoomIndex] = useState(0);

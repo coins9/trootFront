@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, Image, TouchableOpacity, StyleSheet,
   Dimensions, StatusBar, Linking, Alert,
@@ -39,6 +39,15 @@ const TattooShareDetailScreen = () => {
   const [expandDescription, setExpandDescription] = useState(false);
   const [zoomIndex, setZoomIndex] = useState(0);
   const [zoomVisible, setZoomVisible] = useState(false);
+
+  // 진입 시 서버의 실제 찜 상태로 동기화 (route param 은 오래된 값일 수 있음)
+  useEffect(() => {
+    let alive = true;
+    favoriteApi.check('shop_post', [shop.id])
+      .then((m) => { if (alive) setBookmarked(!!m[shop.id]); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [shop.id]);
 
   const displayTitle = language === 'en' && shop.titleEn ? shop.titleEn : shop.title;
   const displayDesc = language === 'en' && shop.descriptionEn ? shop.descriptionEn : shop.description;

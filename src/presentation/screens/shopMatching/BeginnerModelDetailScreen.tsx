@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, Image, TouchableOpacity, StyleSheet,
   Dimensions, StatusBar, NativeSyntheticEvent, NativeScrollEvent, Linking,
@@ -38,6 +38,15 @@ const BeginnerModelDetailScreen = () => {
   const [bookmarked, setBookmarked] = useState(post.isBookmarked);
   const [expandDesc, setExpandDesc] = useState(false);
   const [applyVisible, setApplyVisible] = useState(false);
+
+  // 진입 시 서버의 실제 찜 상태로 동기화 (route param 은 오래된 값일 수 있음)
+  useEffect(() => {
+    let alive = true;
+    favoriteApi.check('shop_post', [post.id])
+      .then((m) => { if (alive) setBookmarked(!!m[post.id]); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [post.id]);
   const [zoomIndex, setZoomIndex] = useState(0);
   const [zoomVisible, setZoomVisible] = useState(false);
   const heroRef = useRef<ScrollView>(null);

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, Image, TouchableOpacity, StyleSheet,
   Dimensions, StatusBar, Linking, NativeSyntheticEvent, NativeScrollEvent,
@@ -49,6 +49,15 @@ const MediaExpertDetailScreen = () => {
   const [expandDesc, setExpandDesc] = useState(false);
   const [inquiryVisible, setInquiryVisible] = useState(false);
   const heroRef = useRef<ScrollView>(null);
+
+  // 진입 시 서버의 실제 찜 상태로 동기화 (route param 은 오래된 값일 수 있음)
+  useEffect(() => {
+    let alive = true;
+    favoriteApi.check('shop_post', [expert.id])
+      .then((m) => { if (alive) setBookmarked(!!m[expert.id]); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [expert.id]);
 
   const displayDesc = language === 'en' && expert.descriptionEn ? expert.descriptionEn : expert.description;
   const bulletCount = expert.descriptionBullets.length;
