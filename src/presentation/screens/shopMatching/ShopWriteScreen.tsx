@@ -635,6 +635,7 @@ const ImageSection = ({ images, onAdd, onRemove, uploading }: {
         <View>
             <SectionLabel label={t('shop.writeForm.imageAttach' as any)} />
             <Text style={s.imageHint}>{t('shop.writeForm.imageHint' as any)}</Text>
+            <Text style={s.imageHint}>{t('imageUpload.allowedFormats' as any)}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.imageScroll}>
                 <TouchableOpacity style={s.imageAdd} onPress={onAdd} activeOpacity={0.75} disabled={uploading}>
                     {uploading ? (

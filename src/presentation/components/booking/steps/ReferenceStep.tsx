@@ -64,6 +64,7 @@ const ReferenceStep = memo(({ images, text, onImagesChange, onTextChange }: Refe
       <Text style={styles.sectionSub}>{t('booking.steps.refSub')}</Text>
 
       <Text style={styles.subLabel}>{t('booking.steps.refPhotoAttach', { max: MAX_IMAGES })}</Text>
+      <Text style={styles.subLabel}>{t('imageUpload.allowedFormats' as any)}</Text>
       <View style={styles.imageRow}>
         {images.map((img, idx) => (
           <View key={`${img.uri}-${idx}`} style={styles.thumbWrapper}>

@@ -692,9 +692,11 @@ const ArtistReservationScreen = () => {
 
   // 이번 달 예약 일정 fetch
   const fromDate = useMemo(() => toISODate(monthStart), [monthStart]);
+  // 다음 달 1일까지 포함해야 KST 기준 말일 예약(예: 8/31 10:30 KST = 8/31 01:30 UTC)이
+  // Between(UTC) 범위에서 누락되지 않는다. (기존 말일 00:00 UTC 상한은 말일 예약을 잘라냈음)
   const toDate = useMemo(() => {
     const d = new Date(monthStart);
-    d.setMonth(d.getMonth() + 1, 0);
+    d.setMonth(d.getMonth() + 1, 1);
     return toISODate(d);
   }, [monthStart]);
 

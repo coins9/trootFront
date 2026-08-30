@@ -210,6 +210,7 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                 contentContainerStyle={{ paddingBottom: 12 }}
               >
                 {/* 이미지 스트립 (최대 10장, 다중 선택 + 미리보기) */}
+                <Text style={styles.formatHint}>{t('imageUpload.allowedFormats' as any)}</Text>
                 <View style={styles.imageStripRow}>
                   <ScrollView
                     horizontal
@@ -630,6 +631,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  formatHint: {
+    color: COLORS.gray2,
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 8,
+  },
   imageStripRow: {
     marginBottom: 18,
   },

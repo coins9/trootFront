@@ -7,7 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
-import { BackArrowIcon, CheckCircleIcon, XIcon } from '../../components/icons';
+import { BackArrowIcon, CheckCircleIcon, XIcon, ChevronRightIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import PagerCarousel, { PagerDots } from '../../components/common/PagerCarousel';
@@ -41,6 +41,13 @@ const formatSchedule = (iso: string, language: string, amLabel: string, pmLabel:
   });
 };
 
+const DetailRow = ({ label, value }: { label: string; value: string }) => (
+    <View style={s.detailItemRow}>
+      <Text style={s.detailRowLabel}>{label}</Text>
+      <Text style={s.detailRowValue}>{value}</Text>
+    </View>
+);
+
 const ArtistReservationRequestsScreen = () => {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
@@ -54,6 +61,7 @@ const ArtistReservationRequestsScreen = () => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [viewerImages, setViewerImages] = useState<string[] | null>(null);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [detailItem, setDetailItem] = useState<ArtistReservationView | null>(null);
 
   const openViewer = useCallback((images: string[], idx: number) => {
     setViewerImages(images);
@@ -140,7 +148,7 @@ const ArtistReservationRequestsScreen = () => {
           {formatSchedule(item.scheduledAt, language, t('reservation.am'), t('reservation.pm'))}
         </Text>
         {!!item.artworkTitle && (
-            <Text style={s.artworkTitle} numberOfLines={1}>🖼 {item.artworkTitle}</Text>
+            <Text style={s.artworkTitle} numberOfLines={1}>{item.artworkTitle}</Text>
         )}
         <View style={s.metaRow}>
           {!!item.bodyPart && <Text style={s.metaChip}>{item.bodyPart}</Text>}
@@ -155,7 +163,16 @@ const ArtistReservationRequestsScreen = () => {
               ))}
             </ScrollView>
         )}
-        {!!item.memo && <Text style={s.memo} numberOfLines={3}>{item.memo}</Text>}
+        {!!item.memo && <Text style={s.memo} numberOfLines={2}>{item.memo}</Text>}
+
+        <TouchableOpacity
+            style={s.detailBtn}
+            activeOpacity={0.75}
+            onPress={() => setDetailItem(item)}
+        >
+          <Text style={s.detailBtnText}>{t('reservationRequests.viewDetail')}</Text>
+          <ChevronRightIcon size={14} color={COLORS.gold} />
+        </TouchableOpacity>
 
         <View style={s.actions}>
           <TouchableOpacity
@@ -221,6 +238,66 @@ const ArtistReservationRequestsScreen = () => {
                 }
             />
         )}
+
+        {/* 예약 상세 — 예약할 때 넣은 모든 내용 표시 */}
+        <Modal
+            visible={detailItem !== null}
+            transparent
+            animationType="fade"
+            statusBarTranslucent
+            onRequestClose={() => setDetailItem(null)}
+        >
+          <View style={s.detailBackdrop}>
+            <View style={s.detailCard}>
+              <View style={s.detailHead}>
+                <Text style={s.detailTitle}>{t('reservationRequests.detailTitle')}</Text>
+                <TouchableOpacity onPress={() => setDetailItem(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <XIcon size={20} color={COLORS.white} strokeWidth={2} />
+                </TouchableOpacity>
+              </View>
+              {detailItem && (
+                  <ScrollView style={s.detailScroll} contentContainerStyle={s.detailScrollContent} showsVerticalScrollIndicator={false}>
+                    <DetailRow label={t('reservationRequests.fieldCustomer')} value={detailItem.customer?.nickname ?? t('reservationRequests.customerFallback')} />
+                    <DetailRow label={t('reservationRequests.fieldSchedule')} value={formatSchedule(detailItem.scheduledAt, language, t('reservation.am'), t('reservation.pm'))} />
+                    <DetailRow label={t('reservationRequests.fieldDuration')} value={t('reservationRequests.durationMin').replace('{{min}}', String(detailItem.durationMinutes))} />
+                    {!!detailItem.artworkTitle && <DetailRow label={t('reservationRequests.fieldArtwork')} value={detailItem.artworkTitle} />}
+                    <DetailRow label={t('reservationRequests.fieldBodyPart')} value={detailItem.bodyPart ?? t('reservationRequests.noValue')} />
+                    <DetailRow label={t('reservationRequests.fieldSize')} value={detailItem.sizePreset ?? t('reservationRequests.noValue')} />
+                    {detailItem.estimatedPriceKrw != null && (
+                        <DetailRow
+                            label={t('reservationRequests.fieldEstPrice')}
+                            value={language === 'ko' ? `${detailItem.estimatedPriceKrw.toLocaleString()}원` : `₩${detailItem.estimatedPriceKrw.toLocaleString()}`}
+                        />
+                    )}
+                    {detailItem.depositKrw > 0 && (
+                        <DetailRow
+                            label={t('reservationRequests.fieldDeposit')}
+                            value={language === 'ko' ? `${detailItem.depositKrw.toLocaleString()}원` : `₩${detailItem.depositKrw.toLocaleString()}`}
+                        />
+                    )}
+                    {!!detailItem.memo && (
+                        <View style={s.detailBlock}>
+                          <Text style={s.detailLabel}>{t('reservationRequests.fieldMemo')}</Text>
+                          <Text style={s.detailMemo}>{detailItem.memo}</Text>
+                        </View>
+                    )}
+                    {detailItem.referenceImages.length > 0 && (
+                        <View style={s.detailBlock}>
+                          <Text style={s.detailLabel}>{t('reservationRequests.fieldReferences')}</Text>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.detailRefRow}>
+                            {detailItem.referenceImages.map((uri, idx) => (
+                                <TouchableOpacity key={`${uri}-${idx}`} activeOpacity={0.85} onPress={() => openViewer(detailItem.referenceImages, idx)}>
+                                  <Image source={{ uri }} style={s.detailRefThumb} resizeMode="cover" />
+                                </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                    )}
+                  </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
 
         <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
 
@@ -327,6 +404,38 @@ const s = StyleSheet.create({
   },
   confirmText: { color: COLORS.black, fontSize: 14, fontWeight: '700', lineHeight: 19 },
   btnBusy: { opacity: 0.6 },
+
+  /* 상세보기 버튼 */
+  detailBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2,
+    paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: COLORS.border,
+  },
+  detailBtnText: { color: COLORS.gold, fontSize: 13, fontWeight: '600', lineHeight: 18 },
+
+  /* 상세 모달 */
+  detailBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 20 },
+  detailCard: {
+    backgroundColor: COLORS.sheet, borderRadius: 18, borderWidth: 1, borderColor: COLORS.border,
+    maxHeight: '80%', overflow: 'hidden',
+  },
+  detailHead: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  detailTitle: { color: COLORS.white, fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  detailScroll: { paddingHorizontal: 18 },
+  detailScrollContent: { paddingVertical: 16, gap: 4 },
+  detailItemRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 9, gap: 12 },
+  detailRowLabel: { color: COLORS.gray, fontSize: 13, lineHeight: 19, width: 84 },
+  detailRowValue: { color: COLORS.white, fontSize: 13, fontWeight: '500', lineHeight: 19, flex: 1 },
+  detailBlock: { paddingTop: 12, gap: 8 },
+  detailLabel: { color: COLORS.gray, fontSize: 13, lineHeight: 19 },
+  detailMemo: {
+    color: COLORS.white, fontSize: 13, lineHeight: 20,
+    backgroundColor: COLORS.elevated, borderRadius: 10, padding: 12,
+  },
+  detailRefRow: { gap: 8, paddingVertical: 2 },
+  detailRefThumb: { width: 96, height: 96, borderRadius: 10, backgroundColor: COLORS.elevated },
 
   viewerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center' },
   viewerClose: {

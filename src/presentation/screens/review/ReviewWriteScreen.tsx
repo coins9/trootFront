@@ -232,6 +232,7 @@ const ReviewWriteScreen = () => {
             <Text style={s.sectionSub}>
               {t('review.sectionPhotoSub').replace('{{max}}', String(PHOTO_MAX))}
             </Text>
+            <Text style={s.sectionSub}>{t('imageUpload.allowedFormats' as any)}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.photoScroll}>
               <TouchableOpacity
                   style={s.photoAdd}

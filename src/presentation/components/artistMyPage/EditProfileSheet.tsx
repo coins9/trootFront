@@ -13,6 +13,7 @@ import {
 import { ArtistSelfProfile } from '../../../domain/entities/artistMyPageTypes';
 import { ARTIST_TAGS } from '../../../domain/entities/artistTags';
 import { CITIES, DISTRICTS } from '../../../data/mock/mockData';
+import { isKakaoOpenChatUrl } from '../../utils/externalUrl';
 import { useTranslation } from '../../store/languageStore';
 
 interface Props {
@@ -40,6 +41,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   const [introEn, setIntroEn] = useState((profile as any).introEn ?? '');
   const [tags, setTags] = useState<string[]>(profile.tags ?? []);
   const [openChatUrl, setOpenChatUrl] = useState(profile.openChatUrl ?? '');
+  const [openChatError, setOpenChatError] = useState(false);
   const [availableHours, setAvailableHours] = useState(profile.availableHours ?? '');
   const [closedDay, setClosedDay] = useState(profile.closedDay ?? '');
 
@@ -96,6 +98,11 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
   }, [visible, profile, translate]);
 
   const handleSave = useCallback(() => {
+    // 오픈카톡은 예약 문의 연결의 유일한 통로이므로 필수. 유효한 open.kakao.com 링크만 허용
+    if (!isKakaoOpenChatUrl(openChatUrl)) {
+      setOpenChatError(true);
+      return;
+    }
     const location = [regionSido, regionSigungu].filter(Boolean).join(' ') || profile.location;
     onSave({
       nickname: nickname.trim() || profile.nickname,
@@ -105,7 +112,7 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       intro: intro.trim() || profile.intro,
       introEn: introEn.trim() || null,
       tags,
-      openChatUrl: openChatUrl.trim() || null,
+      openChatUrl: openChatUrl.trim(),
       availableHours: availableHours.trim() || null,
       closedDay: closedDay.trim() || null,
       regionSido: regionSido ?? null,
@@ -328,14 +335,16 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                 </View>
               </View>
 
-              {/* Open KakaoTalk URL */}
+              {/* Open KakaoTalk URL — 필수 */}
               <View style={styles.field}>
-                <Text style={styles.label}>{t('artistMyPage.editKakao')}</Text>
-                <View style={styles.inputRow}>
+                <Text style={styles.label}>
+                  {t('artistMyPage.editKakao')} <Text style={styles.req}>*</Text>
+                </Text>
+                <View style={[styles.inputRow, openChatError && styles.inputRowError]}>
                   <ChatBubbleIcon size={15} color={COLORS.gray} />
                   <TextInput
                     value={openChatUrl}
-                    onChangeText={setOpenChatUrl}
+                    onChangeText={(v) => { setOpenChatUrl(v); if (openChatError) setOpenChatError(false); }}
                     placeholder="https://open.kakao.com/o/..."
                     placeholderTextColor={COLORS.gray2}
                     style={[styles.input, { marginLeft: 8 }]}
@@ -344,6 +353,9 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
                     keyboardType="url"
                   />
                 </View>
+                {openChatError && (
+                  <Text style={styles.errorText}>{t('artistMyPage.editKakaoRequired')}</Text>
+                )}
               </View>
 
               {/* Tags */}
@@ -518,6 +530,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 44,
+  },
+  inputRowError: {
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+  },
+  req: {
+    color: COLORS.gold,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  errorText: {
+    color: COLORS.danger,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 6,
   },
   input: {
     flex: 1,

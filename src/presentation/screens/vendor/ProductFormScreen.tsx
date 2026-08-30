@@ -170,6 +170,7 @@ const ProductFormScreen = () => {
                 {/* 사진 등록 영역 유지 */}
                 <Text style={s.label}>{t('vendor.fieldPhoto')}</Text>
                 <Text style={s.sub}>{t('vendor.photoHint')}</Text>
+                <Text style={s.sub}>{t('imageUpload.allowedFormats' as any)}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.imageRow}>
                   <TouchableOpacity style={s.imageAdd} onPress={addImage} activeOpacity={0.75} disabled={uploading}>
                     {uploading ? (

@@ -122,14 +122,31 @@ const convertToJpeg = async (uri: string): Promise<string> => {
   return result.uri;
 };
 
+/** 서버가 허용하는 최종 형식 — JPG/JPEG, PNG, WEBP */
+const SUPPORTED_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp']);
+const SUPPORTED_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
+
+/** 지원 형식(jpg/jpeg/png/webp) 여부. RAW·HEIC 은 별도로 JPEG 변환하므로 여기선 제외 */
+const isSupportedImage = (a: Asset): boolean => {
+  const mime = (a.type ?? '').toLowerCase();
+  const ext = (a.uri ?? '').split('.').pop()?.toLowerCase() ?? '';
+  if (mime && SUPPORTED_MIMES.has(mime)) return true;
+  if (!mime && SUPPORTED_EXTS.has(ext)) return true;
+  // 기기가 애매한 mime 을 줘도 확장자가 지원 형식이면 허용
+  if (mime.startsWith('image/') && SUPPORTED_EXTS.has(ext)) return true;
+  return false;
+};
+
 /**
  * 에셋 목록 처리:
  * - RAW / HEIC(HEIF) 파일 → JPEG 변환 후 포함 (iOS 갤러리 사진 호환)
- * - 일반 파일 → 그대로 포함
+ * - JPG/JPEG/PNG/WEBP → 그대로 포함
+ * - 그 외 형식(gif/bmp/tiff 등) → 거부(rejected 카운트) → 호출부에서 커스텀 안내
  * - URI 없는 항목 → 스킵
  */
-const processAssets = async (assets: Asset[]): Promise<LocalImage[]> => {
+const processAssets = async (assets: Asset[]): Promise<{ images: LocalImage[]; rejected: number }> => {
   const images: LocalImage[] = [];
+  let rejected = 0;
   for (const a of assets) {
     if (!a.uri) continue;
     if (isRawAsset(a) || isHeicAsset(a)) {
@@ -140,11 +157,13 @@ const processAssets = async (assets: Asset[]): Promise<LocalImage[]> => {
         // 변환 실패 시 원본이라도 업로드 시도 (type 은 jpeg 로 강제)
         images.push({ uri: a.uri, type: 'image/jpeg', fileSize: a.fileSize });
       }
-    } else {
+    } else if (isSupportedImage(a)) {
       images.push({ uri: a.uri as string, type: a.type, fileSize: a.fileSize });
+    } else {
+      rejected += 1;
     }
   }
-  return images;
+  return { images, rejected };
 };
 
 /**
@@ -195,7 +214,8 @@ export function useImageUpload({ scope, max, current, onError }: Options) {
     });
 
     if (picked.didCancel || !picked.assets?.length) return [];
-    const images = await processAssets(picked.assets);
+    const { images, rejected } = await processAssets(picked.assets);
+    if (rejected > 0) onError?.(t('imageUpload.unsupportedFormat'));
     if (!images.length) return [];
     return upload(images);
   }, [max, current, onError, upload, t]);
@@ -225,7 +245,8 @@ export function useImageUpload({ scope, max, current, onError }: Options) {
     });
 
     if (picked.didCancel || !picked.assets?.length) return [];
-    const images = await processAssets(picked.assets);
+    const { images, rejected } = await processAssets(picked.assets);
+    if (rejected > 0) onError?.(t('imageUpload.unsupportedFormat'));
     if (!images.length) return [];
     return upload(images);
   }, [max, current, onError, upload, t]);
