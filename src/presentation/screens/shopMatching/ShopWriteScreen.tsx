@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-    KeyboardAvoidingView, Platform, StatusBar, Image, ActivityIndicator,
+    StatusBar, Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -1018,17 +1018,16 @@ const ShopWriteScreen = () => {
                 </View>
             ) : null}
 
-            <KeyboardAvoidingView
-                style={s.flex1}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            {/* 입력창이 항상 키보드 위로 오도록: iOS 는 automaticallyAdjustKeyboardInsets 가
+                포커스된 입력창을 자동 스크롤, Android 는 manifest 의 adjustResize 가 처리 */}
+            <ScrollView
+                style={s.scroll}
+                contentContainerStyle={[s.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + 140 }]}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
+                automaticallyAdjustKeyboardInsets
+                showsVerticalScrollIndicator={false}
             >
-                <ScrollView
-                    style={s.scroll}
-                    contentContainerStyle={[s.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + 220 }]}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="interactive"
-                    showsVerticalScrollIndicator={false}
-                >
                     {/* 이미지 섹션 */}
                     <ImageSection images={images} onAdd={handleAddImage} onRemove={handleRemoveImage} uploading={uploading} />
 
@@ -1065,7 +1064,6 @@ const ShopWriteScreen = () => {
                         </View>
                     </TouchableOpacity>
                 </ScrollView>
-            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };
