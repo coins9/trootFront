@@ -14,6 +14,15 @@ export const ENV = {
 };
 
 /**
+ * 현재 앱 버전. 버전 게이트(강제/권장 업데이트) 비교 기준값.
+ * ⚠ 릴리즈마다 네이티브 버전과 반드시 동기화할 것:
+ *   - Android: android/app/build.gradle 의 versionName
+ *   - iOS: MARKETING_VERSION (codemagic 이 주입)
+ * 네이티브 의존성 없이 JS 상수로 관리 → 빌드/재빌드 리스크 없음.
+ */
+export const APP_VERSION = '1.0.0';
+
+/**
  * 키가 비어 있으면 해당 소셜 로그인은 비활성으로 취급한다.
  * iOS 는 iosClientId, Android 는 webClientId 로 동작한다.
  */

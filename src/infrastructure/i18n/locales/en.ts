@@ -1579,4 +1579,13 @@ export const en: TranslationSchema = {
     actionGallery: 'Choose from gallery',
     actionCancel: 'Cancel',
   },
+
+  versionGate: {
+    forceTitle: 'Update Required',
+    forceMsg: 'Please update to the latest version to keep using T:ROOT.',
+    optionalTitle: 'New Version Available',
+    optionalMsg: 'Update now for the latest features and a smoother experience.',
+    updateBtn: 'Update Now',
+    later: 'Later',
+  },
 };

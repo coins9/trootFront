@@ -3,6 +3,21 @@ import { api, qs, type CursorPage } from './client';
 export { ApiError } from './client';
 export type { CursorPage } from './client';
 
+// ── 앱 공개 설정 (버전 게이트) ─────────────────────────────
+export interface PlatformVersionConfig {
+  min: string;
+  latest: string;
+  storeUrl: string;
+}
+export interface VersionGateConfig {
+  ios: PlatformVersionConfig;
+  android: PlatformVersionConfig;
+}
+export const configApi = {
+  /** 앱 부팅 시 버전 게이트 조회 (공개 · 무인증) */
+  version: () => api.get<VersionGateConfig>('/app/config/version'),
+};
+
 // ── 타투이스트 · 작품 ─────────────────────────────────────
 export interface ArtistPage {
   id: string;

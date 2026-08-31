@@ -9,6 +9,7 @@ import SplashScreen from './src/presentation/screens/splash/SplashScreen';
 import RootNavigator from './src/infrastructure/navigation/RootNavigator';
 import { ToastProvider, useToast } from './src/presentation/components/common/Toast';
 import NetDebugOverlay from './src/presentation/components/debug/NetDebugOverlay';
+import UpdateGateModal from './src/presentation/components/common/UpdateGateModal';
 import { useLanguageStore } from './src/presentation/store/languageStore';
 import { useAuthStore } from './src/presentation/store/authStore';
 import { initSocialAuth } from './src/data/auth/socialAuth';
@@ -118,6 +119,8 @@ const App = () => {
           </ToastProvider>
         </NavigationContainer>
         <NetDebugOverlay />
+        {/* 버전 게이트 — 최신 버전 아니면 업데이트 안내/강제 (조회 실패 시 아무 것도 안 함) */}
+        <UpdateGateModal />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

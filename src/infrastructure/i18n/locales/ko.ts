@@ -1576,6 +1576,15 @@ export const ko = {
     actionGallery: '갤러리에서 선택',
     actionCancel: '취소',
   },
+
+  versionGate: {
+    forceTitle: '업데이트가 필요해요',
+    forceMsg: 'T:ROOT를 계속 이용하려면 최신 버전으로 업데이트해 주세요.',
+    optionalTitle: '새 버전이 있어요',
+    optionalMsg: '최신 기능과 더 쾌적한 이용을 위해 업데이트를 권장해요.',
+    updateBtn: '업데이트하러 가기',
+    later: '나중에',
+  },
 } as const;
 
 // 값은 string으로 넓히고 키 구조만 고정 — 번역본이 리터럴에 묶이지 않도록
