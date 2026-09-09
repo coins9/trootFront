@@ -2,8 +2,9 @@ import React, { memo, useEffect, useRef, useState, useCallback, useMemo } from '
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, Animated,
   Dimensions, Platform, TextInput, ScrollView, KeyboardAvoidingView, Image,
-  ActivityIndicator,
+  ActivityIndicator, Keyboard,
 } from 'react-native';
+import MoneyInput from '../common/MoneyInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import {
@@ -36,10 +37,10 @@ const MOODS_EN = [
 ];
 const BODY_PARTS_EN = [
   { category: 'Head & Neck', parts: ['Behind Ear', 'Back Neck', 'Side Neck', 'Front Neck', 'Face', 'Scalp'] },
-  { category: 'Arms & Hands', parts: ['Shoulder', 'Upper Arm', 'Forearm', 'Elbow', 'Wrist', 'Back of Hand', 'Finger'] },
+  { category: 'Arms & Hands', parts: ['Shoulder', 'Upper Arm', 'Forearm', 'Elbow', 'Wrist', 'Back of Hand', 'Finger', 'Full Sleeve'] },
   { category: 'Upper Body', parts: ['Chest', 'Abdomen', 'Ribs', 'Collarbone'] },
   { category: 'Back', parts: ['Upper Back', 'Shoulder Blade', 'Full Back', 'Spine', 'Lower Back'] },
-  { category: 'Lower Body & Feet', parts: ['Hip/Pelvis', 'Thigh', 'Knee', 'Calf', 'Ankle', 'Instep', 'Toes'] },
+  { category: 'Lower Body & Feet', parts: ['Hip/Pelvis', 'Thigh', 'Knee', 'Calf', 'Ankle', 'Instep', 'Toes', 'Full Leg'] },
   { category: 'Special', parts: ['Sleeve', 'Full Body', 'Cover-up', 'Touch-up'] },
 ];
 const SIZE_LABELS_EN = ['Coin-sized', 'Fist-sized', 'Palm-sized', 'Larger'];
@@ -84,13 +85,23 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
   const insets = useSafeAreaInsets();
   const [form, setForm] = useState<ArtistArtwork>(emptyForm());
   const [lang, setLang] = useState<Lang>('ko');
+  // [5][6] 주제·감성 '기타' 직접입력 (쉼표 구분). 표준 목록에 없는 값을 여기로 복원
+  const [subjectEtc, setSubjectEtc] = useState('');
+  const [moodEtc, setMoodEtc] = useState('');
   const isEdit = editing !== null;
 
   useEffect(() => {
-    if (visible) {
-      setForm(editing ? { ...editing } : emptyForm());
-    }
-  }, [editing, visible]); 
+    if (!visible) return;
+    const base = editing ? { ...editing } : emptyForm();
+    const all = base.subjects ?? [];
+    // 저장은 genres 하나로 병합되므로, 로드 시 표준 주제/감성/장르를 뺀 나머지를 '기타'로 복원
+    const knownSubjects = all.filter((s) => SUBJECTS.includes(s));
+    const knownMoods = all.filter((s) => MOODS.includes(s));
+    const etc = all.filter((s) => !SUBJECTS.includes(s) && !MOODS.includes(s) && s !== base.genre);
+    setForm({ ...base, subjects: knownSubjects, moods: Array.from(new Set([...(base.moods ?? []), ...knownMoods])) });
+    setSubjectEtc(etc.join(', '));
+    setMoodEtc('');
+  }, [editing, visible]);
 
   useEffect(() => {
     Animated.timing(translate, {
@@ -145,10 +156,22 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
     });
   }, []);
 
+  // [7] 저장 버튼 연타로 인한 중복 등록/전환 중 크래시 방지 — 시트가 다시 열릴 때 초기화
+  const submittedRef = useRef(false);
+  useEffect(() => { if (visible) submittedRef.current = false; }, [visible]);
+
   const handleSubmit = useCallback(() => {
-    if (!canSubmit) return;
-    onSubmit(form);
-  }, [canSubmit, form, onSubmit]);
+    if (!canSubmit || submittedRef.current) return;
+    submittedRef.current = true;
+    // CLAUDE.md: 화면 전환(시트 닫힘) 직전 키보드를 내려 iOS 전환 이슈를 방지
+    Keyboard.dismiss();
+    const parseEtc = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
+    onSubmit({
+      ...form,
+      subjects: Array.from(new Set([...form.subjects, ...parseEtc(subjectEtc)])),
+      moods: Array.from(new Set([...form.moods, ...parseEtc(moodEtc)])),
+    });
+  }, [canSubmit, form, subjectEtc, moodEtc, onSubmit, visible]);
 
   if (!visible) return null;
 
@@ -237,9 +260,14 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                         )}
                       </TouchableOpacity>
                     )}
-                    {(form.imageUris ?? []).map((uri, idx) => (
+                    {(form.imageUris ?? []).filter(Boolean).map((uri, idx) => (
                       <View key={`${uri}-${idx}`} style={styles.imgThumbWrap}>
-                        <Image source={{ uri }} style={styles.imgThumb} resizeMode="cover" />
+                        {/* CLAUDE.md: 빈 uri Image 는 iOS 크래시 → uri 있을 때만 렌더 */}
+                        {uri ? (
+                          <Image source={{ uri }} style={styles.imgThumb} resizeMode="cover" />
+                        ) : (
+                          <View style={styles.imgThumb} />
+                        )}
                         {idx === 0 && (
                           <View style={styles.imgMainBadge}>
                             <Text style={styles.imgMainBadgeText}>{t('artistMyPage.primaryBadge')}</Text>
@@ -315,6 +343,16 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                         );
                       })}
                     </View>
+                    <View style={[styles.inputRow, styles.etcRow]}>
+                      <TextInput
+                        value={subjectEtc}
+                        onChangeText={setSubjectEtc}
+                        placeholder={t('artistMyPage.etcPlaceholder')}
+                        placeholderTextColor={COLORS.gray2}
+                        style={styles.input}
+                        maxLength={60}
+                      />
+                    </View>
 
                     {/* Moods */}
                     <FieldLabel>{t('artistMyPage.fieldMood')}</FieldLabel>
@@ -328,18 +366,27 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                         );
                       })}
                     </View>
+                    <View style={[styles.inputRow, styles.etcRow]}>
+                      <TextInput
+                        value={moodEtc}
+                        onChangeText={setMoodEtc}
+                        placeholder={t('artistMyPage.etcPlaceholder')}
+                        placeholderTextColor={COLORS.gray2}
+                        style={styles.input}
+                        maxLength={60}
+                      />
+                    </View>
 
                     {/* Price + duration */}
                     <View style={styles.rowFields}>
                       <View style={{ flex: 1 }}>
                         <FieldLabel>{t('artistMyPage.fieldStartingPrice')}</FieldLabel>
                         <View style={styles.inputRow}>
-                          <TextInput
-                            value={String(form.priceFrom)}
-                            onChangeText={(v) => setSingle('priceFrom', Number(v.replace(/\D/g, '') || 0))}
+                          <MoneyInput
+                            value={form.priceFrom ? String(form.priceFrom) : ''}
+                            onChangeValue={(d) => setSingle('priceFrom', Number(d || 0))}
                             placeholder="0"
                             placeholderTextColor={COLORS.gray2}
-                            keyboardType="number-pad"
                             style={styles.input}
                           />
                           <Text style={styles.suffix}>{language === 'ko' ? '원~' : 'KRW~'}</Text>
@@ -458,12 +505,11 @@ const ArtworkFormSheet = memo(({ visible, editing, onClose, onSubmit }: Props) =
                       <View style={{ flex: 1 }}>
                         <FieldLabel>Starting Price</FieldLabel>
                         <View style={styles.inputRow}>
-                          <TextInput
-                            value={String(form.priceFrom)}
-                            onChangeText={(v) => setSingle('priceFrom', Number(v.replace(/\D/g, '') || 0))}
+                          <MoneyInput
+                            value={form.priceFrom ? String(form.priceFrom) : ''}
+                            onChangeValue={(d) => setSingle('priceFrom', Number(d || 0))}
                             placeholder="0"
                             placeholderTextColor={COLORS.gray2}
-                            keyboardType="number-pad"
                             style={styles.input}
                           />
                           <Text style={styles.suffix}>KRW~</Text>
@@ -725,6 +771,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: Platform.OS === 'ios' ? 12 : 6,
   },
+  etcRow: { marginTop: 8 },
   input: {
     flex: 1,
     color: COLORS.white,

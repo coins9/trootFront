@@ -71,7 +71,7 @@ export type RootStackParamList = {
   ArtistReservation: undefined;
   DepositManagement: undefined;
   ArtistAdStats: undefined;
-  ArtistMyPage: undefined;
+  ArtistMyPage: { openArtworkForm?: boolean } | undefined;
   ShopWrite: { initialCategory?: ShopMatchingCategory; boothKind?: 'domestic' | 'overseas'; postId?: string } | undefined;
   MyShopPosts: { defaultCategory?: ShopMatchingCategory } | undefined;
   ShopApplications: { category: ShopMatchingCategory };

@@ -745,6 +745,9 @@ const ArtistReservationScreen = () => {
         depositStatus: r.depositStatus === 'refunded' ? 'paid' : r.depositStatus,
         depositAmount: r.depositKrw > 0 ? r.depositKrw : undefined,
         customerName: r.customerName ?? undefined,
+        // [11] 요청서 레퍼런스 사진/연락처가 확정 예약 상세에서도 이어지도록 전달
+        referenceImages: (r.referenceImages ?? []).filter(Boolean),
+        contact: r.customerContact ?? undefined,
       };
       if (!map[iso]) map[iso] = [];
       map[iso].push(item);
@@ -850,6 +853,8 @@ const ArtistReservationScreen = () => {
       timeLabel: `${formatHalfHour(it.startHour)} · ${it.durationH}h`,
       dateLabel: formatDateLabel(selectedDate, language),
       kind: it.kind,
+      referenceImages: it.referenceImages,
+      contact: it.contact,
     });
   }, [statusOverride, selectedDate, language]);
 

@@ -29,6 +29,7 @@ export interface ArtistPage {
   coverImage: string | null;
   tier: 'main' | 'general' | 'beginner';
   isSelectedMaster: boolean;
+  isRootsPick: boolean;
   regionSido: string | null;
   regionSigungu: string | null;
   regionType?: 'domestic' | 'overseas';
@@ -47,6 +48,8 @@ export interface ArtistPage {
   detailAddress?: string | null;
   tags?: string[];
   intro?: string | null;
+  // [17] 무료 UP 마지막 사용 시각 — 24h 쿨다운 상태 표시에 사용
+  freeUpUsedAt?: string | null;
 }
 
 export interface Artwork {
@@ -72,6 +75,7 @@ export interface Artwork {
 
 export const artistApi = {
   selectedMasters: () => api.get<ArtistPage[]>('/app/artists/selected-masters'),
+  rootsPick: () => api.get<ArtistPage[]>('/app/artists/roots-pick'),
 
   list: (p: {
     cursor?: string; limit?: number; region?: string; genre?: string;
@@ -129,6 +133,7 @@ export interface Reservation {
   createdAt: string;
   updatedAt: string;
   customerName?: string | null;
+  customerContact?: string | null;
 }
 
 /** 백엔드 원본 상태값(영문 enum) — 확정/필터에 그대로 사용 */
@@ -175,6 +180,9 @@ export interface ArtistReservationView {
   artworkId: string | null;
   artworkTitle: string | null;
   createdAt: string;
+  customerContact: string | null;
+  customerInstagram: string | null;
+  customerOpenChat: string | null;
   customer: { id: string; nickname: string | null; profileImage: string | null } | null;
 }
 
@@ -183,6 +191,7 @@ export const reservationApi = {
     artistPageId: string; scheduledAt: string; artworkId?: string;
     durationMinutes?: number; bodyPart?: string; sizePreset?: string;
     memo?: string; referenceImages?: string[];
+    customerContact?: string; customerInstagram?: string; customerOpenChat?: string;
   }) => api.post<Reservation>('/app/reservations', body),
 
   mine: (p: { cursor?: string; limit?: number } = {}) =>

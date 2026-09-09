@@ -15,7 +15,7 @@ import {
   CalendarIcon, HeartIcon, StoreIcon, FolderIcon,
   ListIcon, UserOutlineIcon, BellIcon, LockIcon, GlobeIcon, ChatBubbleIcon, ChevronRightIcon,
   PersonSilhouette, PaletteIcon, BarChartIcon,
-  EditPenIcon, LocationPinIcon, StarIcon, HandshakeIcon, CheckCircleIcon,
+  EditPenIcon, LocationPinIcon, StarIcon, HandshakeIcon, CheckCircleIcon, PlusIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
@@ -109,13 +109,21 @@ const MyProfileScreen = () => {
       await userApi.updateProfileImage(publicUrl);
       await patchUser({ profileImage: publicUrl });
       setAvatarUri(publicUrl);
+      // [13] 작가 페이지가 있으면 작가 프로필 사진도 같은 값으로 동기화해
+      // 첫 화면에서 바꾼 사진이 작가 프로필/상세/Root's Pick 에 즉시 반영되게 한다.
+      if (artistInfo) {
+        try {
+          await artistApi.updateMe({ profileImage: publicUrl } as any);
+          setArtistInfo((prev) => (prev ? { ...prev, profileImage: publicUrl } : prev));
+        } catch {}
+      }
       toast(t('account.saved'), { variant: 'success' });
     } catch {
       toast(t('common.error'), { variant: 'error' });
     } finally {
       setAvatarUploading(false);
     }
-  }, [patchUser, toast, t]);
+  }, [patchUser, toast, t, artistInfo]);
 
   /* ── Mode switching with registration guards ── */
   const handleTabPress = useCallback((next: ProfileMode) => {
@@ -177,6 +185,11 @@ const MyProfileScreen = () => {
 
   const shopBoothItems: MenuItem[] = useMemo(() => [
     {
+      Icon: PlusIcon,
+      label: t('profile.writeShopPost'),
+      onPress: () => navigation.navigate('ShopWrite', { initialCategory: '부스 쉐어' }),
+    },
+    {
       Icon: HandshakeIcon,
       label: t('profile.myPosts'),
       onPress: () => navigation.navigate('MyShopPosts', { defaultCategory: '부스 쉐어' }),
@@ -190,6 +203,11 @@ const MyProfileScreen = () => {
 
   const shopModelItems: MenuItem[] = useMemo(() => [
     {
+      Icon: PlusIcon,
+      label: t('profile.writeShopPost'),
+      onPress: () => navigation.navigate('ShopWrite', { initialCategory: '타투 모델 구인 (비기너)' }),
+    },
+    {
       Icon: UserOutlineIcon,
       label: t('profile.myPosts'),
       onPress: () => navigation.navigate('MyShopPosts', { defaultCategory: '타투 모델 구인 (비기너)' }),
@@ -202,6 +220,11 @@ const MyProfileScreen = () => {
   ], [t, navigation]);
 
   const shopMediaItems: MenuItem[] = useMemo(() => [
+    {
+      Icon: PlusIcon,
+      label: t('profile.writeShopPost'),
+      onPress: () => navigation.navigate('ShopWrite', { initialCategory: '사진/영상 편집자' }),
+    },
     {
       Icon: PaletteIcon,
       label: t('profile.myPosts'),
@@ -232,6 +255,12 @@ const MyProfileScreen = () => {
 
   const artistMenuItems: (MenuItem & { description: string })[] = useMemo(() => [
     {
+      Icon: PlusIcon,
+      label: t('profile.registerArtwork'),
+      description: t('profile.artistDescRegisterArtwork'),
+      onPress: () => navigation.navigate('ArtistMyPage', { openArtworkForm: true }),
+    },
+    {
       Icon: EditPenIcon,
       label: t('profile.portfolioReview'),
       description: t('profile.artistDescPortfolio'),
@@ -255,7 +284,7 @@ const MyProfileScreen = () => {
       description: t('profile.artistDescAdStats'),
       onPress: goTo('ArtistAdStats'),
     },
-  ], [t, goTo]);
+  ], [t, goTo, navigation]);
 
   const vendorMenuItems: (MenuItem & { description: string })[] = useMemo(() => [
     {

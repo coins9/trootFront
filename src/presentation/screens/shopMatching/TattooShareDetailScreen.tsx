@@ -68,7 +68,7 @@ const TattooShareDetailScreen = () => {
   const specs: { Icon: React.ComponentType<any>; label: string; value: string }[] = [
     { Icon: AreaIcon, label: t('shop.card.areaPyeong' as any), value: `${shop.areaPyeong}${t('shop.card.unitPyeong' as any)}` },
     { Icon: BedIcon, label: t('shop.card.bedCount' as any), value: `${shop.bedCount}${t('shop.card.unitBed' as any)}` },
-    { Icon: LightIcon, label: t('shop.card.lighting' as any), value: lightingLabel(t as any, shop.lighting as any) },
+    { Icon: LightIcon, label: t('shop.card.lighting' as any), value: shop.lighting.map((l) => lightingLabel(t as any, l as any)).join(', ') || '-' },
     { Icon: DoorIcon, label: t('shop.card.privateRoom' as any), value: shop.privateRoomInfo ?? (shop.hasPrivateRoom ? t('shop.card.privateYes' as any) : t('shop.card.privateNo' as any)) },
     { Icon: PeopleIcon, label: t('shop.card.maxOccupancy' as any), value: `${shop.maxOccupancy}${t('shop.card.unitPerson' as any)}` },
     { Icon: PeopleIcon, label: t('shop.card.currentNeeded' as any), value: `${shop.currentOccupancy} / ${shop.requiredOccupancy}${t('shop.card.unitPerson' as any)}` },
@@ -276,23 +276,46 @@ const TattooShareDetailScreen = () => {
         </ScrollView>
 
         <View style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-          <TouchableOpacity
-              onPress={() => {
-                const kakao = shop.host.kakaoLink;
-                const phone = shop.host.smsPhone;
-                if (kakao) { Linking.openURL(kakao).catch(() => {}); return; }
-                if (phone) {
-                  const digits = phone.replace(/[^0-9+]/g, '');
-                  Linking.openURL(`tel:${digits}`).catch(() => {});
-                  return;
-                }
-                Alert.alert(t('common.noContactTitle' as any), t('shop.noContactMsg' as any));
-              }}
-              style={styles.ctaBtn}
-              activeOpacity={0.85}
-          >
-            <Text style={styles.ctaText}>{t('shop.bookingInquiry' as any)}</Text>
-          </TouchableOpacity>
+          {shop.host.kakaoLink && shop.host.smsPhone ? (
+            // 카톡·전화가 모두 있으면 둘 다 노출
+            <View style={styles.ctaRow}>
+              <TouchableOpacity
+                  onPress={() => Linking.openURL(shop.host.kakaoLink!).catch(() => {})}
+                  style={[styles.ctaBtn, styles.ctaFlex]}
+                  activeOpacity={0.85}
+              >
+                <Text style={styles.ctaText}>{t('shop.kakaoInquiry' as any)}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                  onPress={() => {
+                    const digits = shop.host.smsPhone!.replace(/[^0-9+]/g, '');
+                    Linking.openURL(`tel:${digits}`).catch(() => {});
+                  }}
+                  style={[styles.ctaBtn, styles.ctaFlex, styles.ctaPhone]}
+                  activeOpacity={0.85}
+              >
+                <Text style={[styles.ctaText, styles.ctaPhoneText]}>{t('shop.phoneInquiry' as any)}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+                onPress={() => {
+                  const kakao = shop.host.kakaoLink;
+                  const phone = shop.host.smsPhone;
+                  if (kakao) { Linking.openURL(kakao).catch(() => {}); return; }
+                  if (phone) {
+                    const digits = phone.replace(/[^0-9+]/g, '');
+                    Linking.openURL(`tel:${digits}`).catch(() => {});
+                    return;
+                  }
+                  Alert.alert(t('common.noContactTitle' as any), t('shop.noContactMsg' as any));
+                }}
+                style={styles.ctaBtn}
+                activeOpacity={0.85}
+            >
+              <Text style={styles.ctaText}>{t('shop.bookingInquiry' as any)}</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <ImageZoomModal
@@ -583,10 +606,25 @@ const styles = StyleSheet.create({
     paddingVertical: 17,
     alignItems: 'center',
   },
+  ctaRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  ctaFlex: {
+    flex: 1,
+  },
+  ctaPhone: {
+    backgroundColor: COLORS.elevated,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+  },
   ctaText: {
     color: COLORS.black,
     fontSize: 16,
     fontWeight: '700',
     lineHeight: 22,
+  },
+  ctaPhoneText: {
+    color: COLORS.gold,
   },
 });

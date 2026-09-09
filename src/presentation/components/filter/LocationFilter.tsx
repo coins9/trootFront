@@ -32,8 +32,10 @@ const LocationFilter = memo(({
 
   const cityLabel = (city: string) =>
     language === 'en' ? (CITIES_EN[city] ?? city) : city;
-  const districtLabel = (city: string, dist: string) =>
-    language === 'en' ? (DISTRICTS_EN[city]?.[dist] ?? dist) : dist;
+  const districtLabel = (city: string, dist: string) => {
+    if (dist === '기타') return language === 'en' ? 'Other' : '기타';
+    return language === 'en' ? (DISTRICTS_EN[city]?.[dist] ?? dist) : dist;
+  };
 
   const handleCityPress = useCallback((city: string) => {
     if (selectedCity === city) {

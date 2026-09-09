@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Image,
   StatusBar, Dimensions, LayoutAnimation, Platform, UIManager, Linking,
@@ -6,14 +6,14 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 // 🚨 1. 자동 새로고침(Silent Reload)을 위한 useFocusEffect 추가
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import LogoHeader from '../../components/common/LogoHeader';
 import {
   BackArrowIcon, EditPenIcon, HeartIcon, StarIcon, LocationPinIcon,
   PersonSilhouette, TattooPlaceholderIcon, PlusIcon,
-  ChevronRightIcon,
+  ChevronRightIcon, BarChartIcon,
 } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
 import EditProfileSheet from '../../components/artistMyPage/EditProfileSheet';
@@ -123,6 +123,7 @@ const GRID_ITEM = (W - GRID_GAP * (GRID_COL - 1)) / GRID_COL;
 const ArtistMyPageScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const route = useRoute<RouteProp<RootStackParamList, 'ArtistMyPage'>>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
   const refresh = useAuthStore((s) => s.refresh);
@@ -285,6 +286,14 @@ const ArtistMyPageScreen = () => {
     setArtworkFormOpen(false);
     setArtworkFormEditing(null);
   }, []);
+
+  // [21] 프로필 허브의 '작품 등록' 바로가기 — 진입 시 폼을 자동으로 연다(1회, 재진입 방지 위해 파라미터 소거)
+  useEffect(() => {
+    if (route.params?.openArtworkForm) {
+      handleOpenArtworkForm(null);
+      navigation.setParams({ openArtworkForm: undefined });
+    }
+  }, [route.params?.openArtworkForm, handleOpenArtworkForm, navigation]);
   const handleSubmitArtwork = useCallback(async (next: ArtistArtwork) => {
     try {
       const body = {
@@ -304,10 +313,10 @@ const ArtistMyPageScreen = () => {
       } else {
         await artistApi.createArtwork(body);
       }
-      easeLayoutAnim();
-      reloadArtworks();
+      // 시트(Modal) 닫힘과 LayoutAnimation 이 같은 커밋에서 겹치면 iOS 가 불안정 → 시트부터 닫는다
       setArtworkFormOpen(false);
       setArtworkFormEditing(null);
+      reloadArtworks();
       toast(
           artworkFormEditing ? t('artistMyPage.artworkSaved' as any) : t('artistMyPage.artworkAdded' as any),
           { variant: 'success' },
@@ -480,14 +489,25 @@ const ArtistMyPageScreen = () => {
               </View>
             </View>
 
-            <TouchableOpacity
-                onPress={() => setEditProfileOpen(true)}
-                activeOpacity={0.85}
-                style={styles.editProfileBtn}
-            >
-              <EditPenIcon size={13} color={COLORS.gold} strokeWidth={1.8} />
-              <Text style={styles.editProfileText}>{t('artistMyPage.editProfile' as any)}</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                  onPress={() => setEditProfileOpen(true)}
+                  activeOpacity={0.85}
+                  style={[styles.editProfileBtn, styles.headerActionFlex]}
+              >
+                <EditPenIcon size={13} color={COLORS.gold} strokeWidth={1.8} />
+                <Text style={styles.editProfileText}>{t('artistMyPage.editProfile' as any)}</Text>
+              </TouchableOpacity>
+              {/* UP·광고를 사용할 수 있는 화면으로 바로 가는 진입점 */}
+              <TouchableOpacity
+                  onPress={() => navigation.navigate('ArtistAdStats')}
+                  activeOpacity={0.85}
+                  style={[styles.adUpBtn, styles.headerActionFlex]}
+              >
+                <BarChartIcon size={13} color={COLORS.black} strokeWidth={1.8} />
+                <Text style={styles.adUpText}>{t('artistMyPage.adUpEntry' as any)}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Segmented tabs */}
@@ -643,6 +663,11 @@ const ArtistMyPageScreen = () => {
             onClose={() => setArtworkDetail(null)}
             onEdit={(aw) => handleOpenArtworkForm(aw)}
             onDelete={handleDeleteArtwork}
+            onPromote={(aw) => {
+              // 상세 시트를 먼저 닫아 중첩 화면 전환을 피하고 광고 관리(구매+활성화)로 이동
+              setArtworkDetail(null);
+              setTimeout(() => navigation.navigate('AdManage', { placement: 'artwork', targetId: aw.id }), 220);
+            }}
         />
         <ArtworkFormSheet
             visible={artworkFormOpen}
@@ -794,6 +819,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.border,
   },
 
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerActionFlex: {
+    flex: 1,
+  },
   editProfileBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -806,6 +838,21 @@ const styles = StyleSheet.create({
   },
   editProfileText: {
     color: COLORS.gold,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  adUpBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderRadius: 10,
+    backgroundColor: COLORS.gold,
+    paddingVertical: 10,
+  },
+  adUpText: {
+    color: COLORS.black,
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,

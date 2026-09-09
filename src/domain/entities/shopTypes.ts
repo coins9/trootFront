@@ -30,7 +30,8 @@ export interface TattooShareShop {
   district: string;
   areaPyeong: number;
   bedCount: number;
-  lighting: string;
+  // [9] 조명환경 복수선택 — 여러 조명(자연광+천장조명+링라이트 등)을 동시에 가질 수 있음
+  lighting: string[];
   hasPrivateRoom: boolean;
   privateRoomInfo?: string;
   maxOccupancy: number;
@@ -133,9 +134,9 @@ export const matchOccupancy = (max: number, filter: ShareOccupancy): boolean => 
   }
 };
 
-export const matchLighting = (lighting: string, filter: ShareLighting): boolean => {
+export const matchLighting = (lighting: string[], filter: ShareLighting): boolean => {
   if (filter === '전체') return true;
-  return lighting === filter;
+  return lighting.includes(filter);
 };
 
 export const applyShareSort = <T extends TattooShareShop>(

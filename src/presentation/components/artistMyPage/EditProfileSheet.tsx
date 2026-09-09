@@ -25,6 +25,8 @@ interface Props {
 
 const { height: SH } = Dimensions.get('window');
 const INTRO_MAX = 80;
+// [14] 특정 지역에 매이지 않는 작가용 특수 활동지역 값 (시/도 목록과 별개)
+const TRAVEL_REGION = '출장·전국';
 
 const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => {
   const translate = useRef(new Animated.Value(SH)).current;
@@ -71,6 +73,18 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
     }
   }, [regionSido]);
 
+  // [14] 명시적 '활동지역 미설정' — 검색 지역 의미를 깨지 않도록 시/도 자체를 비운다
+  const handleClearRegion = useCallback(() => {
+    setRegionSido(null);
+    setRegionSigungu(null);
+  }, []);
+
+  // [14] '출장·전국' — 특정 지역에 매이지 않는 작가를 위한 특수 값
+  const handleTravelRegion = useCallback(() => {
+    setRegionSido((prev) => (prev === TRAVEL_REGION ? null : TRAVEL_REGION));
+    setRegionSigungu(null);
+  }, []);
+
   const handleDistrictPress = useCallback((dist: string) => {
     setRegionSigungu((prev) => (prev === dist ? null : dist));
   }, []);
@@ -103,7 +117,8 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
       setOpenChatError(true);
       return;
     }
-    const location = [regionSido, regionSigungu].filter(Boolean).join(' ') || profile.location;
+    // 시/도 를 비우면(미설정) location 도 비워 '지역 미지정' 이 즉시 반영되게 한다
+    const location = [regionSido, regionSigungu].filter(Boolean).join(' ');
     onSave({
       nickname: nickname.trim() || profile.nickname,
       coverImage,
@@ -210,6 +225,27 @@ const EditProfileSheet = memo(({ visible, profile, onClose, onSave }: Props) => 
               {/* 활동 지역 — 칩 선택 */}
               <View style={styles.field}>
                 <Text style={styles.label}>{t('artistMyPage.editRegion')}</Text>
+                {/* [14] 지역 미설정 / 출장·전국 명시 옵션 */}
+                <View style={[styles.chipRow, { marginBottom: 8 }]}>
+                  <TouchableOpacity
+                    onPress={handleClearRegion}
+                    activeOpacity={0.75}
+                    style={[styles.chip, !regionSido && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, !regionSido && styles.chipTextActive]}>
+                      {t('artistMyPage.regionNone')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleTravelRegion}
+                    activeOpacity={0.75}
+                    style={[styles.chip, regionSido === TRAVEL_REGION && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, regionSido === TRAVEL_REGION && styles.chipTextActive]}>
+                      {t('artistMyPage.regionTravel')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.chipRow}>
                   {CITIES.map((city) => {
                     const active = regionSido === city;

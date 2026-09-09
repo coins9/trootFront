@@ -71,7 +71,7 @@ const TattooSuppliesScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const settings = usePublicSettings();
-  const [category, setCategory] = useState<SupplyCategory>('머신 & 장비');
+  const [category, setCategory] = useState<SupplyCategory>(SUPPLY_CATEGORIES[0]);
   const [sort, setSort] = useState<SupplySort>('최신순');
   const [priceDropdownVisible, setPriceDropdownVisible] = useState(false);
   const [bookmarkOverride, setBookmarkOverride] = useState<Map<string, boolean>>(new Map());

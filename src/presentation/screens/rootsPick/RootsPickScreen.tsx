@@ -89,7 +89,7 @@ const RootsPickScreen = () => {
 
   // 🚨 3. reload 함수 추출
   const { data, loading, reload } = useApi(
-      async () => (await artistApi.selectedMasters()).map(toArtist).map(toPickItem),
+      async () => (await artistApi.rootsPick()).map(toArtist).map(toPickItem),
       [],
   );
 

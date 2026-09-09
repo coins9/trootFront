@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../theme/colors';
 import { BackArrowIcon, CameraAddIcon, XIcon } from '../../components/icons';
 import { useToast } from '../../components/common/Toast';
+import MoneyInput from '../../components/common/MoneyInput';
 import { ApiError } from '../../../data/api/client';
 import { supplyVendorApi, type ProductPayload, SUPPLY_CATEGORY_TO_ENUM, ENUM_TO_SUPPLY_CATEGORY } from '../../../data/api/vendor';
 // 🚨 기존 PRODUCT_CATEGORIES 대신 supplyTypes의 한글 카테고리를 사용하도록 변경
@@ -256,7 +257,7 @@ const ProductFormScreen = () => {
                 <View style={s.row}>
                   <View style={s.rowItem}>
                     <Text style={s.label}>{t('vendor.fieldPrice')} <Text style={s.req}>*</Text></Text>
-                    <TextInput style={s.input} placeholder="15000" placeholderTextColor={COLORS.gray2} value={price} onChangeText={(v) => setPrice(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" />
+                    <MoneyInput style={s.input} placeholder="15,000" placeholderTextColor={COLORS.gray2} value={price} onChangeValue={setPrice} />
                   </View>
                   <View style={s.rowItem}>
                     <Text style={s.label}>{t('vendor.fieldStock')}</Text>

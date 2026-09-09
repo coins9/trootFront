@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../../theme/colors';
 import { BodyPartIconSvg } from '../../icons';
@@ -6,10 +6,10 @@ import { BOOKING_BODY_PARTS, BODY_PART_T_KEY, SIZES } from '../../../../domain/e
 import { useTranslation } from '../../../store/languageStore';
 
 interface BodySizeStepProps {
-  bodyPart: string | null;
-  size: string | null;
-  onBodyPartChange: (part: string) => void;
-  onSizeChange: (size: string) => void;
+  bodyParts: string[];
+  sizes: string[];
+  onToggleBodyPart: (part: string) => void;
+  onToggleSize: (size: string) => void;
 }
 
 const Chip = memo(({
@@ -26,12 +26,9 @@ const Chip = memo(({
 Chip.displayName = 'Chip';
 
 const BodySizeStep = memo(({
-  bodyPart, size, onBodyPartChange, onSizeChange,
+  bodyParts, sizes, onToggleBodyPart, onToggleSize,
 }: BodySizeStepProps) => {
   const { t } = useTranslation();
-  const handleBodyPart = useCallback((part: string) => {
-    onBodyPartChange(bodyPart === part ? '' : part);
-  }, [bodyPart, onBodyPartChange]);
 
   return (
     <View style={styles.container}>
@@ -52,30 +49,33 @@ const BodySizeStep = memo(({
           <Chip
             key={part}
             label={t(BODY_PART_T_KEY[part] as any) || part}
-            selected={bodyPart === part}
-            onPress={() => handleBodyPart(part)}
+            selected={bodyParts.includes(part)}
+            onPress={() => onToggleBodyPart(part)}
           />
         ))}
       </View>
 
-      {/* Size cards */}
+      {/* Size cards — 복수 선택 */}
       <Text style={[styles.subLabel, { marginTop: 20 }]}>{t('booking.steps.bodySizeLabel')}</Text>
       <View style={styles.sizeGrid}>
-        {SIZES.map((s) => (
-          <TouchableOpacity
-            key={s.id}
-            onPress={() => onSizeChange(s.label)}
-            activeOpacity={0.8}
-            style={[styles.sizeCard, size === s.label && styles.sizeCardActive]}
-          >
-            <Text style={[styles.sizeLabel, size === s.id && styles.sizeLabelActive]}>
-              {t(s.labelKey as any)}
-            </Text>
-            <Text style={[styles.sizeSub, size === s.id && styles.sizeSubActive]}>
-              {t(s.subKey as any)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {SIZES.map((s) => {
+          const selected = sizes.includes(s.label);
+          return (
+            <TouchableOpacity
+              key={s.id}
+              onPress={() => onToggleSize(s.label)}
+              activeOpacity={0.8}
+              style={[styles.sizeCard, selected && styles.sizeCardActive]}
+            >
+              <Text style={[styles.sizeLabel, selected && styles.sizeLabelActive]}>
+                {t(s.labelKey as any)}
+              </Text>
+              <Text style={[styles.sizeSub, selected && styles.sizeSubActive]}>
+                {t(s.subKey as any)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );

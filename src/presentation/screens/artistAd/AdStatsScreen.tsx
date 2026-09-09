@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, StatusBar,
   Linking,
@@ -24,12 +24,16 @@ import { MOCK_PROMO_BANNERS } from '../../../data/mock/artistAdMockData';
 import { ArtistAdItem, ArtistAdStatus } from '../../../domain/entities/artistAdTypes';
 import { useApi, usePagedApi } from '../../hooks/useApi';
 import { artistApi, adApi, reservationApi  } from '../../../data/api';
+import { ApiError } from '../../../data/api/client';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
 import { adaptyService } from '../../../infrastructure/adapty/adaptyService';
 
 const FMT_DATE = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '-';
+
+// [17] 무료 UP 은 24시간에 1회 — 쿨다운 상태를 계산해 버튼에 표시한다
+const FREE_UP_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type SheetKind = 'superUp' | 'cardAd' | 'bannerAd';
@@ -62,6 +66,28 @@ const AdStatsScreen = () => {
   const { data: campaigns, reload: reloadCampaigns } = useApi(() => adApi.mine(), []); // 👈 reload 추가
   const { data: artistProfile } = useApi(() => artistApi.me(), []);
   const { data: inquiryCounts } = useApi(() => reservationApi.countByArtwork(), []);
+
+  // [17] 무료 UP 쿨다운 상태 — 서버의 freeUpUsedAt 기준으로 남은 시간을 계산
+  const [freeUpUsedAt, setFreeUpUsedAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (artistProfile) setFreeUpUsedAt(artistProfile.freeUpUsedAt ?? null);
+  }, [artistProfile]);
+
+  const freeUpRemainingMs = useMemo(() => {
+    if (!freeUpUsedAt) return 0;
+    const rem = new Date(freeUpUsedAt).getTime() + FREE_UP_COOLDOWN_MS - Date.now();
+    return rem > 0 ? rem : 0;
+  }, [freeUpUsedAt]);
+  const freeUpOnCooldown = freeUpRemainingMs > 0;
+
+  const formatRemaining = useCallback((ms: number): string => {
+    const totalMin = Math.ceil(ms / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return h > 0
+      ? t('adStats.upCooldownHours').replace('{{h}}', String(h)).replace('{{m}}', String(m))
+      : t('adStats.upCooldownMinutes').replace('{{m}}', String(m));
+  }, [t]);
 
   const adItems = useMemo(() => {
     const campaignMap = new Map((campaigns ?? []).map((c) => [c.targetId, c]));
@@ -121,17 +147,38 @@ const AdStatsScreen = () => {
   }, [t, toast]);
 
   const handleUp = useCallback((item: ArtistAdItem) => () => {
+    // 쿨다운 중이면 남은 시간을 안내하고 결제 없이 종료 (무료 UP 상태 노출)
+    if (freeUpOnCooldown) {
+      toast(t('adStats.upCooldownToast').replace('{{time}}', formatRemaining(freeUpRemainingMs)), { variant: 'error' });
+      return;
+    }
     setConfirm({
       title: t('adStats.upTitle'),
       message: t('adStats.upMsg'),
       cancelLabel: t('common.cancel'),
       confirmLabel: t('common.confirm'),
       variant: 'default',
-      onConfirm: () => {
-        toast(t('adStats.toastUp').replace('{{title}}', item.title), { variant: 'success' });
+      onConfirm: async () => {
+        try {
+          // 실제 무료 UP 실행 — 서버가 bumpedAt 을 갱신하고 24h 쿨다운을 건다
+          const res = await artistApi.freeUp();
+          setFreeUpUsedAt(res.bumpedAt ?? new Date().toISOString());
+          toast(t('adStats.toastUp').replace('{{title}}', item.title), { variant: 'success' });
+          reloadArtworks();
+          reloadCampaigns();
+        } catch (e) {
+          if (e instanceof ApiError && e.code === 'AD_FREE_UP_COOLDOWN') {
+            // 서버 기준 남은 시간으로 로컬 상태를 보정해 버튼에 즉시 반영
+            const ms = Number(e.details?.retryAfterMs ?? 0);
+            setFreeUpUsedAt(new Date(Date.now() - (FREE_UP_COOLDOWN_MS - ms)).toISOString());
+            toast(t('adStats.upCooldownToast').replace('{{time}}', formatRemaining(ms)), { variant: 'error' });
+          } else {
+            toast(e instanceof ApiError ? e.userMessage : t('adStats.purchaseFailed'), { variant: 'error' });
+          }
+        }
       },
     });
-  }, [toast, t]);
+  }, [freeUpOnCooldown, freeUpRemainingMs, formatRemaining, toast, t, reloadArtworks, reloadCampaigns]);
 
   const handleSuperUp = useCallback((item: ArtistAdItem) => () => {
     setActiveItem(item);
@@ -160,7 +207,10 @@ const AdStatsScreen = () => {
 
     try {
       await adaptyService.purchaseAdProduct(productCode);
-      await adApi.purchase({ placement: 'artwork', type, productCode, targetId, regionKey });
+      // 결제 → PENDING 캠페인 생성 → 활성화까지 해야 홈 피드에 광고가 실제로 노출된다.
+      // (activate 누락 시 캠페인이 PENDING 으로 남아 광고가 영영 돌지 않던 버그)
+      const campaign = await adApi.purchase({ placement: 'artwork', type, productCode, targetId, regionKey });
+      await adApi.activate(campaign.id);
 
       toast(t('adStats.purchaseSuccess'), { variant: 'success' });
 
@@ -251,6 +301,8 @@ const AdStatsScreen = () => {
                   onSuperUp={handleSuperUp(ad)}
                   onCardAd={handleCardAd(ad)}
                   onBannerAd={handleBannerAd(ad)}
+                  upDisabled={freeUpOnCooldown}
+                  upHint={freeUpOnCooldown ? formatRemaining(freeUpRemainingMs) : undefined}
               />
           )}
           ListEmptyComponent={

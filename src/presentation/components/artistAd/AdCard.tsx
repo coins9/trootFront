@@ -16,10 +16,13 @@ interface Props {
   onSuperUp: () => void;
   onCardAd: () => void;
   onBannerAd: () => void;
+  // [17] 무료 UP 쿨다운 상태 — 쿨다운 중이면 남은 시간을 버튼에 노출하고 비활성 처리
+  upDisabled?: boolean;
+  upHint?: string;
 }
 
 const AdCard = memo(({
-  ad, onUp, onSuperUp, onCardAd, onBannerAd,
+  ad, onUp, onSuperUp, onCardAd, onBannerAd, upDisabled, upHint,
 }: Props) => {
   const { t } = useTranslation();
   return (
@@ -65,9 +68,11 @@ const AdCard = memo(({
       <TouchableOpacity
         onPress={onUp}
         activeOpacity={0.85}
-        style={[styles.actionBtn, styles.actionUp]}
+        style={[styles.actionBtn, styles.actionUp, upDisabled && styles.actionUpDisabled]}
       >
-        <Text style={styles.actionUpText}>UP</Text>
+        <Text style={[styles.actionUpText, upDisabled && styles.actionUpTextDisabled]}>
+          {upDisabled && upHint ? `UP · ${upHint}` : 'UP'}
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
         onPress={onSuperUp}
@@ -187,6 +192,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     lineHeight: 18,
+  },
+  actionUpDisabled: {
+    backgroundColor: COLORS.elevated,
+    borderColor: COLORS.border,
+    opacity: 0.55,
+  },
+  actionUpTextDisabled: {
+    color: COLORS.gray,
+    fontSize: 11,
   },
   actionSuperUp: {
     backgroundColor: COLORS.black,

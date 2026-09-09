@@ -1,5 +1,7 @@
 export interface Artist {
   id: string;
+  /** 타투이스트 페이지를 소유한 유저 id (신고 대상 targetUserId 등에 사용) */
+  userId?: string | null;
   nickname: string;
   city: string;
   district: string;
@@ -19,6 +21,10 @@ export interface Artist {
   hasDepositProtection: boolean;
   isPromoted: boolean;
   isSelectedMaster?: boolean;
+  /** Root's Pick 큐레이션 — Selected Master 와 별개 */
+  isRootsPick?: boolean;
+  /** 아티스트 등급 — 'main'(메인 아티스트, 파운딩 6인) / 'general' / 'beginner' */
+  tier?: 'main' | 'general' | 'beginner';
   kakaoLink?: string;
   detailAddress?: string | null;
   /** 편의/특성 태그 코드 (same_day, open_24h, parking, female_artist, male_artist) */

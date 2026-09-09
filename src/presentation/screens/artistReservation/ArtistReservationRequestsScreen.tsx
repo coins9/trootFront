@@ -1,8 +1,9 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, StatusBar, TouchableOpacity, FlatList,
   ActivityIndicator, Image, ScrollView, Modal, Dimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,6 +22,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+// [12] 새 예약 NEW 표시 — 확인(상세 열람)한 요청 id 를 로컬에 저장해 최초 확인 후 NEW 를 제거
+const SEEN_KEY = '@troot/seen_reservation_requests';
 
 // 🚨 에러 원인이었던 t 함수 제거: 대신 amLabel, pmLabel 문자열을 직접 받도록 수정
 const formatSchedule = (iso: string, language: string, amLabel: string, pmLabel: string) => {
@@ -62,6 +65,27 @@ const ArtistReservationRequestsScreen = () => {
   const [viewerImages, setViewerImages] = useState<string[] | null>(null);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [detailItem, setDetailItem] = useState<ArtistReservationView | null>(null);
+  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    AsyncStorage.getItem(SEEN_KEY)
+      .then((raw) => { if (raw) setSeenIds(new Set(JSON.parse(raw))); })
+      .catch(() => {});
+  }, []);
+
+  const markSeen = useCallback((id: string) => {
+    setSeenIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev).add(id);
+      AsyncStorage.setItem(SEEN_KEY, JSON.stringify([...next])).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const openDetail = useCallback((item: ArtistReservationView) => {
+    markSeen(item.id);
+    setDetailItem(item);
+  }, [markSeen]);
 
   const openViewer = useCallback((images: string[], idx: number) => {
     setViewerImages(images);
@@ -138,7 +162,14 @@ const ArtistReservationRequestsScreen = () => {
   const renderItem = useCallback(({ item }: { item: ArtistReservationView }) => (
       <View style={s.card}>
         <View style={s.cardHead}>
-          <Text style={s.customer}>{item.customer?.nickname ?? t('reservationRequests.customerFallback')}</Text>
+          <View style={s.customerRow}>
+            {!seenIds.has(item.id) && (
+                <View style={s.newBadge}>
+                  <Text style={s.newBadgeText}>NEW</Text>
+                </View>
+            )}
+            <Text style={s.customer} numberOfLines={1}>{item.customer?.nickname ?? t('reservationRequests.customerFallback')}</Text>
+          </View>
           <View style={s.pendingBadge}>
             <Text style={s.pendingText}>{t('reservationRequests.requestBadge')}</Text>
           </View>
@@ -168,7 +199,7 @@ const ArtistReservationRequestsScreen = () => {
         <TouchableOpacity
             style={s.detailBtn}
             activeOpacity={0.75}
-            onPress={() => setDetailItem(item)}
+            onPress={() => openDetail(item)}
         >
           <Text style={s.detailBtnText}>{t('reservationRequests.viewDetail')}</Text>
           <ChevronRightIcon size={14} color={COLORS.gold} />
@@ -201,7 +232,7 @@ const ArtistReservationRequestsScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-  ), [busyId, doConfirm, doReject, openViewer, t, language]);
+  ), [busyId, doConfirm, doReject, openViewer, openDetail, seenIds, t, language]);
 
   return (
       <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
@@ -258,6 +289,15 @@ const ArtistReservationRequestsScreen = () => {
               {detailItem && (
                   <ScrollView style={s.detailScroll} contentContainerStyle={s.detailScrollContent} showsVerticalScrollIndicator={false}>
                     <DetailRow label={t('reservationRequests.fieldCustomer')} value={detailItem.customer?.nickname ?? t('reservationRequests.customerFallback')} />
+                    {!!detailItem.customerContact && (
+                        <DetailRow label={t('reservationRequests.fieldContact')} value={detailItem.customerContact} />
+                    )}
+                    {!!detailItem.customerInstagram && (
+                        <DetailRow label={t('reservationRequests.fieldInstagram')} value={detailItem.customerInstagram} />
+                    )}
+                    {!!detailItem.customerOpenChat && (
+                        <DetailRow label={t('reservationRequests.fieldOpenChat')} value={detailItem.customerOpenChat} />
+                    )}
                     <DetailRow label={t('reservationRequests.fieldSchedule')} value={formatSchedule(detailItem.scheduledAt, language, t('reservation.am'), t('reservation.pm'))} />
                     <DetailRow label={t('reservationRequests.fieldDuration')} value={t('reservationRequests.durationMin').replace('{{min}}', String(detailItem.durationMinutes))} />
                     {!!detailItem.artworkTitle && <DetailRow label={t('reservationRequests.fieldArtwork')} value={detailItem.artworkTitle} />}
@@ -363,8 +403,11 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.card, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border,
     padding: 16, marginBottom: 12, gap: 10,
   },
-  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  customer: { color: COLORS.white, fontSize: 15, fontWeight: '700', lineHeight: 21 },
+  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  customerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  customer: { color: COLORS.white, fontSize: 15, fontWeight: '700', lineHeight: 21, flexShrink: 1 },
+  newBadge: { backgroundColor: COLORS.danger, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
+  newBadgeText: { color: COLORS.white, fontSize: 10, fontWeight: '800', lineHeight: 13, letterSpacing: 0.3 },
   pendingBadge: { borderWidth: 1, borderColor: COLORS.gold, backgroundColor: COLORS.goldDim, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   pendingText: { color: COLORS.gold, fontSize: 11, fontWeight: '700', lineHeight: 15 },
   schedule: { color: COLORS.gold, fontSize: 13.5, fontWeight: '600', lineHeight: 19 },

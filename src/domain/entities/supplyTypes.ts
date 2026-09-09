@@ -43,13 +43,14 @@ export interface TattooSupply {
   externalUrl?: string;
 }
 
+// [20] 반복 소비/재구매 빈도 우선 정렬 — 자주 사는 소모품을 앞에, 단가 큰 장비/가구는 뒤로
 export const SUPPLY_CATEGORIES: SupplyCategory[] = [
-  '머신 & 장비',
   '니들 (바늘)',
   '잉크',
   '위생·소모품',
   '스탠실 용품',
   '애프터케어',
+  '머신 & 장비',
   '가구·인테리어', '기타',
 ];
 

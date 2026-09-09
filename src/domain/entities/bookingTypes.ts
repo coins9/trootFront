@@ -7,20 +7,28 @@ export interface BookingReferenceImage {
 export interface BookingFormData {
   selectedDate: string | null;
   selectedTime: string | null;
-  bodyPart: string | null;
-  size: string | null;
+  // 부위·크기 모두 복수 선택 가능 (하나의 도안이 여러 부위/크기에 걸칠 수 있음)
+  bodyParts: string[];
+  sizes: string[];
   referenceImages: BookingReferenceImage[];
   referenceText: string;
+  // 연락 수단 — 전부 선택(비필수). 오픈톡 이탈 대비 예약 DB 에 함께 저장(2중 안전장치)
+  contact: string;    // 전화번호
+  instagram: string;  // 인스타그램 아이디
+  openChat: string;   // 오픈채팅 링크
   agreedToTerms: boolean;
 }
 
 export const INITIAL_BOOKING_FORM: BookingFormData = {
   selectedDate: null,
   selectedTime: null,
-  bodyPart: null,
-  size: null,
+  bodyParts: [],
+  sizes: [],
   referenceImages: [],
   referenceText: '',
+  contact: '',
+  instagram: '',
+  openChat: '',
   agreedToTerms: false,
 };
 
@@ -31,8 +39,8 @@ export const isBookingFormValid = (data: BookingFormData): boolean =>
   !!(
     data.selectedDate
     && data.selectedTime
-    && data.bodyPart
-    && data.size
+    && data.bodyParts.length > 0
+    && data.sizes.length > 0
     && hasReference(data)
     && data.agreedToTerms
   );
@@ -48,9 +56,13 @@ export const formatBookingMessage = (
     ...(designTitle ? [`도안: ${designTitle}`] : []),
     `희망 날짜: ${data.selectedDate ?? ''}`,
     `희망 시간: ${data.selectedTime ?? ''}`,
-    `시술 부위: ${data.bodyPart ?? ''}`,
-    `크기: ${data.size ?? ''}`,
+    `시술 부위: ${data.bodyParts.join(', ')}`,
+    `크기: ${data.sizes.join(', ')}`,
   ];
+  // 연락 수단은 입력한 것만 표기 (모두 선택 사항)
+  if (data.contact.trim()) lines.push(`연락처: ${data.contact.trim()}`);
+  if (data.instagram.trim()) lines.push(`인스타그램: ${data.instagram.trim()}`);
+  if (data.openChat.trim()) lines.push(`오픈톡: ${data.openChat.trim()}`);
   if (data.referenceImages.length > 0) {
     lines.push(`레퍼런스 사진: ${data.referenceImages.length}장 첨부`);
   }

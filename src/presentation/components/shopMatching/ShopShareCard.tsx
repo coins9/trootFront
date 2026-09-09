@@ -104,8 +104,8 @@ const ShopShareCard = memo(({ shop, onPress, onBookmark }: Props) => {
             </View>
             <View style={styles.specCell}>
               <Text style={styles.specLabel} adjustsFontSizeToFit minimumFontScale={0.8}>{t('shop.card.lighting')}</Text>
-              <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8}>
-                {lightingLabel(t as any, shop.lighting as any)}
+              <Text style={styles.specValue} adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1}>
+                {shop.lighting.map((l) => lightingLabel(t as any, l as any)).join(', ') || '-'}
               </Text>
             </View>
             <View style={styles.specCell}>

@@ -4,6 +4,7 @@ import {
   StyleSheet, Dimensions, StatusBar, Share, Linking,
 } from 'react-native';
 import CachedImage from '../../components/common/CachedImage';
+import ArtistTierBadge from '../../components/common/ArtistTierBadge';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // 🚨 1. 화면 복귀 시 갱신을 위한 useFocusEffect 추가
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -104,7 +105,7 @@ const ArtistProfileScreen = () => {
       await reportApi.create({
         targetType: 'artist',
         targetId: artist.id,
-        targetUserId: artist.userId,
+        targetUserId: artist.userId ?? undefined,
         reason: REASON_MAP[reason],
         detail: detail || undefined,
       });
@@ -382,6 +383,15 @@ const ArtistProfileScreen = () => {
               </View>
               <View style={styles.profileInfo}>
                 <Text style={styles.nickname}>{artist.nickname}</Text>
+                {(artist.tier === 'main' || artist.isSelectedMaster || artist.isRootsPick) && (
+                  <View style={styles.tierBadgeRow}>
+                    <ArtistTierBadge
+                      tier={artist.tier}
+                      isSelectedMaster={artist.isSelectedMaster}
+                      isRootsPick={artist.isRootsPick}
+                    />
+                  </View>
+                )}
                 <View style={styles.locationRow}>
                   <LocationPinIcon size={13} color={COLORS.gray} />
                   <Text style={styles.locationText}>{artist.city} · {artist.district}</Text>
@@ -712,6 +722,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 32,
     letterSpacing: 0.5,
+  },
+  tierBadgeRow: {
+    flexDirection: 'row',
+    marginTop: 6,
   },
   locationRow: {
     flexDirection: 'row',

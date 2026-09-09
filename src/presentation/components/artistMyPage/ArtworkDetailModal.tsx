@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import {
   XIcon, HeartIcon, EyeIcon, EditPenIcon, TattooPlaceholderIcon,
-  StarIcon,
+  StarIcon, BarChartIcon, ChevronRightIcon,
 } from '../icons';
 import { ArtistArtwork } from '../../../domain/entities/artistMyPageTypes';
 import { useTranslation } from '../../store/languageStore';
@@ -17,11 +17,13 @@ interface Props {
   onClose: () => void;
   onEdit: (aw: ArtistArtwork) => void;
   onDelete: (id: string) => void;
+  // #2 내 작품을 광고 결제 흐름으로 자연스럽게 연결 (인스타 '홍보하기' 패턴)
+  onPromote?: (aw: ArtistArtwork) => void;
 }
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
-const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) => {
+const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete, onPromote }: Props) => {
   const visible = artwork !== null;
   const translate = useRef(new Animated.Value(SH)).current;
   const insets = useSafeAreaInsets();
@@ -51,6 +53,11 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
       { cancelable: true },
     );
   }, [artwork, onDelete]);
+
+  const handlePromote = useCallback(() => {
+    if (!artwork || !onPromote) return;
+    onPromote(artwork);
+  }, [artwork, onPromote]);
 
   if (!artwork) return null;
 
@@ -152,6 +159,28 @@ const ArtworkDetailModal = memo(({ artwork, onClose, onEdit, onDelete }: Props) 
                 </View>
               )}
             </View>
+
+            {/* #2 홍보하기 — 내 작품을 더 많은 고객에게 노출 (광고 결제 흐름으로 연결) */}
+            {onPromote && (
+              <TouchableOpacity
+                onPress={handlePromote}
+                activeOpacity={0.85}
+                style={styles.promoteBtn}
+              >
+                <View style={styles.promoteIconWrap}>
+                  <BarChartIcon size={18} color={COLORS.gold} strokeWidth={1.8} />
+                </View>
+                <View style={styles.promoteTextWrap}>
+                  <Text style={styles.promoteTitle}>
+                    {artwork.isPromoted ? t('artistMyPage.adManage') : t('artistMyPage.promoteArtwork')}
+                  </Text>
+                  <Text style={styles.promoteSub} numberOfLines={1}>
+                    {t('artistMyPage.promoteArtworkSub')}
+                  </Text>
+                </View>
+                <ChevronRightIcon size={16} color={COLORS.gold} />
+              </TouchableOpacity>
+            )}
 
             <View style={styles.actionsRow}>
               <TouchableOpacity
@@ -331,6 +360,41 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
+  promoteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(212,168,67,0.45)',
+    backgroundColor: 'rgba(212,168,67,0.08)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 10,
+  },
+  promoteIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: COLORS.elevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  promoteTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  promoteTitle: {
+    color: COLORS.gold,
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 19,
+  },
+  promoteSub: {
+    color: COLORS.gray,
+    fontSize: 11.5,
+    lineHeight: 16,
+  },
   actionsRow: {
     flexDirection: 'row',
     gap: 8,

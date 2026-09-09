@@ -94,7 +94,9 @@ const toShareShop = (p: ShopPost): TattooShareShop => {
     district: typeof p.region === 'string' ? (p.region.split(' · ')[1] ?? p.region) : '',
     areaPyeong: 0,
     bedCount: parseBedCount(a.bedCount),
-    lighting: typeof a.lighting === 'string' ? a.lighting : '',
+    lighting: Array.isArray(a.lighting)
+        ? (a.lighting as string[])
+        : (typeof a.lighting === 'string' && a.lighting ? [a.lighting] : []),
     hasPrivateRoom: false,
     maxOccupancy: typeof a.maxOccupancy === 'number' ? a.maxOccupancy : 4,
     currentOccupancy: 0,
@@ -108,7 +110,10 @@ const toShareShop = (p: ShopPost): TattooShareShop => {
       nickname: p.author?.nickname ?? null,
       role: '호스트',
       profileImage: p.author?.profileImage ?? null,
-      kakaoLink: p.contact?.startsWith('http') ? p.contact : undefined,
+      // 카톡은 별도 openChat 필드 우선, 없으면 contact 가 URL 이면 카톡으로 간주
+      kakaoLink: (typeof a.openChat === 'string' && a.openChat)
+        ? a.openChat
+        : (p.contact?.startsWith('http') ? p.contact : undefined),
       smsPhone: p.contact && !p.contact.startsWith('http') ? p.contact : undefined,
     },
     likeCount: p.likeCount,

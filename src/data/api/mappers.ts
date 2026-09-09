@@ -11,6 +11,7 @@ const formatCount = (n: number): string =>
 
 export const toArtist = (page: ArtistPage): Artist => ({
   id: page.id,
+  userId: page.userId ?? null,
   nickname: page.pageName,
   city: page.regionSido ?? '',
   district: page.regionSigungu ?? '',
@@ -33,6 +34,8 @@ export const toArtist = (page: ArtistPage): Artist => ({
   hasDepositProtection: false,
   isPromoted: false,
   isSelectedMaster: page.isSelectedMaster,
+  isRootsPick: page.isRootsPick,
+  tier: page.tier,
 });
 
 export const toTattoo = (artwork: Artwork, favorited = false): Tattoo => ({

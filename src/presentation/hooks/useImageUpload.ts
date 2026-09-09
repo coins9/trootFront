@@ -122,6 +122,27 @@ const convertToJpeg = async (uri: string): Promise<string> => {
   return result.uri;
 };
 
+/**
+ * 업로드 최적화 — 긴 변을 2048px 로 캡, 품질 85%, 비율 보존.
+ * 폰 카메라 원본(12MP+)을 그대로 올리면 업로드 느리고 대역폭/스토리지 낭비 → 리사이즈로 개선.
+ * onlyScaleDown 이라 작은 이미지는 사실상 원본 유지.
+ */
+const MAX_UPLOAD_DIM = 2048;
+const optimizeImage = async (uri: string): Promise<string> => {
+  const result = await ImageResizer.createResizedImage(
+    uri,
+    MAX_UPLOAD_DIM,
+    MAX_UPLOAD_DIM,
+    'JPEG',
+    85,
+    0,
+    undefined,
+    false,
+    { mode: 'contain', onlyScaleDown: true },
+  );
+  return result.uri;
+};
+
 /** 서버가 허용하는 최종 형식 — JPG/JPEG, PNG, WEBP */
 const SUPPORTED_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp']);
 const SUPPORTED_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
@@ -158,7 +179,13 @@ const processAssets = async (assets: Asset[]): Promise<{ images: LocalImage[]; r
         images.push({ uri: a.uri, type: 'image/jpeg', fileSize: a.fileSize });
       }
     } else if (isSupportedImage(a)) {
-      images.push({ uri: a.uri as string, type: a.type, fileSize: a.fileSize });
+      // #6 업로드 최적화 — 큰 이미지는 2048px/85% 로 리사이즈해 용량 절감
+      try {
+        const optimized = await optimizeImage(a.uri);
+        images.push({ uri: optimized, type: 'image/jpeg' });
+      } catch {
+        images.push({ uri: a.uri as string, type: a.type, fileSize: a.fileSize });
+      }
     } else {
       rejected += 1;
     }

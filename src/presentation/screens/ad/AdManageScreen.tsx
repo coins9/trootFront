@@ -183,7 +183,8 @@ const PurchaseSheet = ({ visible, products, onClose, onPurchase }: {
   const [regionKey, setRegionKey] = useState<string>('');
 
   const list = useMemo(() => products?.[type] ?? [], [products, type]);
-  const canBuy = !!productCode && !!regionKey;
+  // 지역은 cardad 만 필수(라벨의 * 와 일치). superup/banner 는 전국 노출이라 지역 없이도 구매 가능
+  const canBuy = !!productCode && (type !== 'cardad' || !!regionKey);
 
   return (
       <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>

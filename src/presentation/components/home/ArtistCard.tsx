@@ -8,6 +8,7 @@ import {
   LocationPinIcon, StarIcon, PersonSilhouette,
 } from '../icons';
 import { Artist } from '../../../domain/entities/types';
+import { useTranslation } from '../../store/languageStore';
 
 const CARD_WIDTH = 130;
 const IMAGE_HEIGHT = 172;
@@ -19,6 +20,7 @@ interface ArtistCardProps {
 }
 
 const ArtistCard = memo(({ artist, isActive, onPress }: ArtistCardProps) => {
+  const { t } = useTranslation();
   const ratingCount = artist.reviewCount >= 1000
     ? `${(artist.reviewCount / 1000).toFixed(1)}K`
     : String(artist.reviewCount);
@@ -35,6 +37,14 @@ const ArtistCard = memo(({ artist, isActive, onPress }: ArtistCardProps) => {
         ) : (
           <View style={styles.placeholder}>
             <PersonSilhouette size={64} color="#2e2e2e" />
+          </View>
+        )}
+        {/* [18] 마스터 레일 안에서 메인 아티스트(파운딩)를 구분 */}
+        {artist.tier === 'main' && (
+          <View style={styles.mainFlag}>
+            <Text style={styles.mainFlagText} numberOfLines={1}>
+              {t('artistProfile.badgeMainArtist' as any)}
+            </Text>
           </View>
         )}
       </View>
@@ -92,6 +102,23 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  mainFlag: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: COLORS.gold,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    maxWidth: CARD_WIDTH - 24,
+  },
+  mainFlagText: {
+    color: COLORS.black,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    lineHeight: 12,
   },
   placeholder: {
     flex: 1,

@@ -39,6 +39,10 @@ export interface PersonalTimelineItem {
   isAppLinked?: boolean;
   depositStatus?: DepositStatus;
   depositAmount?: number;
+  // [11] 고객이 요청서에 첨부한 레퍼런스 사진 — 확정 뒤 캘린더/상세로 이어짐
+  referenceImages?: string[];
+  // 고객 연락처(오픈톡 이탈 대비 2중 안전장치) — 확정 예약에서도 열람 가능
+  contact?: string;
 }
 
 export interface TodayReservation {

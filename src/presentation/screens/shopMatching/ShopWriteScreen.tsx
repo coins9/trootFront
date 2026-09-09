@@ -24,6 +24,7 @@ import {
     SHOP_REGION_OPTIONS, SHOP_REGION_WRITE_OPTIONS, shopRegionLabel, ALL_REGION_CODE,
 } from '../../../domain/entities/shopRegions';
 import ShareFilterBottomSheet from '../../components/shopMatching/ShareFilterBottomSheet';
+import MoneyInput from '../../components/common/MoneyInput';
 import { shopApi, ShopCategory } from '../../../data/api';
 import { useTranslation } from '../../store/languageStore';
 import {
@@ -128,19 +129,20 @@ interface BoothForm {
     stencilType: ShareStencil | '';
     hasPhotoZone: boolean;
     bedCount: ShareBedCount | '';
-    lighting: ShareLighting | '';
+    lighting: string[];
     maxOccupancy: string;
     description: string;
     descriptionEn: string;
-    contact: string;
+    contact: string;    // 전화번호
+    openChat: string;   // 카카오톡 오픈채팅 링크
 }
 
 const EMPTY_BOOTH: BoothForm = {
     title: '', titleEn: '', region: '',
     priceType: 'daily', price: '',
     stencilType: '', hasPhotoZone: false,
-    bedCount: '', lighting: '', maxOccupancy: '',
-    description: '', descriptionEn: '', contact: '',
+    bedCount: '', lighting: [], maxOccupancy: '',
+    description: '', descriptionEn: '', contact: '', openChat: '',
 };
 
 const BoothShareForm = ({ form, setForm, writeLang }: {
@@ -151,6 +153,12 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
     const { t } = useTranslation();
     const toggle = useCallback((field: keyof BoothForm) => (v: string) => {
         setForm(p => ({ ...p, [field]: p[field] === v ? '' : v }));
+    }, [setForm]);
+    const toggleLighting = useCallback((v: string) => {
+        setForm(p => ({
+            ...p,
+            lighting: p.lighting.includes(v) ? p.lighting.filter(x => x !== v) : [...p.lighting, v],
+        }));
     }, [setForm]);
 
     return (
@@ -207,13 +215,12 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
                     </Text>
                 </TouchableOpacity>
             </View>
-            <TextInput
+            <MoneyInput
                 style={s.input}
                 placeholder={form.priceType === 'daily' ? (t('shop.writeForm.priceDailyPlaceholder' as any) || "1일 이용 금액을 입력해주세요") : (t('shop.writeForm.priceMonthlyPlaceholder' as any) || "월 부스 비용을 입력해주세요")}
                 placeholderTextColor={COLORS.gray2}
                 value={form.price}
-                onChangeText={v => setForm(p => ({ ...p, price: v.replace(/[^0-9]/g, '') }))}
-                keyboardType="numeric"
+                onChangeValue={v => setForm(p => ({ ...p, price: v }))}
             />
 
             <SectionLabel label={t('shop.writeForm.bedCountLabel' as any)} required />
@@ -243,8 +250,9 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
             <SectionLabel label={t('shop.writeForm.lightingLabel' as any)} />
             <ChipSelect
                 options={['LED (백색광)', '자연광', '조도 조절 (디밍)', '촬영용 조명 구비']}
-                selected={form.lighting ? [form.lighting] : []}
-                onToggle={toggle('lighting')}
+                selected={form.lighting}
+                onToggle={toggleLighting}
+                multi
                 renderLabel={v => lightingLabel(t as any, v as any)}
             />
 
@@ -287,13 +295,25 @@ const BoothShareForm = ({ form, setForm, writeLang }: {
                 </>
             )}
 
-            <SectionLabel label={writeLang === 'en' ? 'Contact' : t('shop.writeForm.contactLabel' as any)} required />
+            <SectionLabel label={writeLang === 'en' ? 'Phone' : t('shop.writeForm.phoneLabel' as any)} required />
             <TextInput
                 style={s.input}
-                placeholder={writeLang === 'en' ? 'e.g. open.kakao.com/... or 010-XXXX-XXXX' : t('shop.writeForm.contactPlaceholder' as any)}
+                placeholder={writeLang === 'en' ? 'e.g. 010-XXXX-XXXX' : t('shop.writeForm.phonePlaceholder' as any)}
                 placeholderTextColor={COLORS.gray2}
                 value={form.contact}
                 onChangeText={v => setForm(p => ({ ...p, contact: v }))}
+                keyboardType="phone-pad"
+            />
+
+            <SectionLabel label={writeLang === 'en' ? 'KakaoTalk open chat' : t('shop.writeForm.kakaoLabel' as any)} />
+            <TextInput
+                style={s.input}
+                placeholder={writeLang === 'en' ? 'e.g. open.kakao.com/o/...' : t('shop.writeForm.kakaoPlaceholder' as any)}
+                placeholderTextColor={COLORS.gray2}
+                value={form.openChat}
+                onChangeText={v => setForm(p => ({ ...p, openChat: v }))}
+                autoCapitalize="none"
+                keyboardType="url"
             />
         </>
     );
@@ -313,7 +333,7 @@ interface OverseasBoothForm {
     stencilType: ShareStencil | '';
     hasPhotoZone: boolean;
     bedCount: ShareBedCount | '';
-    lighting: ShareLighting | '';
+    lighting: string[];
     description: string;
     descriptionEn: string;
     contact: string;
@@ -323,7 +343,7 @@ const EMPTY_OVERSEAS_BOOTH: OverseasBoothForm = {
     title: '', titleEn: '', country: '', city: '',
     priceType: 'daily', price: '', currency: 'USD',
     stencilType: '', hasPhotoZone: false,
-    bedCount: '', lighting: '', description: '', descriptionEn: '', contact: '',
+    bedCount: '', lighting: [], description: '', descriptionEn: '', contact: '',
 };
 
 const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
@@ -334,6 +354,12 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
     const { t } = useTranslation();
     const toggle = useCallback((field: keyof OverseasBoothForm) => (v: string) => {
         setForm(p => ({ ...p, [field]: p[field] === v ? '' : v }));
+    }, [setForm]);
+    const toggleLighting = useCallback((v: string) => {
+        setForm(p => ({
+            ...p,
+            lighting: p.lighting.includes(v) ? p.lighting.filter(x => x !== v) : [...p.lighting, v],
+        }));
     }, [setForm]);
 
     return (
@@ -404,13 +430,12 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
                 </TouchableOpacity>
             </View>
             <View style={s.row}>
-                <TextInput
+                <MoneyInput
                     style={[s.input, s.flex1]}
                     placeholder={form.priceType === 'daily' ? (t('shop.writeForm.priceDailyPlaceholder' as any) || "1일 비용") : (t('shop.writeForm.priceMonthlyPlaceholder' as any) || "월 부스 비용")}
                     placeholderTextColor={COLORS.gray2}
                     value={form.price}
-                    onChangeText={v => setForm(p => ({ ...p, price: v.replace(/[^0-9]/g, '') }))}
-                    keyboardType="numeric"
+                    onChangeValue={v => setForm(p => ({ ...p, price: v }))}
                 />
                 <View style={s.currencyWrap}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -450,8 +475,9 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
             <SectionLabel label={t('shop.writeForm.lightingLabel' as any)} />
             <ChipSelect
                 options={['LED (백색광)', '자연광', '조도 조절 (디밍)', '촬영용 조명 구비']}
-                selected={form.lighting ? [form.lighting] : []}
-                onToggle={toggle('lighting')}
+                selected={form.lighting}
+                onToggle={toggleLighting}
+                multi
                 renderLabel={v => lightingLabel(t as any, v as any)}
             />
 
@@ -501,12 +527,12 @@ const OverseasBoothShareForm = ({ form, setForm, writeLang }: {
  * 타투 모델 구인 폼 / 사진영상 편집자 폼 (이전과 동일)
  * ───────────────────────────────────────────────────── */
 interface ModelForm {
-    title: string; titleEn: string; region: string; styles: string[];
+    title: string; titleEn: string; region: string; styles: string[]; stylesEtc: string;
     materialFee: string; workPeriod: string; description: string; descriptionEn: string; contact: string;
 }
 
 const EMPTY_MODEL: ModelForm = {
-    title: '', titleEn: '', region: '', styles: [], materialFee: '', workPeriod: '',
+    title: '', titleEn: '', region: '', styles: [], stylesEtc: '', materialFee: '', workPeriod: '',
     description: '', descriptionEn: '', contact: '',
 };
 
@@ -535,9 +561,17 @@ const ModelRecruitForm = ({ form, setForm, writeLang }: {
 
             <SectionLabel label={t('shop.writeForm.workStyleLabel' as any)} required />
             <ChipSelect options={STYLE_OPTS} selected={form.styles} onToggle={toggleStyle} multi renderLabel={v => writeStyleLabel(t as any, v as any)} />
+            <TextInput
+                style={[s.input, { marginTop: 8 }]}
+                placeholder={t('shop.writeForm.styleEtcPlaceholder' as any)}
+                placeholderTextColor={COLORS.gray2}
+                value={form.stylesEtc}
+                onChangeText={v => setForm(p => ({ ...p, stylesEtc: v }))}
+                maxLength={60}
+            />
 
             <SectionLabel label={t('shop.writeForm.materialFeeLabel' as any)} />
-            <TextInput style={s.input} placeholder={t('shop.writeForm.materialFeePlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.materialFee} onChangeText={v => setForm(p => ({ ...p, materialFee: v.replace(/[^0-9]/g, '') }))} keyboardType="numeric" />
+            <MoneyInput style={s.input} placeholder={t('shop.writeForm.materialFeePlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.materialFee} onChangeValue={v => setForm(p => ({ ...p, materialFee: v }))} />
 
             <SectionLabel label={t('shop.writeForm.workPeriodLabel' as any)} required />
             <TextInput style={s.input} placeholder={t('shop.writeForm.workPeriodPlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.workPeriod} onChangeText={v => setForm(p => ({ ...p, workPeriod: v }))} maxLength={50} />
@@ -597,9 +631,9 @@ const MediaExpertForm = ({ form, setForm, writeLang }: {
 
             <SectionLabel label={t('shop.writeForm.priceRangeLabel' as any)} />
             <View style={s.row}>
-                <TextInput style={[s.input, s.flex1]} placeholder={t('shop.writeForm.priceMinPlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.priceMin} onChangeText={v => setForm(p => ({ ...p, priceMin: v.replace(/[^0-9]/g, '') }))} keyboardType="numeric" />
+                <MoneyInput style={[s.input, s.flex1]} placeholder={t('shop.writeForm.priceMinPlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.priceMin} onChangeValue={v => setForm(p => ({ ...p, priceMin: v }))} />
                 <Text style={s.rangeSep}>~</Text>
-                <TextInput style={[s.input, s.flex1]} placeholder={t('shop.writeForm.priceMaxPlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.priceMax} onChangeText={v => setForm(p => ({ ...p, priceMax: v.replace(/[^0-9]/g, '') }))} keyboardType="numeric" />
+                <MoneyInput style={[s.input, s.flex1]} placeholder={t('shop.writeForm.priceMaxPlaceholder' as any)} placeholderTextColor={COLORS.gray2} value={form.priceMax} onChangeValue={v => setForm(p => ({ ...p, priceMax: v }))} />
             </View>
 
             <SectionLabel label={writeLang === 'ko' ? t('shop.writeForm.introStyleLabel' as any) : "Description (English)"} required />
@@ -715,11 +749,12 @@ const ShopWriteScreen = () => {
                     stencilType: (a.stencilType as ShareStencil) ?? '',
                     hasPhotoZone: !!a.hasPhotoZone,
                     bedCount: (a.bedCount as BoothForm['bedCount']) ?? '',
-                    lighting: (a.lighting as BoothForm['lighting']) ?? '',
+                    lighting: Array.isArray(a.lighting) ? (a.lighting as string[]) : (a.lighting ? [a.lighting as string] : []),
                     maxOccupancy: a.maxOccupancy != null ? String(a.maxOccupancy) : '',
                     description: post.description ?? '',
                     descriptionEn: post.descriptionEn ?? '',
                     contact: post.contact ?? '',
+                    openChat: typeof a.openChat === 'string' ? a.openChat : '',
                 });
             } else if (post.category === 'booth_share_overseas') {
                 setCategory('부스 쉐어');
@@ -735,7 +770,7 @@ const ShopWriteScreen = () => {
                     stencilType: (a.stencilType as ShareStencil) ?? '',
                     hasPhotoZone: !!a.hasPhotoZone,
                     bedCount: (a.bedCount as OverseasBoothForm['bedCount']) ?? '',
-                    lighting: (a.lighting as OverseasBoothForm['lighting']) ?? '',
+                    lighting: Array.isArray(a.lighting) ? (a.lighting as string[]) : (a.lighting ? [a.lighting as string] : []),
                     description: post.description ?? '',
                     descriptionEn: post.descriptionEn ?? '',
                     contact: post.contact ?? '',
@@ -746,7 +781,8 @@ const ShopWriteScreen = () => {
                     title: post.title ?? '',
                     titleEn: post.titleEn ?? '',
                     region: post.region ?? '',
-                    styles: Array.isArray(a.styles) ? (a.styles as string[]) : [],
+                    styles: (Array.isArray(a.styles) ? (a.styles as string[]) : []).filter((sv) => STYLE_OPTS.includes(sv)),
+                    stylesEtc: (Array.isArray(a.styles) ? (a.styles as string[]) : []).filter((sv) => !STYLE_OPTS.includes(sv)).join(', '),
                     materialFee: a.materialFee != null ? String(a.materialFee) : '',
                     workPeriod: (a.workPeriod as string) ?? '',
                     description: post.description ?? '',
@@ -841,7 +877,7 @@ const ShopWriteScreen = () => {
                         stencilType: f.stencilType || null,
                         hasPhotoZone: f.hasPhotoZone,
                         bedCount: f.bedCount,
-                        lighting: f.lighting || null,
+                        lighting: f.lighting.length ? f.lighting : null,
                     },
                 };
             }
@@ -860,8 +896,9 @@ const ShopWriteScreen = () => {
                     stencilType: boothForm.stencilType || null,
                     hasPhotoZone: boothForm.hasPhotoZone,
                     bedCount: boothForm.bedCount,
-                    lighting: boothForm.lighting || null,
+                    lighting: boothForm.lighting.length ? boothForm.lighting : null,
                     maxOccupancy: boothForm.maxOccupancy ? Number(boothForm.maxOccupancy) : null,
+                    openChat: boothForm.openChat.trim() || null,
                 },
             };
         }
@@ -877,7 +914,10 @@ const ShopWriteScreen = () => {
                 contact: modelForm.contact.trim() || null,
                 priceKrw: modelForm.materialFee ? Number(modelForm.materialFee) : null,
                 attributes: {
-                    styles: modelForm.styles,
+                    styles: Array.from(new Set([
+                        ...modelForm.styles,
+                        ...modelForm.stylesEtc.split(',').map((x) => x.trim()).filter(Boolean),
+                    ])),
                     workPeriod: modelForm.workPeriod.trim(),
                 },
             };

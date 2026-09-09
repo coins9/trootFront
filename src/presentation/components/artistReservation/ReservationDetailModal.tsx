@@ -1,13 +1,14 @@
-import React, { memo, useEffect, useRef, useCallback } from 'react';
+import React, { memo, useEffect, useRef, useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, Animated,
-  Dimensions,
+  Dimensions, Image, ScrollView, FlatList, StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/colors';
 import {
   XIcon, CalendarIcon, ClockOutlineIcon, PaletteIcon, ChatBubbleIcon,
   RefreshIcon, EditPenIcon, PersonSilhouette, CheckCircleIcon,
+  PhoneIcon, ImageMountainIcon,
 } from '../icons';
 import { BookingStatus } from '../../../domain/entities/artistScheduleTypes';
 import { useTranslation } from '../../store/languageStore';
@@ -25,6 +26,10 @@ export interface ReservationDetail {
   timeLabel: string;
   dateLabel: string;
   kind: 'procedure' | 'consulting' | 'retouch' | 'meeting' | 'break';
+  // [11] 고객이 요청서에 첨부한 레퍼런스 사진 (확정 예약에서도 열람)
+  referenceImages?: string[];
+  // 고객 연락처 (오픈톡 이탈 대비 2중 저장) — 확정 예약에서 바로 확인
+  contact?: string;
 }
 
 interface Props {
@@ -36,7 +41,7 @@ interface Props {
   onEdit: (id: string) => void;
 }
 
-const { height: SH } = Dimensions.get('window');
+const { height: SH, width: SW } = Dimensions.get('window');
 
 const kindIcon = (kind: ReservationDetail['kind']) => {
   switch (kind) {
@@ -55,6 +60,16 @@ const ReservationDetailModal = memo(({
   const translate = useRef(new Animated.Value(SH)).current;
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  // [11] 레퍼런스 사진 확대 뷰어 — 중첩 Modal(iOS 프리즈) 대신 같은 Modal 내부 인라인 오버레이
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const refImages = (detail?.referenceImages ?? []).filter(Boolean);
+
+  const openViewer = useCallback((i: number) => setViewerIndex(i), []);
+  const closeViewer = useCallback(() => setViewerIndex(null), []);
+
+  useEffect(() => {
+    if (!visible) setViewerIndex(null);
+  }, [visible]);
 
   const kindLabel = (kind: ReservationDetail['kind']): string => {
     switch (kind) {
@@ -215,7 +230,45 @@ const ReservationDetailModal = memo(({
                   </Text>
                 </View>
               )}
+              {/* 고객 연락처 — 오픈톡이 끊겨도 작가가 직접 연락 가능 (2중 안전장치) */}
+              {detail.contact ? (
+                <View style={styles.metaRow}>
+                  <PhoneIcon size={16} color={COLORS.gold} strokeWidth={1.7} />
+                  <Text style={styles.metaLabel}>{t('reservation.detailMetaContact')}</Text>
+                  <Text style={[styles.metaValue, styles.contactValue]} selectable>
+                    {detail.contact}
+                  </Text>
+                </View>
+              ) : null}
             </View>
+
+            {/* [11] 레퍼런스 사진 — 고객이 요청서에 첨부한 사진이 확정 예약에서도 이어짐 */}
+            {refImages.length > 0 && (
+              <View style={styles.refBlock}>
+                <View style={styles.refLabelRow}>
+                  <ImageMountainIcon size={15} color={COLORS.gold} strokeWidth={1.7} />
+                  <Text style={styles.refLabel}>
+                    {t('reservation.detailReferenceLabel').replace('{{count}}', String(refImages.length))}
+                  </Text>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.refThumbRow}
+                >
+                  {refImages.map((uri, i) => (
+                    <TouchableOpacity
+                      key={`${uri}-${i}`}
+                      activeOpacity={0.85}
+                      onPress={() => openViewer(i)}
+                      style={styles.refThumbWrap}
+                    >
+                      <Image source={{ uri }} style={styles.refThumb} resizeMode="cover" />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
             {/* Memo */}
             {detail.memo && (
@@ -284,6 +337,43 @@ const ReservationDetailModal = memo(({
           </Pressable>
         </Animated.View>
       </Pressable>
+
+      {/* [11] 레퍼런스 사진 확대 — 같은 Modal 내부 인라인 오버레이(중첩 Modal 회피) */}
+      {viewerIndex !== null && refImages.length > 0 && (
+        <View style={styles.viewer}>
+          <StatusBar barStyle="light-content" backgroundColor="#000" />
+          <FlatList
+            data={refImages}
+            keyExtractor={(_, i) => `refzoom-${i}`}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={viewerIndex}
+            getItemLayout={(_, index) => ({ length: SW, offset: SW * index, index })}
+            renderItem={({ item }) => (
+              <ScrollView
+                style={{ width: SW, height: SH }}
+                contentContainerStyle={styles.viewerImageContent}
+                maximumZoomScale={4}
+                minimumZoomScale={1}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+                centerContent
+              >
+                <Image source={{ uri: item }} style={{ width: SW, height: SH }} resizeMode="contain" />
+              </ScrollView>
+            )}
+          />
+          <TouchableOpacity
+            style={[styles.viewerClose, { top: insets.top + 12 }]}
+            onPress={closeViewer}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.8}
+          >
+            <XIcon size={22} color={COLORS.white} />
+          </TouchableOpacity>
+        </View>
+      )}
     </Modal>
   );
 });
@@ -454,6 +544,65 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 13,
     lineHeight: 19,
+  },
+  contactValue: {
+    color: COLORS.gold,
+    fontWeight: '700',
+  },
+
+  refBlock: {
+    marginBottom: 18,
+    gap: 8,
+  },
+  refLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  refLabel: {
+    color: COLORS.gold,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
+  },
+  refThumbRow: {
+    gap: 8,
+    paddingRight: 4,
+  },
+  refThumbWrap: {
+    width: 76,
+    height: 76,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.elevated,
+  },
+  refThumb: {
+    width: '100%',
+    height: '100%',
+  },
+
+  viewer: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: '#000',
+  },
+  viewerImageContent: {
+    width: SW,
+    height: SH,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  viewerClose: {
+    position: 'absolute',
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   actionsRow: {
