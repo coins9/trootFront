@@ -67,9 +67,16 @@ const MyProfileScreen = () => {
     setAvatarUri(session?.user?.profileImage ?? null);
   }, [session?.user?.profileImage]);
 
-  // 모드별 아바타: 아티스트 모드이면 아티스트 페이지 프로필 이미지 우선
-  const currentAvatar =
-    mode === 'artist' ? (artistInfo?.profileImage ?? avatarUri) : avatarUri;
+  // 모드별 아바타 — 일반/아티스트/용품샵/샵앤매칭이 각각 자기 프로필 사진을 쓴다.
+  // 해당 모드 사진이 없으면 일반(user) 아바타로 폴백.
+  const currentAvatar = (() => {
+    switch (mode) {
+      case 'artist':       return artistInfo?.profileImage ?? avatarUri;
+      case 'vendor':       return vendorInfo?.profileImage ?? avatarUri;
+      case 'shopMatching': return session?.user?.shopProfileImage ?? avatarUri;
+      default:             return avatarUri;
+    }
+  })();
 
   // Restore persisted mode on mount
   useEffect(() => {
@@ -106,16 +113,20 @@ const MyProfileScreen = () => {
     setAvatarUploading(true);
     try {
       const publicUrl = await uploadImage('profile', { uri: asset.uri, type: asset.type, fileSize: asset.fileSize });
-      await userApi.updateProfileImage(publicUrl);
-      await patchUser({ profileImage: publicUrl });
-      setAvatarUri(publicUrl);
-      // [13] 작가 페이지가 있으면 작가 프로필 사진도 같은 값으로 동기화해
-      // 첫 화면에서 바꾼 사진이 작가 프로필/상세/Root's Pick 에 즉시 반영되게 한다.
-      if (artistInfo) {
-        try {
-          await artistApi.updateMe({ profileImage: publicUrl } as any);
-          setArtistInfo((prev) => (prev ? { ...prev, profileImage: publicUrl } : prev));
-        } catch {}
+      // 현재 모드의 프로필 사진만 갱신 — 모드별로 각각 다른 사진을 유지
+      if (mode === 'artist' && artistInfo) {
+        await artistApi.updateMe({ profileImage: publicUrl } as any);
+        setArtistInfo((prev) => (prev ? { ...prev, profileImage: publicUrl } : prev));
+      } else if (mode === 'vendor' && vendorInfo) {
+        await supplyVendorApi.updateVendor({ profileImage: publicUrl });
+        setVendorInfo((prev) => (prev ? { ...prev, profileImage: publicUrl } : prev));
+      } else if (mode === 'shopMatching') {
+        await userApi.updateShopProfileImage(publicUrl);
+        await patchUser({ shopProfileImage: publicUrl } as any);
+      } else {
+        await userApi.updateProfileImage(publicUrl);
+        await patchUser({ profileImage: publicUrl });
+        setAvatarUri(publicUrl);
       }
       toast(t('account.saved'), { variant: 'success' });
     } catch {
@@ -123,7 +134,7 @@ const MyProfileScreen = () => {
     } finally {
       setAvatarUploading(false);
     }
-  }, [patchUser, toast, t, artistInfo]);
+  }, [mode, patchUser, toast, t, artistInfo, vendorInfo]);
 
   /* ── Mode switching with registration guards ── */
   const handleTabPress = useCallback((next: ProfileMode) => {

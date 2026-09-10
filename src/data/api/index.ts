@@ -238,6 +238,7 @@ export interface Studio {
   id: string;
   name: string;
   address: string;
+  info: string | null;
   lat: number | null;
   lng: number | null;
   inviteCode: string;
@@ -312,6 +313,8 @@ export const studioApi = {
   mine: () => api.get<Studio | null>('/app/studios/me'),
   register: (body: { name: string; address: string; lat?: number; lng?: number }) =>
     api.post<Studio>('/app/studios', body),
+  updateMine: (body: { name?: string; address?: string; info?: string }) =>
+    api.patch<Studio>('/app/studios/me', body),
   join: (code: string) =>
     api.post<{ studio: Studio; member: StudioMember }>('/app/studios/join', { code }),
   members: (studioId: string) =>
@@ -638,7 +641,8 @@ export const reportApi = {
 export const userApi = {
   me: () => api.get<{
     id: string; nickname: string | null; email: string | null;
-    profileImage: string | null; activeRole: string; roles: string[];
+    profileImage: string | null; shopProfileImage: string | null;
+    activeRole: string; roles: string[];
     onboarded: boolean; language: string; status: string;
   }>('/app/users/me'),
 
@@ -650,6 +654,7 @@ export const userApi = {
 
   updateNickname: (nickname: string) => api.patch('/app/users/me/nickname', { nickname }),
   updateProfileImage: (profileImage: string) => api.patch('/app/users/me/profile-image', { profileImage }),
+  updateShopProfileImage: (shopProfileImage: string) => api.patch('/app/users/me/shop-image', { shopProfileImage }),
   updateLanguage: (language: string) => api.patch('/app/users/me/language', { language }),
   updateFcmToken: (fcmToken: string, platform: 'ios' | 'android') =>
     api.patch('/app/users/me/fcm-token', { fcmToken, platform }),

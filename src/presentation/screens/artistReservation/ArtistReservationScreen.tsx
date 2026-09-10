@@ -33,12 +33,14 @@ import ReservationDetailModal, {
   ReservationDetail,
 } from '../../components/artistReservation/ReservationDetailModal';
 import ShopInviteSection from '../../components/artistReservation/ShopInviteSection';
+import StudioInfoCard from '../../components/artistReservation/StudioInfoCard';
 import ShopOnboarding from '../../components/artistReservation/ShopOnboarding';
 import NewReservationSheet from '../../components/artistReservation/NewReservationSheet';
 import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
+import { useAuthStore } from '../../store/authStore';
 
 if (
     Platform.OS === 'android' &&
@@ -586,6 +588,7 @@ const ArtistReservationScreen = () => {
   const navigation = useNavigation<Nav>();
   const { toast } = useToast();
   const { t, language } = useTranslation();
+  const currentUserId = useAuthStore((s) => s.session?.user?.id ?? null);
   const todayRef = useRef<Date>(new Date());
   const today = todayRef.current;
 
@@ -1186,13 +1189,21 @@ const ArtistReservationScreen = () => {
                 {studioLoading ? (
                     <ActivityIndicator size="large" color={COLORS.gold} style={{ marginTop: 40 }} />
                 ) : studio ? (
-                    <ShopInviteSection
-                        studioId={studio.id}
-                        shopName={studio.name}
-                        inviteCode={studio.inviteCode}
-                        inviteCodeExpiresAt={studio.inviteCodeExpiresAt}
-                        onCodeRefreshed={handleCodeRefreshed}
-                    />
+                    <>
+                      {/* [#3] 주소 밑 정보(소개·영업시간·공지) — 오너만 편집 */}
+                      <StudioInfoCard
+                          studio={studio}
+                          isOwner={studio.ownerId === currentUserId}
+                          onUpdated={setStudio}
+                      />
+                      <ShopInviteSection
+                          studioId={studio.id}
+                          shopName={studio.name}
+                          inviteCode={studio.inviteCode}
+                          inviteCodeExpiresAt={studio.inviteCodeExpiresAt}
+                          onCodeRefreshed={handleCodeRefreshed}
+                      />
+                    </>
                 ) : (
                     <ShopOnboarding
                         onRegister={handleShopRegister}
@@ -1421,6 +1432,8 @@ const ArtistReservationScreen = () => {
                     <XIcon size={20} color={COLORS.gray} />
                   </TouchableOpacity>
                 </View>
+                {/* 일정이 많아도 아래까지 스크롤로 볼 수 있게 감싼다 */}
+                <ScrollView style={styles.popupScroll} showsVerticalScrollIndicator={false}>
                 {dayPopupItems.length === 0 ? (
                     <Text style={styles.popupEmpty}>{t('reservation.evEmpty' as any)}</Text>
                 ) : (
@@ -1469,6 +1482,7 @@ const ArtistReservationScreen = () => {
                       );
                     })
                 )}
+                </ScrollView>
               </View>
             </Pressable>
           </Pressable>
@@ -2253,12 +2267,16 @@ const styles = StyleSheet.create({
   },
   popupCard: {
     width: '100%',
+    maxHeight: '75%',
     backgroundColor: COLORS.card,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingBottom: 8,
     overflow: 'hidden',
+  },
+  popupScroll: {
+    flexGrow: 0,
   },
   popupHeader: {
     flexDirection: 'row',

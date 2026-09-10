@@ -22,6 +22,8 @@ export interface AuthUser {
   activeRole?: AccountRole;
   roles?: AccountRole[];
   profileImage?: string | null;
+  // 샵앤매칭 모드 전용 프로필 사진 (모드별 사진 분리)
+  shopProfileImage?: string | null;
   onboarded: boolean;
   language?: string;
 }

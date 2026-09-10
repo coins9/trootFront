@@ -15,6 +15,7 @@ export interface MyVendor {
   status: VendorStatus;
   productCount: number;
   openChatUrl: string | null;
+  profileImage: string | null;
   inquiryCount: number;
   createdAt: string;
 }
@@ -127,7 +128,7 @@ export const supplyVendorApi = {
 
   updateVendor: (body: {
     openChatUrl?: string; name?: string; businessNo?: string;
-    ecommerceRegNo?: string; contactEmail?: string;
+    ecommerceRegNo?: string; contactEmail?: string; profileImage?: string;
   }) => api.patch<MyVendor>('/app/supplies/vendors/me', body),
 
   trackProductInquiry: (id: string) =>

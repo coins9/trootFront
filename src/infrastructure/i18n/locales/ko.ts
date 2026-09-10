@@ -1518,6 +1518,14 @@ export const ko = {
     toastInvalidCode: '초대코드는 6자리 대문자·숫자 조합입니다.',
   },
 
+  shopInfo: {
+    edit: '편집',
+    editTitle: '샵 정보 편집',
+    editDesc: '주소 밑에 노출할 소개·영업시간·공지 등을 자유롭게 입력하세요.',
+    placeholder: '예) 영업시간 12:00~21:00 / 주차 가능 / 예약제 운영',
+    addHint: '+ 소개 · 영업시간 · 공지 추가하기',
+    saved: '샵 정보가 저장되었습니다.',
+  },
   shopInvite: {
     sendCodeTitle: '초대코드 발송',
     sendCodeDesc: '샵에 합류시킬 아티스트에게 코드를 공유하세요.',

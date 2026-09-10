@@ -1521,6 +1521,14 @@ export const en: TranslationSchema = {
     toastInvalidCode: 'Invite code must be 6 uppercase letters or digits.',
   },
 
+  shopInfo: {
+    edit: 'Edit',
+    editTitle: 'Edit shop info',
+    editDesc: 'Add an intro, hours, or notices to show under the address.',
+    placeholder: 'e.g. Hours 12:00-21:00 / Parking available / By appointment',
+    addHint: '+ Add intro, hours, or notice',
+    saved: 'Shop info saved.',
+  },
   shopInvite: {
     sendCodeTitle: 'Send Invite Code',
     sendCodeDesc: 'Share the code with artists you want to invite.',
