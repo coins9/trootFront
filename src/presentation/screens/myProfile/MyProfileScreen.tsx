@@ -20,7 +20,7 @@ import {
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
 import { useAuthStore } from '../../store/authStore';
-import { artistApi, type ArtistPage, userApi } from '../../../data/api';
+import { artistApi, type ArtistPage, userApi, reservationApi } from '../../../data/api';
 import { uploadImage } from '../../../data/api/upload';
 import { supplyVendorApi, type MyVendor } from '../../../data/api/vendor';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
@@ -97,6 +97,15 @@ const MyProfileScreen = () => {
     supplyVendorApi.me()
         .then(setVendorInfo)
         .catch(() => setVendorInfo(null));
+  }, [session]);
+
+  // 예약 요청함 빨간 점 — 미응답(REQUESTED) 요청 수. 타투이스트만 조회
+  const [pendingRequests, setPendingRequests] = useState(0);
+  useEffect(() => {
+    if (!session?.user.roles?.includes('TATTOOIST')) { setPendingRequests(0); return; }
+    reservationApi.pendingCount()
+        .then((r) => setPendingRequests(r.count))
+        .catch(() => {});
   }, [session]);
 
   /* ── Navigation helpers ── */
@@ -282,6 +291,7 @@ const MyProfileScreen = () => {
       label: t('profile.reservationRequests'),
       description: t('profile.artistDescRequests'),
       onPress: goTo('ArtistReservationRequests'),
+      badge: pendingRequests > 0 ? (pendingRequests > 99 ? '99+' : String(pendingRequests)) : undefined,
     },
     {
       Icon: CalendarIcon,
@@ -295,7 +305,7 @@ const MyProfileScreen = () => {
       description: t('profile.artistDescAdStats'),
       onPress: goTo('ArtistAdStats'),
     },
-  ], [t, goTo, navigation]);
+  ], [t, goTo, navigation, pendingRequests]);
 
   const vendorMenuItems: (MenuItem & { description: string })[] = useMemo(() => [
     {
@@ -678,6 +688,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.gold,
+    backgroundColor: '#FF3B30',
   },
 });

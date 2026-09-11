@@ -221,6 +221,10 @@ export const reservationApi = {
   countByArtwork: () =>
     api.get<Record<string, number>>('/app/reservations/artist/counts-by-artwork'),
 
+  /** 예약 요청함 빨간 점 — 미응답(REQUESTED) 요청 수 */
+  pendingCount: () =>
+    api.get<{ count: number }>('/app/reservations/artist/pending-count'),
+
   detail: (id: string) => api.get<Reservation>(`/app/reservations/${id}`),
 
   changeStatus: (id: string, status: ReservationStatus, reason?: string) =>
@@ -573,9 +577,9 @@ export const adApi = {
   serving: (placement: AdPlacement, type: AdType, regionKey?: string, genreKey?: string) =>
     api.get<AdCampaign[]>(`/app/ads/serving${qs({ placement, type, regionKey, genreKey })}`),
   /** 홈 피드용 — 카드광고 + 슈퍼UP + 배너 캠페인을 대상 작품 정보와 함께 받아온다 */
-  servingArtworks: (regionKey?: string, genreKey?: string) =>
+  servingArtworks: (seg: { regionKey?: string; regionFamily?: string; genreKey?: string } = {}) =>
     api.get<{ campaignId: string; type: AdType; artwork: Artwork | null }[]>(
-      `/app/ads/serving/artworks${qs({ regionKey, genreKey })}`,
+      `/app/ads/serving/artworks${qs({ regionKey: seg.regionKey, regionFamily: seg.regionFamily, genreKey: seg.genreKey })}`,
     ),
   /** 노출 집계 — ACTIVE 캠페인만 카운트됨 */
   impression: (campaignId: string) => api.post<{ tracked: boolean }>(`/app/ads/${campaignId}/impression`),

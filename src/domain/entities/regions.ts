@@ -65,3 +65,23 @@ export const inferRegionCode = (address: string): string => {
   if (/제주/.test(a)) return 'jeju';
   return 'etc';
 };
+
+/**
+ * 홈 피드 광고 조회용 지역 파라미터.
+ * 앱의 시/도·시/군/구(한글) 선택을 광고 세그먼트 코드(regionKey/regionFamily)로 변환한다.
+ * 광고는 이 코드로 저장되므로(regionKey), 어휘를 맞춰야 지역 광고가 실제로 매칭된다.
+ *  - 세부 지역(구/군)까지 선택 → 정확한 코드(regionKey) 하나
+ *  - 시/도만 선택 → 서울은 하위 구역이 여러 개라 계열 전체(regionFamily 'seoul'),
+ *                   그 외 시/도는 단일 코드(regionKey)
+ *  - 미선택 → 둘 다 없음(지역 필터 미적용)
+ */
+export const feedAdRegion = (
+  city: string | null | undefined,
+  district: string | null | undefined,
+): { regionKey?: string; regionFamily?: string } => {
+  if (!city) return {};
+  const code = inferRegionCode(`${city} ${district ?? ''}`.trim());
+  if (district) return { regionKey: code };
+  if (code.startsWith('seoul_')) return { regionFamily: 'seoul' };
+  return { regionKey: code };
+};

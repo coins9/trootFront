@@ -28,6 +28,7 @@ import { ApiError } from '../../../data/api/client';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
 import { adaptyService } from '../../../infrastructure/adapty/adaptyService';
+import { inferRegionCode } from '../../../domain/entities/regions';
 
 const FMT_DATE = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) : '-';
@@ -238,12 +239,15 @@ const AdStatsScreen = () => {
   }, [executePurchase, activeItem]);
 
   const handleCardAdPurchase = useCallback((plan: CardAdPlan) => {
-    const regionKey = artistProfile?.regionSido ?? undefined;
-    if (!regionKey) {
+    const sido = artistProfile?.regionSido;
+    if (!sido) {
       toast(t('adStats.regionRequired'), { variant: 'error' });
       return;
     }
-    void executePurchase(plan.id, 'cardad', activeItem?.artworkId, regionKey); // 👈 void 추가
+    // 광고 세그먼트 코드로 변환 — 프로필의 한글 지역을 표준 regionKey(seoul_gangnam 등)로 맞춰야
+    // 홈 피드의 지역 매칭이 실제로 성립한다(한글 '서울' 저장 시 영영 매칭되지 않던 문제 수정).
+    const regionKey = inferRegionCode(`${sido} ${artistProfile?.regionSigungu ?? ''}`.trim());
+    void executePurchase(plan.id, 'cardad', activeItem?.artworkId, regionKey);
   }, [executePurchase, activeItem, artistProfile, toast, t]);
 
   const handleBannerAdPurchase = useCallback((plan: BannerAdPlan) => {

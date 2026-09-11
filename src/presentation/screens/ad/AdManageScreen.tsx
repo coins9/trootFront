@@ -14,6 +14,7 @@ import {
   adApi, type AdCampaign, type AdPlacement, type AdProduct, type AdType,
 } from '../../../data/api';
 import { REGIONS } from '../../../domain/entities/regions';
+import { adaptyService } from '../../../infrastructure/adapty/adaptyService';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
 
@@ -79,14 +80,23 @@ const AdManageScreen = () => {
   const purchase = useCallback(
       async (type: AdType, productCode: string, regionKey: string) => {
         try {
-          // 1단계: PENDING 캠페인 생성
-          const campaign = await adApi.purchase({ placement, type, productCode, targetId, regionKey });
-          // 2단계: 결제 확인 (PG 연동 전이므로 즉시 활성화)
+          // 1단계: 실제 결제(Adapty IAP). 결제가 성공해야만 캠페인을 만들고 활성화한다.
+          //   (이전엔 결제 없이 곧바로 activate 해서 '미결제 광고가 진행중'으로 뜨던 문제 → 수정)
+          await adaptyService.purchaseAdProduct(productCode);
+          // 2단계: 결제 확인 후 PENDING 캠페인 생성 → 활성화
+          const campaign = await adApi.purchase({ placement, type, productCode, targetId, regionKey: regionKey || undefined });
           await adApi.activate(campaign.id);
           setBuyOpen(false);
           toast(t('ad.registered' as any), { variant: 'success' });
           void load(true);
         } catch (e) {
+          // 사용자가 결제창을 닫은 경우(취소)는 오류로 취급하지 않는다
+          const cancelled =
+              (e as any)?.adaptyCode === 2 ||
+              (e as any)?.code === 'paymentCancelled' ||
+              (e as any)?.code === 'E_USER_CANCELLED' ||
+              String(e).toLowerCase().includes('cancel');
+          if (cancelled) return;
           toast(e instanceof ApiError ? e.userMessage : t('ad.registerFailed' as any), { variant: 'error' });
         }
       },

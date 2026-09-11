@@ -22,6 +22,7 @@ import { artistApi, favoriteApi, adApi, type AdType } from '../../../data/api';
 import { toTattoo } from '../../../data/api/mappers';
 import { FilterType, Tattoo, Artist } from '../../../domain/entities/types';
 import { HomeAd } from '../../../domain/entities/adTypes';
+import { feedAdRegion } from '../../../domain/entities/regions';
 import HomeAdBanner from '../../components/home/HomeAdBanner';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useFilterStore } from '../../store/filterStore';
@@ -66,22 +67,19 @@ const HomeScreen = () => {
   );
 
   // 🚨 1. 화면(탭)에 다시 돌아올 때마다 피드와 광고 데이터를 최신으로 갱신
-  // Fallback: 세그먼트 매칭 광고가 없으면 전체 활성 광고로 대체 (당근·번개 방식)
+  // 지역 광고는 반드시 선택 지역(또는 전국)만 노출한다.
+  // 예전엔 세그먼트 불일치 시 "전체 광고"로 폴백해 다른 지역 광고가 새어 나왔다 → 제거.
   const hasFocused = useRef(false);
   const { data: adArtworks, reload: reloadAds } = useApi(
       async () => {
-        const regionKey = regionMode === 'domestic' ? (region.city ?? undefined) : undefined;
+        // 앱의 한글 시/도·구 선택을 광고 세그먼트 코드로 변환(어휘 일치 → 지역 매칭 성립)
+        const seg = regionMode === 'domestic'
+          ? feedAdRegion(region.city, region.district)
+          : {};
         const genreKey = genres[0] ?? undefined;
-        // 1차: 현재 필터 세그먼트 매칭 광고
-        const segmented = await adApi.servingArtworks(regionKey, genreKey);
-        if (segmented.length > 0) return segmented;
-        // Fallback: 세그먼트 불일치 시 targeting 없이 전체 활성 광고 요청
-        if (regionKey || genreKey) {
-          return adApi.servingArtworks(undefined, undefined);
-        }
-        return segmented;
+        return adApi.servingArtworks({ ...seg, genreKey });
       },
-      [regionMode, region.city, genres],
+      [regionMode, region.city, region.district, genres],
   );
 
   useFocusEffect(

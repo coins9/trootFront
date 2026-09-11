@@ -50,7 +50,7 @@ const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooC
         <View style={styles.imageWrapper}>
           {/* 🚨 3. images 배열 자체가 없을 때를 대비한 옵셔널 체이닝(?.) 적용 */}
           {tattoo.images?.[0] ? (
-              <CachedImage uri={tattoo.images[0]} style={styles.image} resizeMode="cover" />
+              <CachedImage uri={tattoo.images[0]} style={styles.image} resizeMode="cover" thumbWidth={Math.round(CARD_WIDTH * 2)} />
           ) : (
               <View style={styles.placeholder}>
                 <TattooPlaceholderIcon size={56} color="#2e2e2e" />
@@ -92,7 +92,7 @@ const TattooCard = memo(({ tattoo, onPress, onArtistPress, onBookmark }: TattooC
             <View style={[styles.avatarOuter, isMaster && styles.avatarOuterMaster]}>
               <View style={styles.avatarWrapper}>
                 {tattoo.artist?.profileImage ? (
-                    <CachedImage uri={tattoo.artist.profileImage} style={styles.avatar} resizeMode="cover" />
+                    <CachedImage uri={tattoo.artist.profileImage} style={styles.avatar} resizeMode="cover" thumbWidth={64} />
                 ) : (
                     <PersonSilhouette size={24} color="#3a3a3a" />
                 )}

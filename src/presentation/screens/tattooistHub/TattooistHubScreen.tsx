@@ -14,7 +14,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from '../../store/languageStore';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 // 🚨 1. 최신 유저 권한 확인을 위해 api 임포트 추가
-import { userApi } from '../../../data/api';
+import { userApi, reservationApi } from '../../../data/api';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -23,12 +23,19 @@ interface MenuItemProps {
   title: string;
   description: string;
   onPress: () => void;
+  /** 미응답 요청 수 — >0 이면 아이콘에 빨간 점(숫자) 표시 */
+  badgeCount?: number;
 }
 
-const MenuItem = ({ Icon, title, description, onPress }: MenuItemProps) => (
+const MenuItem = ({ Icon, title, description, onPress, badgeCount = 0 }: MenuItemProps) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.75}>
       <View style={styles.menuIcon}>
         <Icon size={22} color={COLORS.gold} />
+        {badgeCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{badgeCount > 99 ? '99+' : badgeCount}</Text>
+            </View>
+        )}
       </View>
       <View style={styles.menuText}>
         <Text style={styles.menuTitle}>{title}</Text>
@@ -47,17 +54,28 @@ const TattooistHubScreen = () => {
   // 🚨 3. 세션 값과 최신 서버 Role을 동기화하기 위한 로컬 상태
   const sessionIsArtist = session?.user.roles?.includes('TATTOOIST') ?? false;
   const [isArtist, setIsArtist] = useState(sessionIsArtist);
+  // 예약 요청함 빨간 점 — 미응답 요청 수
+  const [pendingRequests, setPendingRequests] = useState(0);
 
   useEffect(() => {
     setIsArtist(sessionIsArtist);
   }, [sessionIsArtist]);
 
   // 🚨 4. 사용자가 타투이스트 등록 후 뒤로가기로 돌아왔을 때, 즉시 권한을 갱신하는 로직
+  //        + 예약 요청함에 쌓인 미응답 건수를 함께 갱신해 빨간 점을 최신화
   useFocusEffect(
       useCallback(() => {
         userApi.me()
             .then((data) => {
-              setIsArtist(data.roles.includes('TATTOOIST'));
+              const artist = data.roles.includes('TATTOOIST');
+              setIsArtist(artist);
+              if (artist) {
+                reservationApi.pendingCount()
+                    .then((r) => setPendingRequests(r.count))
+                    .catch(() => {});
+              } else {
+                setPendingRequests(0);
+              }
             })
             .catch(() => {});
       }, [])
@@ -119,6 +137,7 @@ const TattooistHubScreen = () => {
                         title={t('tattooistHub.requests')}
                         description={t('tattooistHub.requestsDesc')}
                         onPress={goRequests}
+                        badgeCount={pendingRequests}
                     />
                   </View>
                 </View>
@@ -213,6 +232,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    backgroundColor: '#FF3B30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.card,
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800', lineHeight: 14 },
   menuText: { flex: 1 },
   menuTitle: {
     fontSize: 15,
