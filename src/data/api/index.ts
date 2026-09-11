@@ -315,6 +315,11 @@ export interface StudioScheduleEntry {
 
 export const studioApi = {
   mine: () => api.get<Studio | null>('/app/studios/me'),
+  /** 공개 프로필용 — 해당 유저가 속한 샵의 이름·주소·소개(없으면 null) */
+  byUser: (userId: string) =>
+    api.get<{ id: string; name: string; address: string; info: string | null } | null>(
+      `/app/studios/by-user/${userId}`,
+    ),
   register: (body: { name: string; address: string; lat?: number; lng?: number }) =>
     api.post<Studio>('/app/studios', body),
   updateMine: (body: { name?: string; address?: string; info?: string }) =>

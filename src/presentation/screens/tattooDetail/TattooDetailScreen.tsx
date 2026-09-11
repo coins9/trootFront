@@ -225,7 +225,7 @@ const TattooDetailScreen = () => {
               </View>
               <View style={styles.artistCardInfo}>
                 <Text style={styles.artistCardLabel}>{t('booking.tattooist' as any)}</Text>
-                <Text style={styles.artistCardName}>{tattoo.artist?.nickname}</Text>
+                <Text style={styles.artistCardName} numberOfLines={1}>{tattoo.artist?.nickname}</Text>
                 <View style={styles.artistRatingRow}>
                   <StarIcon size={13} color={COLORS.gold} filled />
                   <Text style={styles.artistRating}>
@@ -390,6 +390,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
+    flex: 1,
     flexShrink: 1,
   },
   artistAvatarWrapper: {
@@ -412,6 +413,8 @@ const styles = StyleSheet.create({
   },
   artistCardInfo: {
     gap: 2,
+    flex: 1,
+    minWidth: 0,
   },
   artistCardLabel: {
     color: COLORS.gray,

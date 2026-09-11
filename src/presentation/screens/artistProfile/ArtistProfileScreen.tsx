@@ -14,14 +14,15 @@ import {
   BackArrowIcon, ShareIcon, DotsIcon, StarIcon, LocationPinIcon,
   BookmarkIcon, ShieldCheckIcon, LockIcon, ChevronDownIcon, ChevronRightIcon,
   CommentIcon, PersonSilhouette, TattooPlaceholderIcon, ClockIcon, CalendarIcon,
+  StoreIcon,
 } from '../../components/icons';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { usePagedApi, useApi } from '../../hooks/useApi';
-import { artistApi, favoriteApi, reviewApi, reportApi, type ReviewByArtist } from '../../../data/api';
+import { artistApi, favoriteApi, reviewApi, reportApi, studioApi, type ReviewByArtist } from '../../../data/api';
 import { toTattoo, toArtist } from '../../../data/api/mappers';
 import { Tattoo } from '../../../domain/entities/types';
 import { artistTagLabels } from '../../../domain/entities/artistTags';
-import { translateGenre, translateTag } from '../../utils/tagTranslations';
+import { translateGenre, translateBodyPart, translateTag } from '../../utils/tagTranslations';
 import ReportSheet, { ReportReason } from '../../components/report/ReportSheet';
 import { useToast } from '../../components/common/Toast';
 import { useTranslation } from '../../store/languageStore';
@@ -56,14 +57,11 @@ const ArtistProfileScreen = () => {
   const [activeGenreKey, setActiveGenreKey] = useState('all');
   const [sortOrder, setSortOrder] = useState<'recent' | 'popular'>('recent');
 
-  const GRID_GENRES = useMemo(() => [
-    // 🚨 TS2345 방어: t as any 추가
-    { key: 'all', label: t('filter.genreAll' as any) },
-    { key: 'black_grey', label: t('filter.genreBlackGrey' as any) },
-    { key: 'realistic', label: t('filter.genreRealistic' as any) },
-    { key: 'portrait', label: t('filter.genrePortrait' as any) },
-    { key: 'mini', label: t('filter.genreMini' as any) },
-  ], [t]);
+  // 소속 샵(샵오너/소속 아티스트) 공개 정보 — 안내 탭에 샵 이름·주소 노출
+  const { data: studio } = useApi(
+    () => (artist.userId ? studioApi.byUser(artist.userId) : Promise.resolve(null)),
+    [artist.userId],
+  );
 
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -141,6 +139,22 @@ const ArtistProfileScreen = () => {
   );
   const artistTattoos = useMemo(() => artworks.map((a) => toTattoo(a)), [artworks]);
 
+  // 작품 필터 — 하드코딩 대신 실제 등록된 작품의 장르·부위에서 동적으로 생성.
+  // 저장값(라벨)을 그대로 key 로 쓰므로 클릭 시 실제로 필터가 걸린다(부위·장르 모두 매칭).
+  const GRID_GENRES = useMemo(() => {
+    const genreSet = new Set<string>();
+    const bodyPartSet = new Set<string>();
+    artistTattoos.forEach((tt) => {
+      (tt.genres ?? []).forEach((g) => { if (g) genreSet.add(g); });
+      (tt.bodyParts ?? []).forEach((b) => { if (b) bodyPartSet.add(b); });
+    });
+    return [
+      { key: 'all', label: t('filter.genreAll' as any), kind: 'all' as const },
+      ...[...genreSet].map((g) => ({ key: g, label: translateGenre(g, language), kind: 'genre' as const })),
+      ...[...bodyPartSet].map((b) => ({ key: b, label: translateBodyPart(b, language), kind: 'body' as const })),
+    ];
+  }, [artistTattoos, language, t]);
+
   // 🚨 3. 화면 복귀 시 조용히 새로고침 (Silent Reload)
   const hasFocused = useRef(false);
   useFocusEffect(
@@ -161,52 +175,56 @@ const ArtistProfileScreen = () => {
   const filteredTattoos = useMemo(() => {
     let result = activeGenreKey === 'all'
         ? artistTattoos
-        // 🚨 4. 앱 튕김 방지: genres가 없을 경우 대비 (?.)
-        : artistTattoos.filter((t) => t.genres?.includes(activeGenreKey));
+        // 장르 또는 부위 어느 쪽이든 매칭 (저장 라벨 == 필터 key)
+        : artistTattoos.filter((tt) =>
+            (tt.genres ?? []).includes(activeGenreKey) || (tt.bodyParts ?? []).includes(activeGenreKey));
     if (sortOrder === 'popular') {
       result = [...result].sort((a, b) => b.likeCount - a.likeCount);
     }
     return result;
   }, [artistTattoos, activeGenreKey, sortOrder]);
 
-  const portfolioImages = useMemo(
-      () => filteredTattoos.map((t) => t.images?.[0] ?? ''), // 🚨 방어코드 추가
-      [filteredTattoos],
-  );
-  const portfolioItems = showAllPortfolio ? portfolioImages : portfolioImages.slice(0, 9);
+  const portfolioTattoos = showAllPortfolio ? filteredTattoos : filteredTattoos.slice(0, 9);
 
   const handleTattooPress = useCallback(
       (tattoo: Tattoo) => navigation.navigate('TattooDetail', { tattoo }),
       [navigation],
   );
 
-  const renderPortfolioItem = (item: string, index: number) => (
-      <TouchableOpacity
-          key={index}
-          style={styles.portfolioItem}
-          activeOpacity={0.85}
-          onPress={() => {
-            const tattoo = filteredTattoos[index];
-            if (tattoo) handleTattooPress(tattoo);
-          }}
-      >
-        {item ? (
-            <Image source={{ uri: item }} style={styles.portfolioImage} resizeMode="cover" />
-        ) : (
-            <View style={styles.portfolioPlaceholder}>
-              <TattooPlaceholderIcon size={40} color="#2e2e2e" />
-            </View>
-        )}
-        <View style={styles.multiIcon}>
-          <View style={styles.multiIconInner} />
-        </View>
-        {artist.isSelectedMaster && (
-            <View style={styles.selectedMasterBadge}>
-              <Text style={styles.selectedMasterBadgeText}>★ SM</Text>
-            </View>
-        )}
-      </TouchableOpacity>
-  );
+  const renderPortfolioItem = (tattoo: Tattoo, index: number) => {
+    const uri = tattoo.images?.[0] ?? '';
+    const title = language === 'en' ? (tattoo.titleEn || tattoo.title) : tattoo.title;
+    return (
+        <TouchableOpacity
+            key={tattoo.id ?? index}
+            style={styles.portfolioItem}
+            activeOpacity={0.85}
+            onPress={() => handleTattooPress(tattoo)}
+        >
+          {uri ? (
+              <Image source={{ uri }} style={styles.portfolioImage} resizeMode="cover" />
+          ) : (
+              <View style={styles.portfolioPlaceholder}>
+                <TattooPlaceholderIcon size={40} color="#2e2e2e" />
+              </View>
+          )}
+          <View style={styles.multiIcon}>
+            <View style={styles.multiIconInner} />
+          </View>
+          {artist.isSelectedMaster && (
+              <View style={styles.selectedMasterBadge}>
+                <Text style={styles.selectedMasterBadgeText}>★ SM</Text>
+              </View>
+          )}
+          {/* 작품명 — 하단 그라데이션 위 1줄 노출 */}
+          {!!title && (
+              <View style={styles.portfolioTitleOverlay}>
+                <Text style={styles.portfolioTitleText} numberOfLines={1}>{title}</Text>
+              </View>
+          )}
+        </TouchableOpacity>
+    );
+  };
 
   const renderReviewItem = (rv: ReviewByArtist) => {
     const avg = (rv.painScore + rv.kindnessScore + rv.hygieneScore + rv.satisfactionScore) / 4;
@@ -238,6 +256,18 @@ const ArtistProfileScreen = () => {
                 </View>
             )}
           </View>
+          {/* 타투이스트 답글 */}
+          {!!rv.reply && (
+              <View style={styles.replyBlock}>
+                <View style={styles.replyHeader}>
+                  <CommentIcon size={13} color={COLORS.gold} strokeWidth={2} />
+                  <Text style={styles.replyAuthor}>
+                    {artist.nickname} · {language === 'en' ? 'Reply' : '답글'}
+                  </Text>
+                </View>
+                <Text style={styles.replyText}>{rv.reply}</Text>
+              </View>
+          )}
         </View>
     );
   };
@@ -266,6 +296,17 @@ const ArtistProfileScreen = () => {
               </Text>
             </View>
           </View>
+          {!!studio?.name && (
+              <View style={styles.infoTabItem}>
+                <StoreIcon size={18} color={COLORS.gold} />
+                <View style={styles.infoTabTextGroup}>
+                  <Text style={styles.infoTabLabel}>{language === 'en' ? 'Shop' : '소속 샵'}</Text>
+                  <Text style={styles.infoTabValue}>{studio?.name}</Text>
+                  {!!studio?.address && <Text style={styles.infoTabSub}>{studio?.address}</Text>}
+                  {!!studio?.info && <Text style={styles.infoTabSub}>{studio?.info}</Text>}
+                </View>
+              </View>
+          )}
           {!!artist.detailAddress && (
               <View style={styles.infoTabItem}>
                 <LocationPinIcon size={18} color={COLORS.gold} />
@@ -524,7 +565,7 @@ const ArtistProfileScreen = () => {
                       const isActive = activeGenreKey === g.key;
                       return (
                           <TouchableOpacity
-                              key={g.key}
+                              key={`${g.kind}:${g.key}`}
                               onPress={() => setActiveGenreKey(g.key)}
                               style={[styles.genreChip, isActive && styles.genreChipActive]}
                           >
@@ -547,10 +588,10 @@ const ArtistProfileScreen = () => {
                 </View>
 
                 <View style={styles.portfolioGrid}>
-                  {portfolioItems.map((item, idx) => renderPortfolioItem(item, idx))}
+                  {portfolioTattoos.map((tt, idx) => renderPortfolioItem(tt, idx))}
                 </View>
 
-                {!showAllPortfolio && portfolioImages.length > 9 && (
+                {!showAllPortfolio && filteredTattoos.length > 9 && (
                     <TouchableOpacity
                         style={styles.showMoreBtn}
                         onPress={() => { setShowAllPortfolio(true); loadMore(); }}
@@ -587,8 +628,8 @@ const ArtistProfileScreen = () => {
                       <Text style={styles.bottomInfoValue}>
                         {[artist.city, artist.district].filter(Boolean).join(' · ') || '—'}
                       </Text>
-                      {!!artist.detailAddress && (
-                        <Text style={styles.bottomInfoSub}>{artist.detailAddress}</Text>
+                      {!!(artist.detailAddress || studio?.address) && (
+                        <Text style={styles.bottomInfoSub}>{artist.detailAddress || studio?.address}</Text>
                       )}
                     </View>
                   </View>
@@ -1261,5 +1302,50 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '800',
     lineHeight: 11,
+  },
+
+  /* ── 작품 제목 오버레이 ── */
+  portfolioTitleOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 6,
+    paddingTop: 12,
+    paddingBottom: 5,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  portfolioTitleText: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: '600',
+    lineHeight: 15,
+  },
+
+  /* ── 리뷰 답글 ── */
+  replyBlock: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: COLORS.elevated,
+    borderLeftWidth: 2,
+    borderLeftColor: COLORS.gold,
+    gap: 5,
+  },
+  replyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  replyAuthor: {
+    color: COLORS.gold,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  replyText: {
+    color: COLORS.white,
+    fontSize: 13,
+    lineHeight: 19,
   },
 });
