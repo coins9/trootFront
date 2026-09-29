@@ -72,10 +72,12 @@ export function usePagedApi<T>(
   loaderRef.current = loader;
   const reqGen = useRef(0);
 
-  const load = useCallback(async (reset: boolean) => {
+  const load = useCallback(async (reset: boolean, silent = false) => {
     const gen = ++reqGen.current;
-    if (reset) { setItems([]); setLoading(true); }
-    else setLoadingMore(true);
+    // silent: 기존 목록을 유지한 채 백그라운드로 갱신(화면 비우기/스피너 없음) — 탭 복귀 시 깜빡임 방지
+    if (reset) {
+      if (!silent) { setItems([]); setLoading(true); }
+    } else setLoadingMore(true);
     setError(null);
 
     try {
@@ -113,8 +115,14 @@ export function usePagedApi<T>(
 
   const reload = useCallback(() => {
     setCursor(null);
-    void load(true);
+    void load(true, false);
   }, [load]);
 
-  return { items, loading, loadingMore, error, hasNext, loadMore, reload, setItems };
+  // 무음 갱신 — 기존 목록/스크롤 유지한 채 백그라운드로 첫 페이지를 다시 받아 교체(탭 복귀 시 깜빡임 방지)
+  const refresh = useCallback(() => {
+    setCursor(null);
+    void load(true, true);
+  }, [load]);
+
+  return { items, loading, loadingMore, error, hasNext, loadMore, reload, refresh, setItems };
 }

@@ -54,7 +54,7 @@ const HomeScreen = () => {
   const { regionMode, region, overseasCountryCode, genres, bodyParts, budgetMin, budgetMax } = useFilterStore();
 
   const {
-    items: artworks, loading, loadingMore, error, loadMore, reload,
+    items: artworks, loading, loadingMore, error, loadMore, reload, refresh,
   } = usePagedApi(
       (cursor) => artistApi.feed({
         cursor,
@@ -93,9 +93,9 @@ const HomeScreen = () => {
           hasFocused.current = true;
           return;
         }
-        reload();
-        reloadAds();
-      }, [reload, reloadAds])
+        refresh();       // 무음 갱신 — 기존 피드 유지한 채 백그라운드 새로고침(복귀 시 깜빡임 제거)
+        reloadAds();     // useApi 는 data 를 유지하므로 이미 무음
+      }, [refresh, reloadAds])
   );
 
   const cardAds = useMemo(
