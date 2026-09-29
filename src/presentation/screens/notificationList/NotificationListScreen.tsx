@@ -25,13 +25,24 @@ const NotificationListScreen = () => {
   useFocusEffect(useCallback(() => { void reload(); }, [reload]));
 
   const openNotification = useCallback(async (item: UserNotificationItem) => {
-    if (!item.readAt) await notificationApi.markRead(item.id);
-    const { screen, productId, reservationId, shopPostId } = item.data;
-    if (screen === 'ReservationManage') navigation.navigate('ReservationManage');
-    else if (screen === 'TattooReview') navigation.navigate('TattooReview');
-    else if (screen === 'TattooSupplyDetail' && productId) navigation.navigate('TattooSupplyDetail', { productId });
-    else if (screen === 'TattooShareDetail' && shopPostId) {
-      // 상세 객체가 필요한 기존 route는 안전한 ID 기반 전환 전까지 알림함에 머문다.
+    try {
+      if (!item.readAt) await notificationApi.markRead(item.id);
+    } catch {
+      // 읽음 처리 실패는 화면 이동을 막지 않는다
+    }
+    // data 가 없거나 형식이 어긋나도 앱이 멈추지 않도록 방어
+    const data = (item.data ?? {}) as Record<string, string>;
+    const { screen, productId, reservationId, shopPostId } = data;
+    try {
+      if (screen === 'ReservationManage') navigation.navigate('ReservationManage');
+      else if (screen === 'ArtistReservation') navigation.navigate('ArtistReservation');
+      else if (screen === 'TattooReview') navigation.navigate('TattooReview');
+      else if (screen === 'TattooSupplyDetail' && productId) navigation.navigate('TattooSupplyDetail', { productId });
+      else if (screen === 'TattooShareDetail' && shopPostId) {
+        // 상세 객체가 필요한 기존 route는 안전한 ID 기반 전환 전까지 알림함에 머문다.
+      }
+    } catch {
+      // 알 수 없는 screen 값 등으로 navigate 가 실패해도 알림함에 머문다
     }
     void reservationId;
     void reload();

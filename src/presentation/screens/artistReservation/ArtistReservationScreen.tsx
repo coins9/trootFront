@@ -38,6 +38,7 @@ import ShopOnboarding from '../../components/artistReservation/ShopOnboarding';
 import NewReservationSheet from '../../components/artistReservation/NewReservationSheet';
 import AppBottomTabBar, { useBottomTabHeight } from '../../components/common/AppBottomTabBar';
 import ConfirmModal, { ConfirmConfig } from '../../components/common/ConfirmModal';
+import { syncWidget, isWidgetAvailable } from '../../../infrastructure/widget/widgetSync';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useTranslation } from '../../store/languageStore';
 import { useAuthStore } from '../../store/authStore';
@@ -725,6 +726,37 @@ const ArtistReservationScreen = () => {
       }, [reloadSchedule, topTab, studio, loadShopRange, loadShopDay, shopMonthStart, shopSelectedDate])
   );
 
+  // T14: iOS 홈 위젯 동기화 — 오늘+다가오는 예약을 위젯에 반영.
+  // 위젯 미포함 빌드/안드로이드에서는 isWidgetAvailable()=false 로 무해하게 무시된다.
+  useEffect(() => {
+    if (!isWidgetAvailable()) return;
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const upcoming = (rawSchedule ?? [])
+      .filter((r) => r.status !== 'cancelled' && new Date(r.scheduledAt).getTime() >= startToday)
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    const isToday = (iso: string) => {
+      const d = new Date(iso);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+    };
+    const todayCount = upcoming.filter((r) => isToday(r.scheduledAt)).length;
+    const items = upcoming.slice(0, 6).map((r) => {
+      const d = new Date(r.scheduledAt);
+      return {
+        time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+        title: r.customerName || t('reservation.customerUnregistered' as any),
+        sub: r.bodyPart || '',
+      };
+    });
+    syncWidget({
+      headline: todayCount > 0
+        ? t('reservation.widgetTodayCount' as any).replace('{{count}}', String(todayCount))
+        : t('reservation.widgetUpcoming' as any),
+      items,
+      empty: t('reservation.widgetEmpty' as any),
+    });
+  }, [rawSchedule, t]);
+
   // Reservation[] → 날짜별 PersonalTimelineItem 맵
   const scheduleByDate = useMemo<Record<string, PersonalTimelineItem[]>>(() => {
     if (!rawSchedule) return {};
@@ -1396,6 +1428,8 @@ const ArtistReservationScreen = () => {
             onRequestComplete={requestComplete}
             onRequestCancel={requestCancel}
             onEdit={handleEditFromModal}
+            confirmConfig={confirm}
+            onDismissConfirm={() => setConfirm(null)}
         />
 
         {/* 새 예약 등록 / 수정 시트 */}
@@ -1410,8 +1444,8 @@ const ArtistReservationScreen = () => {
             onSubmit={handleSubmitReservation}
         />
 
-        {/* 커스텀 컨펌 모달 */}
-        <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
+        {/* 커스텀 컨펌 모달 — 예약 상세 시트가 열려 있으면 시트 내부(인라인)에서 띄운다(iOS 중첩 Modal 멈춤 방지) */}
+        <ConfirmModal config={detail ? null : confirm} onDismiss={() => setConfirm(null)} />
 
         {/* 월간 캘린더 날짜 클릭 팝업 */}
         <Modal
@@ -2267,7 +2301,8 @@ const styles = StyleSheet.create({
   },
   popupCard: {
     width: '100%',
-    maxHeight: '75%',
+    maxHeight: '82%',
+    minHeight: 240,
     backgroundColor: COLORS.card,
     borderRadius: 18,
     borderWidth: 1,
@@ -2289,9 +2324,9 @@ const styles = StyleSheet.create({
   },
   popupTitle: {
     color: COLORS.white,
-    fontSize: 15,
+    fontSize: 16.5,
     fontWeight: '800',
-    lineHeight: 20,
+    lineHeight: 22,
     flexShrink: 1,
   },
   popupEmpty: {
@@ -2304,18 +2339,19 @@ const styles = StyleSheet.create({
   popupEventRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 15,
+    minHeight: 62,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   popupEventTime: {
     color: COLORS.white,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    lineHeight: 15,
-    width: 40,
+    lineHeight: 16,
+    width: 54,
     textAlign: 'right',
   },
   popupEventBar: {
@@ -2326,14 +2362,14 @@ const styles = StyleSheet.create({
   },
   popupEventTitle: {
     color: COLORS.white,
-    fontSize: 13,
+    fontSize: 14.5,
     fontWeight: '700',
-    lineHeight: 17,
+    lineHeight: 20,
   },
   popupEventSub: {
     color: COLORS.gray,
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 12,
+    lineHeight: 17,
   },
 
   /* FAB */

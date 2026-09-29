@@ -455,6 +455,8 @@ const MyProfileScreen = () => {
           {mode === 'artist' && (
               <>
                 {renderCompactSection(t('profile.modeArtist'), artistMenuItems)}
+                {/* T09: 타투모델 구인(비기너)을 타투이스트 분류로 이동(부스•매칭에서는 제거) */}
+                {renderCompactSection(t('profile.sectionTattooModel'), shopModelItems)}
               </>
           )}
 
@@ -474,7 +476,6 @@ const MyProfileScreen = () => {
           {mode === 'shopMatching' && (
               <>
                 {renderCompactSection(t('profile.sectionBoothShare'), shopBoothItems)}
-                {renderCompactSection(t('profile.sectionTattooModel'), shopModelItems)}
                 {renderCompactSection(t('profile.sectionMediaExpert'), shopMediaItems)}
                 {renderCompactSection(t('profile.adSection'), shopAdItems)}
               </>

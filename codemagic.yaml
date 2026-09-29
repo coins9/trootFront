@@ -141,6 +141,15 @@ workflows:
           GOOGLE_PLACES_API_KEY=$GOOGLE_PLACES_API_KEY
           EOF
 
+      - name: 홈 위젯 타깃 주입 (ENABLE_WIDGET=true 일 때만)
+        script: |
+          if [ "$ENABLE_WIDGET" = "true" ]; then
+            gem install xcodeproj --no-document || true
+            ruby ios/scripts/add_widget_target.rb || true
+          else
+            echo "ENABLE_WIDGET 미설정 — 위젯 주입 건너뜀(메인 앱만 빌드)"
+          fi
+
       - name: CocoaPods 설치
         script: |
           cd ios
@@ -254,6 +263,15 @@ workflows:
           GOOGLE_PLACES_API_KEY=$GOOGLE_PLACES_API_KEY
           EOF
 
+      - name: 홈 위젯 타깃 주입 (ENABLE_WIDGET=true 일 때만)
+        script: |
+          if [ "$ENABLE_WIDGET" = "true" ]; then
+            gem install xcodeproj --no-document || true
+            ruby ios/scripts/add_widget_target.rb || true
+          else
+            echo "ENABLE_WIDGET 미설정 — 위젯 주입 건너뜀(메인 앱만 빌드)"
+          fi
+
       - name: CocoaPods 설치 (강제 초기화)
         script: |
           cd ios
@@ -272,6 +290,14 @@ workflows:
             --create \
             --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --verbose
+          # 위젯 활성화 시 확장 번들ID 프로파일도 함께 가져온다(App Group 포함 프로파일 필요)
+          if [ "$ENABLE_WIDGET" = "true" ]; then
+            app-store-connect fetch-signing-files "com.troot.app.TRootWidget" \
+              --type IOS_APP_STORE \
+              --create \
+              --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
+              --verbose || echo "위젯 프로파일 가져오기 실패 — App Group/App ID 설정을 확인하세요"
+          fi
           keychain add-certificates
           xcode-project use-profiles --verbose
 

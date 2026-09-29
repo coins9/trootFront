@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { StatusBar } from 'react-native';
+import { StatusBar, Linking } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -73,6 +73,24 @@ const App = () => {
       notificationService.syncToken();
     }
   }, [session]);
+
+  // T14: iOS 홈 위젯 탭(troot://calendar) → 예약 관리 화면으로 이동
+  useEffect(() => {
+    const routeTo = (screen: string) => {
+      let tries = 0;
+      const tryNav = () => {
+        if (navigationRef.isReady()) { navigationRef.navigate(screen as never); return; }
+        if (tries++ < 20) setTimeout(tryNav, 150);
+      };
+      tryNav();
+    };
+    const handleUrl = (url: string | null) => {
+      if (url && url.startsWith('troot://calendar')) routeTo('ArtistReservation');
+    };
+    Linking.getInitialURL().then(handleUrl).catch(() => {});
+    const sub = Linking.addEventListener('url', (e) => handleUrl(e.url));
+    return () => sub.remove();
+  }, []);
 
   const handleSplashFinish = useCallback(() => setSplashDone(true), []);
 

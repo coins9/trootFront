@@ -26,6 +26,8 @@ import { feedAdRegion } from '../../../domain/entities/regions';
 import HomeAdBanner from '../../components/home/HomeAdBanner';
 import { RootStackParamList } from '../../../infrastructure/navigation/RootNavigator';
 import { useFilterStore } from '../../store/filterStore';
+import { useAuthStore } from '../../store/authStore';
+import { PlusIcon } from '../../components/icons';
 
 const COLUMN_GAP = 8;
 const SIDE_PAD = 16;
@@ -38,6 +40,9 @@ const HomeScreen = () => {
   const { t, language } = useTranslation();
   const navigation = useNavigation<HomeNavProp>();
   const settings = usePublicSettings();
+  // T06: 타투이스트 역할이면 홈 작품 영역에 '작품 등록' 진입점을 노출
+  const session = useAuthStore((s) => s.session);
+  const isArtist = session?.user.roles?.includes('TATTOOIST') ?? false;
   const [bottomSheetType, setBottomSheetType] = useState<FilterType | null>(null);
   const [fullFilterVisible, setFullFilterVisible] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -274,6 +279,21 @@ const HomeScreen = () => {
         <FilterBar onFilterPress={openFilter} />
         <ActiveFilterRow onAddPress={() => openFilter('full')} />
 
+        {/* T06: 타투이스트 홈 작품 영역 — 작품 등록(글쓰기) 진입점 */}
+        {isArtist && (
+            <View style={styles.artistCtaRow}>
+              <TouchableOpacity
+                  style={styles.artistCtaBtn}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate('ArtistMyPage', { openArtworkForm: true })}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <PlusIcon size={15} color={COLORS.black} />
+                <Text style={styles.artistCtaText}>{t('home.registerArtwork' as any)}</Text>
+              </TouchableOpacity>
+            </View>
+        )}
+
         {/* 배너 광고 (banner 타입) — 당근/번개 방식: 활성 광고 항상 노출 */}
         {bannerAds.map((ad) => (
             <HomeAdBanner
@@ -320,7 +340,7 @@ const HomeScreen = () => {
         )}
       </View>
   ), [handleArtistPress, openFilter, sponsoredTattoos, bannerAds, adArtworks, favorites,
-      handleTattooPress, handleBookmark, navigation, t]);
+      handleTattooPress, handleBookmark, navigation, t, isArtist]);
 
   const listEmpty = useMemo(() => {
     if (loading) {
@@ -447,6 +467,15 @@ const styles = StyleSheet.create({
   },
   retryText: { color: COLORS.gold, fontSize: 13, fontWeight: '600', lineHeight: 18 },
   footer: { paddingVertical: 20 },
+  artistCtaRow: {
+    flexDirection: 'row', justifyContent: 'flex-end',
+    paddingHorizontal: SIDE_PAD, paddingTop: 4, paddingBottom: 6, backgroundColor: COLORS.bg,
+  },
+  artistCtaBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: COLORS.gold, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8,
+  },
+  artistCtaText: { color: COLORS.black, fontSize: 13, fontWeight: '700', lineHeight: 17 },
   sponsoredSection: { backgroundColor: COLORS.bg, paddingTop: 16 },
   sponsoredTitle: {
     color: COLORS.gray, fontSize: 12, fontWeight: '700',

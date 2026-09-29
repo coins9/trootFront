@@ -336,13 +336,47 @@ const ArtistReservationRequestsScreen = () => {
                   </ScrollView>
               )}
             </View>
+
+            {/* 상세 모달 내부 첨부사진 뷰어 — 중첩 Modal(iOS 멈춤) 대신 같은 Modal 내부 오버레이 */}
+            {viewerImages !== null && (
+                <View style={s.viewerFill}>
+                  <TouchableOpacity
+                      style={s.viewerClose}
+                      onPress={closeViewer}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <XIcon size={22} color={COLORS.white} strokeWidth={2} />
+                  </TouchableOpacity>
+                  {viewerImages && (
+                      <>
+                        <PagerCarousel
+                            data={viewerImages}
+                            width={SCREEN_WIDTH}
+                            height={SCREEN_HEIGHT}
+                            initialIndex={viewerIndex}
+                            onIndexChange={setViewerIndex}
+                            keyExtractor={(uri, idx) => `${uri}-${idx}`}
+                            renderItem={(uri) => (
+                                <Image source={{ uri }} style={s.viewerImage} resizeMode="contain" />
+                            )}
+                        />
+                        {viewerImages.length > 1 && (
+                            <View style={s.viewerDots}>
+                              <PagerDots count={viewerImages.length} activeIndex={viewerIndex} />
+                            </View>
+                        )}
+                      </>
+                  )}
+                </View>
+            )}
           </View>
         </Modal>
 
         <ConfirmModal config={confirm} onDismiss={() => setConfirm(null)} />
 
+        {/* 카드 썸네일에서 연 뷰어 — 상세 모달이 닫혀 있을 때만(중첩 Modal 회피) */}
         <Modal
-            visible={viewerImages !== null}
+            visible={viewerImages !== null && detailItem === null}
             transparent
             animationType="fade"
             statusBarTranslucent
@@ -481,6 +515,10 @@ const s = StyleSheet.create({
   detailRefThumb: { width: 96, height: 96, borderRadius: 10, backgroundColor: COLORS.elevated },
 
   viewerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center' },
+  viewerFill: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.97)', justifyContent: 'center', zIndex: 10,
+  },
   viewerClose: {
     position: 'absolute', top: 48, right: 16, zIndex: 1,
     width: 40, height: 40, borderRadius: 20,

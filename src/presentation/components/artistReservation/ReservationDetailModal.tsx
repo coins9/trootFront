@@ -12,6 +12,7 @@ import {
 } from '../icons';
 import { BookingStatus } from '../../../domain/entities/artistScheduleTypes';
 import { useTranslation } from '../../store/languageStore';
+import ConfirmModal, { ConfirmConfig } from '../common/ConfirmModal';
 
 export interface ReservationDetail {
   id: string;
@@ -39,6 +40,9 @@ interface Props {
   onRequestComplete: (id: string) => void;
   onRequestCancel: (id: string) => void;
   onEdit: (id: string) => void;
+  // 노쇼/완료/취소 확인창을 이 시트 내부(인라인)로 띄운다 — iOS 중첩 Modal 멈춤 방지
+  confirmConfig?: ConfirmConfig | null;
+  onDismissConfirm?: () => void;
 }
 
 const { height: SH, width: SW } = Dimensions.get('window');
@@ -55,6 +59,7 @@ const kindIcon = (kind: ReservationDetail['kind']) => {
 
 const ReservationDetailModal = memo(({
   detail, onClose, onRequestNoShow, onRequestComplete, onRequestCancel, onEdit,
+  confirmConfig = null, onDismissConfirm,
 }: Props) => {
   const visible = detail !== null;
   const translate = useRef(new Animated.Value(SH)).current;
@@ -373,6 +378,11 @@ const ReservationDetailModal = memo(({
             <XIcon size={22} color={COLORS.white} />
           </TouchableOpacity>
         </View>
+      )}
+
+      {/* 노쇼/완료/취소 확인창 — 중첩 Modal(iOS 멈춤) 대신 이 Modal 내부 인라인 오버레이 */}
+      {onDismissConfirm && (
+        <ConfirmModal inline config={confirmConfig} onDismiss={onDismissConfirm} />
       )}
     </Modal>
   );

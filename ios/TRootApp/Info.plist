@@ -52,6 +52,15 @@
 				<string>com.googleusercontent.apps.524083699015-pab2ei7ddeu1gnjeil1aofsm8bboo7q8</string>
 			</array>
 		</dict>
+		<!-- 홈 위젯 탭 딥링크 수신 스킴 (troot://calendar) -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>troot</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>troot</string>
+			</array>
+		</dict>
 	</array>
 	<!-- 설치된 카카오톡으로 전환하거나 웹 로그인 fallback 을 열려면 조회 허용이 필요 -->
 	<key>LSApplicationQueriesSchemes</key>
