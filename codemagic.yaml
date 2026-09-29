@@ -307,8 +307,10 @@ workflows:
           LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
           NEW=$(($LATEST + 1))
           agvtool new-version -all $NEW
-          agvtool new-marketing-version 1.0.0
-          echo "새 빌드 번호: $NEW"
+          # 마케팅 버전(스토어 표기)을 package.json "version" 과 동기화 — 앱 버전게이트 기준값과 일치시킨다
+          MKT=$(node -p "require('$CM_BUILD_DIR/package.json').version" 2>/dev/null || echo 1.0.0)
+          agvtool new-marketing-version "$MKT"
+          echo "새 빌드 번호: $NEW / 마케팅 버전: $MKT"
 
       - name: Beta App Localization 보장 (최초 1회 생성)
         script: |
