@@ -14,6 +14,17 @@ import { usePagedApi } from '../../hooks/useApi';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+// 일부 iOS 환경에서 toLocaleString(locale) 가 Intl 미탑재로 예외를 던질 수 있어 방어한다.
+const formatDateSafe = (iso: string, locale: string): string => {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString(locale);
+  } catch {
+    try { return new Date(iso).toISOString().slice(0, 16).replace('T', ' '); } catch { return ''; }
+  }
+};
+
 const NotificationListScreen = () => {
   const navigation = useNavigation<Nav>();
   const { t, language } = useTranslation();
@@ -54,7 +65,7 @@ const NotificationListScreen = () => {
       <View style={styles.itemBody}>
         <Text style={styles.itemTitle}>{language === 'en' ? item.titleEn : item.titleKo}</Text>
         <Text style={styles.itemText}>{language === 'en' ? item.bodyEn : item.bodyKo}</Text>
-        <Text style={styles.itemDate}>{new Date(item.createdAt).toLocaleString(language === 'en' ? 'en-US' : 'ko-KR')}</Text>
+        <Text style={styles.itemDate}>{formatDateSafe(item.createdAt, language === 'en' ? 'en-US' : 'ko-KR')}</Text>
       </View>
     </TouchableOpacity>
   ), [language, openNotification]);

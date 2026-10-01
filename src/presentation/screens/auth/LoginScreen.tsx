@@ -61,10 +61,16 @@ const LoginScreen = () => {
           toast(t('auth.loginCancelled'));
           return;
         }
-        // TODO: 디버그 확인 후 아래 줄로 원복
-        // toast(t('auth.loginFailed'), { variant: 'error' });
-        const errMsg = e instanceof Error ? `${e.message} [code:${(e as { code?: unknown }).code ?? '-'}]` : String(e);
-        toast(`${t('auth.loginErrorPrefix')} ${errMsg}`, { variant: 'error' });
+        // 백엔드 에러코드(e.message)를 사용자 친화 메시지로 매핑. 미지의 코드는 코드도 함께 보여 진단 가능하게.
+        const code = e instanceof Error ? e.message : String(e);
+        const ko = language === 'ko';
+        const msg =
+          code === 'USER_SUSPENDED' ? (ko ? '정지된 계정입니다. 고객센터에 문의해 주세요.' : 'This account is suspended.')
+          : code === 'USER_BANNED' ? (ko ? '이용이 제한된 계정입니다.' : 'This account has been banned.')
+          : code === 'NETWORK_ERROR' ? (ko ? '네트워크 연결을 확인해 주세요.' : 'Please check your network connection.')
+          : code === 'SOCIAL_TOKEN_INVALID' ? (ko ? '로그인 인증에 실패했어요. 다시 시도해 주세요.' : 'Sign-in verification failed. Please try again.')
+          : (ko ? `로그인에 실패했어요. 다시 시도해 주세요. (${code})` : `Sign-in failed. Please try again. (${code})`);
+        toast(msg, { variant: 'error' });
       }
     },
     [loginWith, navigation, toast, t],
