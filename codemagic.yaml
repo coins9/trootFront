@@ -324,20 +324,44 @@ workflows:
       - name: IPA 빌드
         script: |
           set -e
-          PROFILE_PATH=$(find / -name "*.mobileprovision" -maxdepth 12 2>/dev/null | head -1)
-          if [ -z "$PROFILE_PATH" ]; then
-            echo "ERROR: 프로파일 없음"
-            exit 1
-          fi
-          PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" 2>/dev/null | \
-            awk '/<key>UUID<\/key>/{found=1;next} found{gsub(/.*<string>|<\/string>.*/,""); print; exit}')
-          echo "Profile UUID: $PROFILE_UUID"
-
           mkdir -p "$CM_BUILD_DIR/build/ios"
           ARCHIVE_PATH="$CM_BUILD_DIR/build/ios/TRootApp.xcarchive"
           EXPORT_PATH="$CM_BUILD_DIR/build/ios/ipa"
           cp ios/ExportOptions.plist /tmp/ExportOptions.plist
-          /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.troot.app $PROFILE_UUID" /tmp/ExportOptions.plist
+
+          # 번들ID별로 정확히 프로파일 UUID 매칭 (application-identifier == TEAMID.<bundleId>)
+          # 기존엔 head -1 로 아무 프로파일이나 썼는데, 위젯까지 생기면서 다중 타깃 매핑이 필요해짐
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          find_uuid_for() {
+            local bid="$1" p appid
+            for p in "$PROFILE_DIR"/*.mobileprovision; do
+              [ -e "$p" ] || continue
+              security cms -D -i "$p" > /tmp/pp.plist 2>/dev/null || continue
+              appid=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" /tmp/pp.plist 2>/dev/null)
+              if [ "$appid" = "${TEAM_ID:-H2YL36R6Y7}.$bid" ]; then
+                /usr/libexec/PlistBuddy -c "Print :UUID" /tmp/pp.plist 2>/dev/null
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          MAIN_UUID=$(find_uuid_for "com.troot.app")
+          if [ -z "$MAIN_UUID" ]; then echo "ERROR: com.troot.app 프로파일 없음"; exit 1; fi
+          /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.troot.app $MAIN_UUID" /tmp/ExportOptions.plist
+          echo "main profile: $MAIN_UUID"
+
+          # 위젯 포함 빌드면 위젯 번들ID 매핑도 추가
+          if [ "$ENABLE_WIDGET" = "true" ]; then
+            WIDGET_UUID=$(find_uuid_for "com.troot.app.TRootWidget")
+            if [ -n "$WIDGET_UUID" ]; then
+              /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.troot.app.TRootWidget string $WIDGET_UUID" /tmp/ExportOptions.plist 2>/dev/null \
+                || /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.troot.app.TRootWidget $WIDGET_UUID" /tmp/ExportOptions.plist
+              echo "widget profile: $WIDGET_UUID"
+            else
+              echo "ERROR: 위젯 프로파일 없음 — com.troot.app.TRootWidget App ID에 App Groups 활성화 + 프로파일 생성 확인"; exit 1
+            fi
+          fi
 
           set -o pipefail
           xcodebuild archive \
